@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
+use App\Filament\Pages\Auth\Register;
 use App\Filament\Resources\PersonalAccessTokenResource;
 use App\Filament\Widgets\ActiveAnomalies;
 use App\Filament\Widgets\AnomaliesPerMonitor;
@@ -15,6 +17,9 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
+use Filament\Pages\Auth\EmailVerification\EmailVerificationPrompt;
+use Filament\Pages\Auth\Login;
+use Filament\Pages\Auth\PasswordReset\RequestPasswordReset;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -26,6 +31,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Laravel\Socialite\Contracts\User as SocialiteUserContract;
 
 class MainPanelProvider extends PanelProvider
 {
@@ -47,8 +53,8 @@ class MainPanelProvider extends PanelProvider
             ->pages([
             ])
             ->darkMode(false)
-            ->registration()
-            ->profile()
+            ->registration(Register::class)
+            ->profile(EditProfile::class)
             ->passwordReset()
             ->emailVerification()
             ->widgets([
@@ -82,7 +88,12 @@ class MainPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SIMPLE_PAGE_START,
                 fn () => view('auth-banner'),
-                scopes: [\Filament\Pages\Auth\Login::class, \Filament\Pages\Auth\Register::class, \Filament\Pages\Auth\EmailVerification\EmailVerificationPrompt::class, \Filament\Pages\Auth\PasswordReset\RequestPasswordReset::class]
+                scopes: [
+                    Login::class,
+                    Register::class,
+                    EmailVerificationPrompt::class,
+                    RequestPasswordReset::class
+                ]
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,
@@ -122,6 +133,20 @@ class MainPanelProvider extends PanelProvider
                     ->registration(true)
                     ->showDivider(false)
                     ->socialiteUserModelClass(SocialiteUser::class)
+                    ->createUserUsing(function (SocialiteUserContract $socialiteUser) {
+                            $timezone = request()->get('timezone', config('app.timezone', 'UTC'));
+
+                            if (!in_array($timezone, \Carbon\CarbonTimeZone::listIdentifiers())) {
+                                $timezone = config('app.timezone', 'UTC');
+                            }
+
+                            return \App\Models\User::create([
+                                'name' => $socialiteUser->getName(),
+                                'email' => $socialiteUser->getEmail(),
+                                'email_verified_at' => now(),
+                                'timezone' => $timezone,
+                            ]);
+                        })
             );
     }
 }
