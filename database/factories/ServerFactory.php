@@ -32,7 +32,7 @@ class ServerFactory extends Factory
                 'Alpine Linux 3.16',
                 'FreeBSD 13.1'
             ]),
-            'secret' => Str::random(32),
+            'secret' => Str::random(64),
             'is_active' => fake()->boolean(80), // 80% chance of being active
             'last_seen_at' => fake()->optional(0.9)->dateTimeBetween('-1 hour', 'now'),
             'user_id' => User::factory(),
