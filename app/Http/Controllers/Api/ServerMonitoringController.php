@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Server;
 use App\Models\ServerMetric;
+use App\Models\DiskMetric;
+use App\Models\NetworkMetric;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -47,16 +49,19 @@ class ServerMonitoringController extends Controller
                 'swap_used' => 'nullable|integer|min:0',
                 'swap_usage_percent' => 'nullable|numeric|min:0|max:100',
                 'disk_metrics' => 'nullable|array',
-                'disk_metrics.*.mount' => 'required_with:disk_metrics|string',
-                'disk_metrics.*.total' => 'required_with:disk_metrics|integer|min:0',
-                'disk_metrics.*.used' => 'required_with:disk_metrics|integer|min:0',
-                'disk_metrics.*.available' => 'required_with:disk_metrics|integer|min:0',
+                'disk_metrics.*.mount_point' => 'required_with:disk_metrics|string',
+                'disk_metrics.*.total_bytes' => 'required_with:disk_metrics|integer|min:0',
+                'disk_metrics.*.used_bytes' => 'required_with:disk_metrics|integer|min:0',
+                'disk_metrics.*.available_bytes' => 'required_with:disk_metrics|integer|min:0',
+                'disk_metrics.*.usage_percent' => 'nullable|numeric|min:0|max:100',
                 'network_metrics' => 'nullable|array',
-                'network_metrics.*.interface' => 'required_with:network_metrics|string',
+                'network_metrics.*.interface_name' => 'required_with:network_metrics|string',
                 'network_metrics.*.rx_bytes' => 'required_with:network_metrics|integer|min:0',
                 'network_metrics.*.tx_bytes' => 'required_with:network_metrics|integer|min:0',
                 'network_metrics.*.rx_packets' => 'nullable|integer|min:0',
                 'network_metrics.*.tx_packets' => 'nullable|integer|min:0',
+                'network_metrics.*.rx_errors' => 'nullable|integer|min:0',
+                'network_metrics.*.tx_errors' => 'nullable|integer|min:0',
                 'collected_at' => 'nullable|date',
             ]);
 
@@ -74,11 +79,40 @@ class ServerMonitoringController extends Controller
                 'swap_total' => $validated['swap_total'] ?? null,
                 'swap_used' => $validated['swap_used'] ?? null,
                 'swap_usage_percent' => $validated['swap_usage_percent'] ?? null,
-                'disk_metrics' => $validated['disk_metrics'] ?? null,
-                'network_metrics' => $validated['network_metrics'] ?? null,
                 'collected_at' => $validated['collected_at'] ? 
                     \Carbon\Carbon::parse($validated['collected_at']) : now(),
             ]);
+
+            // Create disk metric records
+            if (isset($validated['disk_metrics']) && is_array($validated['disk_metrics'])) {
+                foreach ($validated['disk_metrics'] as $diskData) {
+                    DiskMetric::create([
+                        'server_metric_id' => $metric->id,
+                        'mount_point' => $diskData['mount_point'],
+                        'total_bytes' => $diskData['total_bytes'],
+                        'used_bytes' => $diskData['used_bytes'],
+                        'available_bytes' => $diskData['available_bytes'],
+                        'usage_percent' => $diskData['usage_percent'] ?? 
+                            (($diskData['used_bytes'] / max($diskData['total_bytes'], 1)) * 100),
+                    ]);
+                }
+            }
+
+            // Create network metric records
+            if (isset($validated['network_metrics']) && is_array($validated['network_metrics'])) {
+                foreach ($validated['network_metrics'] as $networkData) {
+                    NetworkMetric::create([
+                        'server_metric_id' => $metric->id,
+                        'interface_name' => $networkData['interface_name'],
+                        'rx_bytes' => $networkData['rx_bytes'],
+                        'tx_bytes' => $networkData['tx_bytes'],
+                        'rx_packets' => $networkData['rx_packets'] ?? null,
+                        'tx_packets' => $networkData['tx_packets'] ?? null,
+                        'rx_errors' => $networkData['rx_errors'] ?? null,
+                        'tx_errors' => $networkData['tx_errors'] ?? null,
+                    ]);
+                }
+            }
 
             // Update server's last_seen_at
             $server->update(['last_seen_at' => now()]);

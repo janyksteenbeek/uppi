@@ -32,9 +32,7 @@ return new class extends Migration
             $table->bigInteger('swap_used')->nullable();
             $table->float('swap_usage_percent', 5, 2)->nullable();
             
-            // Disk and Network metrics stored as JSON for flexibility
-            $table->json('disk_metrics')->nullable(); // Array of disk usage per mount point
-            $table->json('network_metrics')->nullable(); // Network interface statistics
+            // Disk and Network metrics are stored in separate tables for better queryability
             
             $table->timestamp('collected_at'); // When the metrics were collected
             $table->timestamps();

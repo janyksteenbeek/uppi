@@ -94,24 +94,55 @@ class ViewServer extends ViewRecord
 
                 Infolists\Components\Section::make('Disk Usage')
                     ->schema([
-                        Infolists\Components\TextEntry::make('disk_metrics')
+                        Infolists\Components\TextEntry::make('disk_usage')
                             ->label('')
                             ->formatStateUsing(function (Server $record) {
                                 $latest = $record->latestMetric();
-                                if (!$latest || !$latest->disk_metrics) {
+                                if (!$latest) {
+                                    return 'No disk data available';
+                                }
+                                
+                                $diskMetrics = $latest->diskMetrics;
+                                if ($diskMetrics->isEmpty()) {
                                     return 'No disk data available';
                                 }
                                 
                                 $output = '';
-                                foreach ($latest->disk_metrics as $disk) {
-                                    $used = $disk['used'] ?? 0;
-                                    $total = $disk['total'] ?? 1;
-                                    $percentage = $total > 0 ? round(($used / $total) * 100, 1) : 0;
-                                    $output .= sprintf("%s: %s / %s (%s%%)\n", 
-                                        $disk['mount'] ?? 'Unknown',
-                                        $this->formatBytes($used),
-                                        $this->formatBytes($total),
-                                        $percentage
+                                foreach ($diskMetrics as $disk) {
+                                    $output .= sprintf("%s: %s / %s (%.1f%%)\n", 
+                                        $disk->mount_point,
+                                        $disk->formatted_used,
+                                        $disk->formatted_total,
+                                        $disk->usage_percent
+                                    );
+                                }
+                                return trim($output);
+                            })
+                            ->html()
+                            ->columnSpanFull(),
+                    ]),
+
+                Infolists\Components\Section::make('Network Usage')
+                    ->schema([
+                        Infolists\Components\TextEntry::make('network_usage')
+                            ->label('')
+                            ->formatStateUsing(function (Server $record) {
+                                $latest = $record->latestMetric();
+                                if (!$latest) {
+                                    return 'No network data available';
+                                }
+                                
+                                $networkMetrics = $latest->networkMetrics;
+                                if ($networkMetrics->isEmpty()) {
+                                    return 'No network data available';
+                                }
+                                
+                                $output = '';
+                                foreach ($networkMetrics as $network) {
+                                    $output .= sprintf("%s: RX %s / TX %s\n", 
+                                        $network->interface_name,
+                                        $network->formatted_rx_bytes,
+                                        $network->formatted_tx_bytes
                                     );
                                 }
                                 return trim($output);

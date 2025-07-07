@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServerMetric extends Model
 {
@@ -24,8 +25,6 @@ class ServerMetric extends Model
         'swap_total',
         'swap_used',
         'swap_usage_percent',
-        'disk_metrics',
-        'network_metrics',
         'collected_at',
     ];
 
@@ -41,14 +40,22 @@ class ServerMetric extends Model
         'swap_total' => 'integer',
         'swap_used' => 'integer',
         'swap_usage_percent' => 'float',
-        'disk_metrics' => 'array',
-        'network_metrics' => 'array',
         'collected_at' => 'datetime',
     ];
 
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    public function diskMetrics(): HasMany
+    {
+        return $this->hasMany(DiskMetric::class);
+    }
+
+    public function networkMetrics(): HasMany
+    {
+        return $this->hasMany(NetworkMetric::class);
     }
 
     public function getFormattedMemoryUsedAttribute(): string
