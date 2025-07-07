@@ -48,7 +48,7 @@ class Server extends Model
 
         static::creating(function (Server $server) {
             if (empty($server->secret)) {
-                $server->secret = Str::random(32);
+                $server->secret = Str::random(64);
             }
         });
     }
@@ -84,7 +84,7 @@ class Server extends Model
 
     public function generateNewSecret(): string
     {
-        $this->secret = Str::random(32);
+        $this->secret = Str::random(64);
         $this->save();
         
         return $this->secret;

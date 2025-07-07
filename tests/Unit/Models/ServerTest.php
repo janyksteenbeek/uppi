@@ -29,7 +29,7 @@ it('automatically generates secret on creation', function () {
 
     expect($server->secret)
         ->not->toBeNull()
-        ->and(strlen($server->secret))->toBe(32);
+        ->and(strlen($server->secret))->toBe(64);
 });
 
 it('does not override provided secret', function () {
@@ -71,7 +71,7 @@ it('can generate new secret', function () {
 
     expect($newSecret)
         ->not->toBe($originalSecret)
-        ->and(strlen($newSecret))->toBe(32)
+        ->and(strlen($newSecret))->toBe(64)
         ->and($server->fresh()->secret)->toBe($newSecret);
 });
 
