@@ -1,201 +1,174 @@
 <?php
 
-namespace Tests\Unit\Models;
-
 use App\Models\DiskMetric;
 use App\Models\NetworkMetric;
 use App\Models\Server;
 use App\Models\ServerMetric;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class ServerMetricTest extends TestCase
-{
-    use RefreshDatabase;
+it('belongs to a server', function () {
+    $server = Server::factory()->create();
+    $metric = ServerMetric::factory()->create(['server_id' => $server->id]);
 
-    public function test_server_metric_belongs_to_server(): void
-    {
-        $server = Server::factory()->create();
-        $metric = ServerMetric::factory()->create(['server_id' => $server->id]);
+    expect($metric->server)
+        ->toBeInstanceOf(Server::class)
+        ->and($metric->server->id)->toBe($server->id);
+});
 
-        $this->assertInstanceOf(Server::class, $metric->server);
-        $this->assertEquals($server->id, $metric->server->id);
-    }
+it('has many disk metrics', function () {
+    $metric = ServerMetric::factory()->create();
+    $disk1 = DiskMetric::factory()->create(['server_metric_id' => $metric->id]);
+    $disk2 = DiskMetric::factory()->create(['server_metric_id' => $metric->id]);
 
-    public function test_server_metric_has_many_disk_metrics(): void
-    {
-        $metric = ServerMetric::factory()->create();
-        $disk1 = DiskMetric::factory()->create(['server_metric_id' => $metric->id]);
-        $disk2 = DiskMetric::factory()->create(['server_metric_id' => $metric->id]);
+    expect($metric->diskMetrics)
+        ->toHaveCount(2)
+        ->and($metric->diskMetrics->contains($disk1))->toBeTrue()
+        ->and($metric->diskMetrics->contains($disk2))->toBeTrue();
+});
 
-        $this->assertCount(2, $metric->diskMetrics);
-        $this->assertTrue($metric->diskMetrics->contains($disk1));
-        $this->assertTrue($metric->diskMetrics->contains($disk2));
-    }
+it('has many network metrics', function () {
+    $metric = ServerMetric::factory()->create();
+    $network1 = NetworkMetric::factory()->create(['server_metric_id' => $metric->id]);
+    $network2 = NetworkMetric::factory()->create(['server_metric_id' => $metric->id]);
 
-    public function test_server_metric_has_many_network_metrics(): void
-    {
-        $metric = ServerMetric::factory()->create();
-        $network1 = NetworkMetric::factory()->create(['server_metric_id' => $metric->id]);
-        $network2 = NetworkMetric::factory()->create(['server_metric_id' => $metric->id]);
+    expect($metric->networkMetrics)
+        ->toHaveCount(2)
+        ->and($metric->networkMetrics->contains($network1))->toBeTrue()
+        ->and($metric->networkMetrics->contains($network2))->toBeTrue();
+});
 
-        $this->assertCount(2, $metric->networkMetrics);
-        $this->assertTrue($metric->networkMetrics->contains($network1));
-        $this->assertTrue($metric->networkMetrics->contains($network2));
-    }
+it('formats memory correctly', function () {
+    $metric = ServerMetric::factory()->create([
+        'memory_total' => 8 * 1024 * 1024 * 1024, // 8GB
+        'memory_used' => 4 * 1024 * 1024 * 1024,  // 4GB
+    ]);
 
-    public function test_server_metric_formats_memory_correctly(): void
-    {
-        $metric = ServerMetric::factory()->create([
-            'memory_total' => 8 * 1024 * 1024 * 1024, // 8GB
-            'memory_used' => 4 * 1024 * 1024 * 1024,  // 4GB
-        ]);
+    expect($metric->formatted_memory_total)->toBe('8.00 GB')
+        ->and($metric->formatted_memory_used)->toBe('4.00 GB');
+});
 
-        $this->assertEquals('8.00 GB', $metric->formatted_memory_total);
-        $this->assertEquals('4.00 GB', $metric->formatted_memory_used);
-    }
+it('formats swap correctly', function () {
+    $metric = ServerMetric::factory()->create([
+        'swap_total' => 2 * 1024 * 1024 * 1024, // 2GB
+        'swap_used' => 1024 * 1024 * 1024,      // 1GB
+    ]);
 
-    public function test_server_metric_formats_swap_correctly(): void
-    {
-        $metric = ServerMetric::factory()->create([
-            'swap_total' => 2 * 1024 * 1024 * 1024, // 2GB
-            'swap_used' => 1024 * 1024 * 1024,      // 1GB
-        ]);
+    expect($metric->formatted_swap_total)->toBe('2.00 GB')
+        ->and($metric->formatted_swap_used)->toBe('1.00 GB');
+});
 
-        $this->assertEquals('2.00 GB', $metric->formatted_swap_total);
-        $this->assertEquals('1.00 GB', $metric->formatted_swap_used);
-    }
+it('casts attributes correctly', function () {
+    $metric = ServerMetric::factory()->create([
+        'cpu_usage' => '50.5',
+        'cpu_load_1' => '1.5',
+        'memory_total' => '8589934592',
+        'memory_usage_percent' => '75.0',
+        'collected_at' => '2025-01-20 10:30:00',
+    ]);
 
-    public function test_server_metric_casts_attributes_correctly(): void
-    {
-        $metric = ServerMetric::factory()->create([
-            'cpu_usage' => '50.5',
-            'cpu_load_1' => '1.5',
-            'memory_total' => '8589934592',
-            'memory_usage_percent' => '75.0',
-            'collected_at' => '2025-01-20 10:30:00',
-        ]);
+    expect($metric->cpu_usage)->toBeFloat()->toBe(50.5)
+        ->and($metric->cpu_load_1)->toBeFloat()->toBe(1.5)
+        ->and($metric->memory_total)->toBeInt()->toBe(8589934592)
+        ->and($metric->memory_usage_percent)->toBeFloat()->toBe(75.0)
+        ->and($metric->collected_at)->toBeInstanceOf(\Carbon\Carbon::class);
+});
 
-        $this->assertIsFloat($metric->cpu_usage);
-        $this->assertIsFloat($metric->cpu_load_1);
-        $this->assertIsInt($metric->memory_total);
-        $this->assertIsFloat($metric->memory_usage_percent);
-        $this->assertInstanceOf(\Carbon\Carbon::class, $metric->collected_at);
+it('has for time range scope', function () {
+    $server = Server::factory()->create();
+    
+    // Create metrics at different times
+    $oldMetric = ServerMetric::factory()->create([
+        'server_id' => $server->id,
+        'collected_at' => '2025-01-01 12:00:00'
+    ]);
+    
+    $middleMetric = ServerMetric::factory()->create([
+        'server_id' => $server->id,
+        'collected_at' => '2025-01-15 12:00:00'
+    ]);
+    
+    $newMetric = ServerMetric::factory()->create([
+        'server_id' => $server->id,
+        'collected_at' => '2025-01-30 12:00:00'
+    ]);
 
-        $this->assertEquals(50.5, $metric->cpu_usage);
-        $this->assertEquals(1.5, $metric->cpu_load_1);
-        $this->assertEquals(8589934592, $metric->memory_total);
-        $this->assertEquals(75.0, $metric->memory_usage_percent);
-    }
+    // Test time range filtering
+    $results = ServerMetric::forTimeRange('2025-01-10', '2025-01-20')->get();
+    
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->contains($middleMetric))->toBeTrue()
+        ->and($results->contains($oldMetric))->toBeFalse()
+        ->and($results->contains($newMetric))->toBeFalse();
+});
 
-    public function test_server_metric_for_time_range_scope(): void
-    {
-        $server = Server::factory()->create();
-        
-        // Create metrics at different times
-        $oldMetric = ServerMetric::factory()->create([
-            'server_id' => $server->id,
-            'collected_at' => '2025-01-01 12:00:00'
-        ]);
-        
-        $middleMetric = ServerMetric::factory()->create([
-            'server_id' => $server->id,
-            'collected_at' => '2025-01-15 12:00:00'
-        ]);
-        
-        $newMetric = ServerMetric::factory()->create([
-            'server_id' => $server->id,
-            'collected_at' => '2025-01-30 12:00:00'
-        ]);
+it('has recent scope', function () {
+    $server = Server::factory()->create();
+    
+    // Create old metric (25 hours ago)
+    $oldMetric = ServerMetric::factory()->create([
+        'server_id' => $server->id,
+        'collected_at' => now()->subHours(25)
+    ]);
+    
+    // Create recent metric (12 hours ago)
+    $recentMetric = ServerMetric::factory()->create([
+        'server_id' => $server->id,
+        'collected_at' => now()->subHours(12)
+    ]);
 
-        // Test time range filtering
-        $results = ServerMetric::forTimeRange('2025-01-10', '2025-01-20')->get();
-        
-        $this->assertCount(1, $results);
-        $this->assertTrue($results->contains($middleMetric));
-        $this->assertFalse($results->contains($oldMetric));
-        $this->assertFalse($results->contains($newMetric));
-    }
+    // Test recent scope (default 24 hours)
+    $results = ServerMetric::recent()->get();
+    
+    expect($results->contains($recentMetric))->toBeTrue()
+        ->and($results->contains($oldMetric))->toBeFalse();
 
-    public function test_server_metric_recent_scope(): void
-    {
-        $server = Server::factory()->create();
-        
-        // Create old metric (25 hours ago)
-        $oldMetric = ServerMetric::factory()->create([
-            'server_id' => $server->id,
-            'collected_at' => now()->subHours(25)
-        ]);
-        
-        // Create recent metric (12 hours ago)
-        $recentMetric = ServerMetric::factory()->create([
-            'server_id' => $server->id,
-            'collected_at' => now()->subHours(12)
-        ]);
+    // Test recent scope with custom hours
+    $results = ServerMetric::recent(10)->get();
+    
+    expect($results->contains($recentMetric))->toBeFalse()
+        ->and($results->contains($oldMetric))->toBeFalse();
+});
 
-        // Test recent scope (default 24 hours)
-        $results = ServerMetric::recent()->get();
-        
-        $this->assertTrue($results->contains($recentMetric));
-        $this->assertFalse($results->contains($oldMetric));
+it('factory generates valid data', function () {
+    $metric = ServerMetric::factory()->create();
 
-        // Test recent scope with custom hours
-        $results = ServerMetric::recent(10)->get();
-        
-        $this->assertFalse($results->contains($recentMetric));
-        $this->assertFalse($results->contains($oldMetric));
-    }
+    // Test CPU metrics
+    expect($metric->cpu_usage)->toBeGreaterThanOrEqual(0)->toBeLessThanOrEqual(100)
+        ->and($metric->cpu_load_1)->toBeGreaterThanOrEqual(0)
+        ->and($metric->cpu_load_5)->toBeGreaterThanOrEqual(0)
+        ->and($metric->cpu_load_15)->toBeGreaterThanOrEqual(0);
 
-    public function test_server_metric_factory_generates_valid_data(): void
-    {
-        $metric = ServerMetric::factory()->create();
+    // Test memory metrics
+    expect($metric->memory_total)->toBeGreaterThanOrEqual(0)
+        ->and($metric->memory_used)->toBeGreaterThanOrEqual(0)
+        ->and($metric->memory_available)->toBeGreaterThanOrEqual(0)
+        ->and($metric->memory_usage_percent)->toBeGreaterThanOrEqual(0)->toBeLessThanOrEqual(100);
 
-        // Test CPU metrics
-        $this->assertGreaterThanOrEqual(0, $metric->cpu_usage);
-        $this->assertLessThanOrEqual(100, $metric->cpu_usage);
-        $this->assertGreaterThanOrEqual(0, $metric->cpu_load_1);
-        $this->assertGreaterThanOrEqual(0, $metric->cpu_load_5);
-        $this->assertGreaterThanOrEqual(0, $metric->cpu_load_15);
+    // Test swap metrics
+    expect($metric->swap_total)->toBeGreaterThanOrEqual(0)
+        ->and($metric->swap_used)->toBeGreaterThanOrEqual(0)
+        ->and($metric->swap_usage_percent)->toBeGreaterThanOrEqual(0)->toBeLessThanOrEqual(100);
 
-        // Test memory metrics
-        $this->assertGreaterThanOrEqual(0, $metric->memory_total);
-        $this->assertGreaterThanOrEqual(0, $metric->memory_used);
-        $this->assertGreaterThanOrEqual(0, $metric->memory_available);
-        $this->assertGreaterThanOrEqual(0, $metric->memory_usage_percent);
-        $this->assertLessThanOrEqual(100, $metric->memory_usage_percent);
+    // Test memory consistency
+    expect($metric->memory_total)->toBe($metric->memory_used + $metric->memory_available)
+        ->and($metric->collected_at)->not->toBeNull();
+});
 
-        // Test swap metrics
-        $this->assertGreaterThanOrEqual(0, $metric->swap_total);
-        $this->assertGreaterThanOrEqual(0, $metric->swap_used);
-        $this->assertGreaterThanOrEqual(0, $metric->swap_usage_percent);
-        $this->assertLessThanOrEqual(100, $metric->swap_usage_percent);
+it('factory states work correctly', function () {
+    $highCpuMetric = ServerMetric::factory()->highCpu()->create();
+    expect($highCpuMetric->cpu_usage)->toBeGreaterThanOrEqual(80)
+        ->and($highCpuMetric->cpu_load_1)->toBeGreaterThanOrEqual(4);
 
-        // Test memory consistency
-        $this->assertEquals(
-            $metric->memory_total,
-            $metric->memory_used + $metric->memory_available
-        );
+    $highMemoryMetric = ServerMetric::factory()->highMemory()->create();
+    expect($highMemoryMetric->memory_usage_percent)->toBeGreaterThanOrEqual(80);
 
-        $this->assertNotNull($metric->collected_at);
-    }
+    $lowUsageMetric = ServerMetric::factory()->lowUsage()->create();
+    expect($lowUsageMetric->cpu_usage)->toBeLessThanOrEqual(20)
+        ->and($lowUsageMetric->memory_usage_percent)->toBeLessThanOrEqual(30);
 
-    public function test_server_metric_factory_states(): void
-    {
-        $highCpuMetric = ServerMetric::factory()->highCpu()->create();
-        $this->assertGreaterThanOrEqual(80, $highCpuMetric->cpu_usage);
-        $this->assertGreaterThanOrEqual(4, $highCpuMetric->cpu_load_1);
+    $recentMetric = ServerMetric::factory()->recent()->create();
+    expect($recentMetric->collected_at->greaterThan(now()->subHour()))->toBeTrue();
 
-        $highMemoryMetric = ServerMetric::factory()->highMemory()->create();
-        $this->assertGreaterThanOrEqual(80, $highMemoryMetric->memory_usage_percent);
-
-        $lowUsageMetric = ServerMetric::factory()->lowUsage()->create();
-        $this->assertLessThanOrEqual(20, $lowUsageMetric->cpu_usage);
-        $this->assertLessThanOrEqual(30, $lowUsageMetric->memory_usage_percent);
-
-        $recentMetric = ServerMetric::factory()->recent()->create();
-        $this->assertTrue($recentMetric->collected_at->greaterThan(now()->subHour()));
-
-        $oldMetric = ServerMetric::factory()->old()->create();
-        $this->assertTrue($oldMetric->collected_at->lessThan(now()->subDay()));
-    }
-}
+    $oldMetric = ServerMetric::factory()->old()->create();
+    expect($oldMetric->collected_at->lessThan(now()->subDay()))->toBeTrue();
+});

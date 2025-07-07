@@ -1,113 +1,90 @@
 <?php
 
-namespace Tests\Unit\Models;
-
 use App\Models\DiskMetric;
 use App\Models\ServerMetric;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class DiskMetricTest extends TestCase
-{
-    use RefreshDatabase;
+it('belongs to a server metric', function () {
+    $serverMetric = ServerMetric::factory()->create();
+    $diskMetric = DiskMetric::factory()->create([
+        'server_metric_id' => $serverMetric->id
+    ]);
 
-    public function test_disk_metric_belongs_to_server_metric(): void
-    {
-        $serverMetric = ServerMetric::factory()->create();
-        $diskMetric = DiskMetric::factory()->create([
-            'server_metric_id' => $serverMetric->id
-        ]);
+    expect($diskMetric->serverMetric)
+        ->toBeInstanceOf(ServerMetric::class)
+        ->and($diskMetric->serverMetric->id)->toBe($serverMetric->id);
+});
 
-        $this->assertInstanceOf(ServerMetric::class, $diskMetric->serverMetric);
-        $this->assertEquals($serverMetric->id, $diskMetric->serverMetric->id);
-    }
+it('formats bytes correctly', function () {
+    $diskMetric = DiskMetric::factory()->create([
+        'total_bytes' => 1024 * 1024 * 1024, // 1GB
+        'used_bytes' => 512 * 1024 * 1024,   // 512MB
+        'available_bytes' => 512 * 1024 * 1024, // 512MB
+    ]);
 
-    public function test_disk_metric_formats_bytes_correctly(): void
-    {
-        $diskMetric = DiskMetric::factory()->create([
-            'total_bytes' => 1024 * 1024 * 1024, // 1GB
-            'used_bytes' => 512 * 1024 * 1024,   // 512MB
-            'available_bytes' => 512 * 1024 * 1024, // 512MB
-        ]);
+    expect($diskMetric->formatted_total)->toBe('1.00 GB')
+        ->and($diskMetric->formatted_used)->toBe('512.00 MB')
+        ->and($diskMetric->formatted_available)->toBe('512.00 MB');
+});
 
-        $this->assertEquals('1.00 GB', $diskMetric->formatted_total);
-        $this->assertEquals('512.00 MB', $diskMetric->formatted_used);
-        $this->assertEquals('512.00 MB', $diskMetric->formatted_available);
-    }
+it('formats small bytes', function () {
+    $diskMetric = DiskMetric::factory()->create([
+        'total_bytes' => 1024,
+        'used_bytes' => 512,
+        'available_bytes' => 512,
+    ]);
 
-    public function test_disk_metric_formats_small_bytes(): void
-    {
-        $diskMetric = DiskMetric::factory()->create([
-            'total_bytes' => 1024,
-            'used_bytes' => 512,
-            'available_bytes' => 512,
-        ]);
+    expect($diskMetric->formatted_total)->toBe('1.00 KB')
+        ->and($diskMetric->formatted_used)->toBe('512.00 B')
+        ->and($diskMetric->formatted_available)->toBe('512.00 B');
+});
 
-        $this->assertEquals('1.00 KB', $diskMetric->formatted_total);
-        $this->assertEquals('512.00 B', $diskMetric->formatted_used);
-        $this->assertEquals('512.00 B', $diskMetric->formatted_available);
-    }
+it('formats large bytes', function () {
+    $diskMetric = DiskMetric::factory()->create([
+        'total_bytes' => 2 * 1024 * 1024 * 1024 * 1024, // 2TB
+        'used_bytes' => 1024 * 1024 * 1024 * 1024,      // 1TB
+        'available_bytes' => 1024 * 1024 * 1024 * 1024, // 1TB
+    ]);
 
-    public function test_disk_metric_formats_large_bytes(): void
-    {
-        $diskMetric = DiskMetric::factory()->create([
-            'total_bytes' => 2 * 1024 * 1024 * 1024 * 1024, // 2TB
-            'used_bytes' => 1024 * 1024 * 1024 * 1024,      // 1TB
-            'available_bytes' => 1024 * 1024 * 1024 * 1024, // 1TB
-        ]);
+    expect($diskMetric->formatted_total)->toBe('2.00 TB')
+        ->and($diskMetric->formatted_used)->toBe('1.00 TB')
+        ->and($diskMetric->formatted_available)->toBe('1.00 TB');
+});
 
-        $this->assertEquals('2.00 TB', $diskMetric->formatted_total);
-        $this->assertEquals('1.00 TB', $diskMetric->formatted_used);
-        $this->assertEquals('1.00 TB', $diskMetric->formatted_available);
-    }
+it('handles zero bytes', function () {
+    $diskMetric = DiskMetric::factory()->create([
+        'total_bytes' => 0,
+        'used_bytes' => 0,
+        'available_bytes' => 0,
+    ]);
 
-    public function test_disk_metric_handles_zero_bytes(): void
-    {
-        $diskMetric = DiskMetric::factory()->create([
-            'total_bytes' => 0,
-            'used_bytes' => 0,
-            'available_bytes' => 0,
-        ]);
+    expect($diskMetric->formatted_total)->toBe('0 B')
+        ->and($diskMetric->formatted_used)->toBe('0 B')
+        ->and($diskMetric->formatted_available)->toBe('0 B');
+});
 
-        $this->assertEquals('0 B', $diskMetric->formatted_total);
-        $this->assertEquals('0 B', $diskMetric->formatted_used);
-        $this->assertEquals('0 B', $diskMetric->formatted_available);
-    }
+it('casts attributes correctly', function () {
+    $diskMetric = DiskMetric::factory()->create([
+        'total_bytes' => '1073741824',
+        'used_bytes' => '536870912',
+        'available_bytes' => '536870912',
+        'usage_percent' => '50.0',
+    ]);
 
-    public function test_disk_metric_casts_attributes_correctly(): void
-    {
-        $diskMetric = DiskMetric::factory()->create([
-            'total_bytes' => '1073741824',
-            'used_bytes' => '536870912',
-            'available_bytes' => '536870912',
-            'usage_percent' => '50.0',
-        ]);
+    expect($diskMetric->total_bytes)->toBeInt()->toBe(1073741824)
+        ->and($diskMetric->used_bytes)->toBeInt()->toBe(536870912)
+        ->and($diskMetric->available_bytes)->toBeInt()->toBe(536870912)
+        ->and($diskMetric->usage_percent)->toBeFloat()->toBe(50.0);
+});
 
-        $this->assertIsInt($diskMetric->total_bytes);
-        $this->assertIsInt($diskMetric->used_bytes);
-        $this->assertIsInt($diskMetric->available_bytes);
-        $this->assertIsFloat($diskMetric->usage_percent);
+it('factory generates valid data', function () {
+    $diskMetric = DiskMetric::factory()->create();
 
-        $this->assertEquals(1073741824, $diskMetric->total_bytes);
-        $this->assertEquals(536870912, $diskMetric->used_bytes);
-        $this->assertEquals(50.0, $diskMetric->usage_percent);
-    }
-
-    public function test_disk_metric_factory_generates_valid_data(): void
-    {
-        $diskMetric = DiskMetric::factory()->create();
-
-        $this->assertNotNull($diskMetric->mount_point);
-        $this->assertGreaterThanOrEqual(0, $diskMetric->total_bytes);
-        $this->assertGreaterThanOrEqual(0, $diskMetric->used_bytes);
-        $this->assertGreaterThanOrEqual(0, $diskMetric->available_bytes);
-        $this->assertGreaterThanOrEqual(0, $diskMetric->usage_percent);
-        $this->assertLessThanOrEqual(100, $diskMetric->usage_percent);
-        
-        // Verify bytes add up correctly
-        $this->assertEquals(
-            $diskMetric->total_bytes,
-            $diskMetric->used_bytes + $diskMetric->available_bytes
-        );
-    }
-}
+    expect($diskMetric->mount_point)->not->toBeNull()
+        ->and($diskMetric->total_bytes)->toBeGreaterThanOrEqual(0)
+        ->and($diskMetric->used_bytes)->toBeGreaterThanOrEqual(0)
+        ->and($diskMetric->available_bytes)->toBeGreaterThanOrEqual(0)
+        ->and($diskMetric->usage_percent)->toBeGreaterThanOrEqual(0)->toBeLessThanOrEqual(100);
+    
+    // Verify bytes add up correctly
+    expect($diskMetric->total_bytes)->toBe($diskMetric->used_bytes + $diskMetric->available_bytes);
+});
