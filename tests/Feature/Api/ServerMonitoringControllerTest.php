@@ -74,7 +74,7 @@ it('accepts valid basic metrics', function () {
              ]);
 
     // Verify the metric was created
-    expect('server_metrics')->toHaveRecord([
+    $this->assertDatabaseHas('server_metrics', [
         'server_id' => $server->id,
         'cpu_usage' => 45.2,
         'memory_usage_percent' => 37.5,
@@ -115,11 +115,13 @@ it('accepts disk metrics', function () {
     $response->assertStatus(200);
 
     // Verify disk metrics were created
-    expect('disk_metrics')->toHaveRecord([
+    $this->assertDatabaseHas('disk_metrics', [
         'mount_point' => '/',
         'total_bytes' => 21474836480,
         'usage_percent' => 50.0
-    ])->toHaveRecord([
+    ]);
+    
+    $this->assertDatabaseHas('disk_metrics', [
         'mount_point' => '/var',
         'total_bytes' => 5368709120,
         'usage_percent' => 20.0
@@ -161,11 +163,13 @@ it('accepts network metrics', function () {
     $response->assertStatus(200);
 
     // Verify network metrics were created
-    expect('network_metrics')->toHaveRecord([
+    $this->assertDatabaseHas('network_metrics', [
         'interface_name' => 'eth0',
         'rx_bytes' => 12345678,
         'tx_bytes' => 9876543
-    ])->toHaveRecord([
+    ]);
+    
+    $this->assertDatabaseHas('network_metrics', [
         'interface_name' => 'lo',
         'rx_bytes' => 1024,
         'tx_bytes' => 1024
@@ -197,7 +201,7 @@ it('calculates disk usage percent if missing', function () {
     $response->assertStatus(200);
 
     // Verify usage_percent was calculated (500/1000 * 100 = 50.0)
-    expect('disk_metrics')->toHaveRecord([
+    $this->assertDatabaseHas('disk_metrics', [
         'mount_point' => '/',
         'usage_percent' => 50.0
     ]);
@@ -295,10 +299,10 @@ it('deletes old metrics in cleanup endpoint', function () {
     $response->assertStatus(200);
 
     // Verify old metrics were deleted
-    expect('server_metrics')->not->toHaveRecord(['id' => $oldMetric->id]);
+    $this->assertDatabaseMissing('server_metrics', ['id' => $oldMetric->id]);
     
     // Verify recent metrics were kept
-    expect('server_metrics')->toHaveRecord(['id' => $recentMetric->id]);
+    $this->assertDatabaseHas('server_metrics', ['id' => $recentMetric->id]);
 
     $responseData = $response->json();
     expect($responseData['deleted_count'])->toBe(1);

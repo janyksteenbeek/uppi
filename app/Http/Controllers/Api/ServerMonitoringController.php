@@ -17,16 +17,16 @@ class ServerMonitoringController extends Controller
     /**
      * Receive server metrics from monitoring daemon
      */
-    public function report(Request $request, string $serverId): JsonResponse
+    public function report(Request $request, string $server): JsonResponse
     {
         try {
-            // Find the server
-            $server = Server::findOrFail($serverId);
+            // Find the server (without global scopes since HMAC auth doesn't rely on user sessions)
+            $serverModel = Server::withoutGlobalScopes()->findOrFail($server);
 
             // Verify HMAC signature
-            if (!$this->verifyHmacSignature($request, $server->secret)) {
+            if (!$this->verifyHmacSignature($request, $serverModel->secret)) {
                 Log::warning('Invalid HMAC signature for server monitoring', [
-                    'server_id' => $serverId,
+                    'server_id' => $server,
                     'ip' => $request->ip(),
                 ]);
                 
@@ -67,7 +67,7 @@ class ServerMonitoringController extends Controller
 
             // Create the server metric record
             $metric = ServerMetric::create([
-                'server_id' => $server->id,
+                'server_id' => $serverModel->id,
                 'cpu_usage' => $validated['cpu_usage'] ?? null,
                 'cpu_load_1' => $validated['cpu_load_1'] ?? null,
                 'cpu_load_5' => $validated['cpu_load_5'] ?? null,
@@ -79,7 +79,7 @@ class ServerMonitoringController extends Controller
                 'swap_total' => $validated['swap_total'] ?? null,
                 'swap_used' => $validated['swap_used'] ?? null,
                 'swap_usage_percent' => $validated['swap_usage_percent'] ?? null,
-                'collected_at' => $validated['collected_at'] ? 
+                'collected_at' => isset($validated['collected_at']) ? 
                     \Carbon\Carbon::parse($validated['collected_at']) : now(),
             ]);
 
@@ -115,11 +115,11 @@ class ServerMonitoringController extends Controller
             }
 
             // Update server's last_seen_at
-            $server->update(['last_seen_at' => now()]);
+            $serverModel->update(['last_seen_at' => now()]);
 
             Log::info('Server metrics received successfully', [
-                'server_id' => $server->id,
-                'server_name' => $server->name,
+                'server_id' => $serverModel->id,
+                'server_name' => $serverModel->name,
                 'metric_id' => $metric->id,
             ]);
 
@@ -130,9 +130,14 @@ class ServerMonitoringController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Server not found'
+            ], 404);
+            
         } catch (ValidationException $e) {
             Log::warning('Invalid server monitoring data received', [
-                'server_id' => $serverId,
+                'server_id' => $server,
                 'errors' => $e->errors(),
                 'ip' => $request->ip(),
             ]);
@@ -144,7 +149,7 @@ class ServerMonitoringController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Failed to process server monitoring data', [
-                'server_id' => $serverId,
+                'server_id' => $server,
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
@@ -158,30 +163,35 @@ class ServerMonitoringController extends Controller
     /**
      * Get server configuration (useful for daemon setup)
      */
-    public function getConfig(Request $request, string $serverId): JsonResponse
+    public function getConfig(Request $request, string $server): JsonResponse
     {
         try {
-            $server = Server::findOrFail($serverId);
+            $serverModel = Server::withoutGlobalScopes()->findOrFail($server);
 
             // Verify HMAC signature
-            if (!$this->verifyHmacSignature($request, $server->secret)) {
+            if (!$this->verifyHmacSignature($request, $serverModel->secret)) {
                 return response()->json([
                     'error' => 'Invalid signature'
                 ], 401);
             }
 
             return response()->json([
-                'server_id' => $server->id,
-                'name' => $server->name,
-                'hostname' => $server->hostname,
-                'is_active' => $server->is_active,
-                'report_url' => route('api.server.report', $server->id),
-                'last_seen_at' => $server->last_seen_at?->toISOString(),
+                'server_id' => $serverModel->id,
+                'name' => $serverModel->name,
+                'hostname' => $serverModel->hostname,
+                'is_active' => $serverModel->is_active,
+                'report_url' => route('api.server.report', $serverModel->id),
+                'last_seen_at' => $serverModel->last_seen_at?->toISOString(),
             ]);
 
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Server not found'
+            ], 404);
+            
         } catch (\Exception $e) {
             Log::error('Failed to get server config', [
-                'server_id' => $serverId,
+                'server_id' => $server,
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
@@ -217,9 +227,20 @@ class ServerMonitoringController extends Controller
             return false;
         }
 
-        // Create expected signature
-        $payload = $request->getContent();
+        // For GET requests, we don't want any content, for POST we want the JSON payload
+        $payload = $request->isMethod('GET') ? '' : $request->getContent();
         $expectedSignature = hash_hmac('sha256', $timestamp . $payload, $secret);
+        
+        // Debug logging (remove after fixing)
+        Log::debug('HMAC verification debug', [
+            'method' => $request->method(),
+            'payload_length' => strlen($payload),
+            'payload_preview' => substr($payload, 0, 100),
+            'timestamp' => $timestamp,
+            'provided_signature' => $signature,
+            'expected_signature' => $expectedSignature,
+            'signature_match' => hash_equals($expectedSignature, $signature),
+        ]);
         
         return hash_equals($expectedSignature, $signature);
     }

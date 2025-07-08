@@ -134,6 +134,11 @@ it('is scoped to authenticated user', function () {
     // Test that servers are scoped to the authenticated user
     $this->actingAs($user1);
     
+    // Use withoutGlobalScope first, then manually filter to test the logic
+    $allServers = Server::withoutGlobalScopes()->get();
+    expect($allServers)->toHaveCount(2);
+    
+    // Test with actual scoping
     $servers = Server::all();
     
     expect($servers)
