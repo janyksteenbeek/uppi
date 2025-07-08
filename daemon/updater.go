@@ -23,25 +23,25 @@ type GitHubRelease struct {
 
 func checkForUpdates() {
 	log.Println("Checking for updates...")
-	
+
 	// Get current version
 	currentVersion := Version
-	
+
 	// Check for latest release
 	latestRelease, err := getLatestRelease()
 	if err != nil {
 		log.Printf("Failed to check for updates: %v", err)
 		return
 	}
-	
+
 	if isNewerVersion(latestRelease.TagName, currentVersion) {
 		log.Printf("New version available: %s (current: %s)", latestRelease.TagName, currentVersion)
-		
+
 		if err := performUpdate(latestRelease); err != nil {
 			log.Printf("Failed to update: %v", err)
 			return
 		}
-		
+
 		log.Println("Update completed successfully. Restarting...")
 		restartAgent()
 	} else {
@@ -55,16 +55,16 @@ func getLatestRelease() (*GitHubRelease, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
-	
+
 	var release GitHubRelease
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		return nil, err
 	}
-	
+
 	return &release, nil
 }
 
@@ -79,7 +79,7 @@ func performUpdate(release *GitHubRelease) error {
 	// Determine architecture
 	arch := runtime.GOARCH
 	assetName := fmt.Sprintf("uppi-agent-%s", arch)
-	
+
 	// Find the asset for our architecture
 	var downloadURL string
 	for _, asset := range release.Assets {
@@ -88,34 +88,34 @@ func performUpdate(release *GitHubRelease) error {
 			break
 		}
 	}
-	
+
 	if downloadURL == "" {
 		return fmt.Errorf("no asset found for architecture %s", arch)
 	}
-	
+
 	// Download the new binary
 	tempFile := "/tmp/uppi-agent-new"
 	if err := downloadFile(downloadURL, tempFile); err != nil {
 		return fmt.Errorf("failed to download update: %w", err)
 	}
-	
+
 	// Make it executable
 	if err := os.Chmod(tempFile, 0755); err != nil {
 		return fmt.Errorf("failed to make new binary executable: %w", err)
 	}
-	
+
 	// Get current executable path
 	currentPath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get current executable path: %w", err)
 	}
-	
+
 	// Backup current binary
 	backupPath := currentPath + ".backup"
 	if err := copyFile(currentPath, backupPath); err != nil {
 		log.Printf("Warning: failed to create backup: %v", err)
 	}
-	
+
 	// Replace current binary
 	if err := copyFile(tempFile, currentPath); err != nil {
 		// Try to restore backup
@@ -124,11 +124,11 @@ func performUpdate(release *GitHubRelease) error {
 		}
 		return fmt.Errorf("failed to replace binary: %w", err)
 	}
-	
+
 	// Cleanup
 	os.Remove(tempFile)
 	os.Remove(backupPath)
-	
+
 	return nil
 }
 
@@ -138,17 +138,17 @@ func downloadFile(url, filepath string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
-	
+
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	
+
 	_, err = io.Copy(out, resp.Body)
 	return err
 }
@@ -159,24 +159,24 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	defer sourceFile.Close()
-	
+
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer destFile.Close()
-	
+
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {
 		return err
 	}
-	
+
 	// Copy permissions
 	sourceInfo, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
-	
+
 	return os.Chmod(dst, sourceInfo.Mode())
 }
 
@@ -187,15 +187,14 @@ func restartAgent() {
 		cmd.Run()
 		return
 	}
-	
+
 	// Otherwise, restart the process
 	args := os.Args
-	env := os.Environ()
-	
+
 	if err := exec.Command(args[0], args[1:]...).Start(); err != nil {
 		log.Printf("Failed to restart: %v", err)
 	}
-	
+
 	// Exit current process after short delay
 	go func() {
 		time.Sleep(2 * time.Second)
@@ -205,6 +204,6 @@ func restartAgent() {
 
 func isSystemdService() bool {
 	// Simple check if we're running under systemd
-	return os.Getenv("SYSTEMD_EXEC_PID") != "" || 
-		   os.Getppid() == 1 // PID 1 is usually systemd
+	return os.Getenv("SYSTEMD_EXEC_PID") != "" ||
+		os.Getppid() == 1 // PID 1 is usually systemd
 }

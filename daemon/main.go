@@ -9,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -22,34 +21,34 @@ import (
 )
 
 const (
-	Version = "1.0.0"
+	Version         = "1.0.0"
 	DefaultInstance = "https://uppi.dev"
 	DefaultInterval = 60 // seconds
 )
 
 type Config struct {
-	Secret        string
-	Instance      string
-	ServerId      string
-	SkipUpdates   bool
+	Secret          string
+	Instance        string
+	ServerId        string
+	SkipUpdates     bool
 	IntervalMinutes int
 }
 
 type ServerMetrics struct {
-	CpuUsage           *float64       `json:"cpu_usage,omitempty"`
-	CpuLoad1           *float64       `json:"cpu_load_1,omitempty"`
-	CpuLoad5           *float64       `json:"cpu_load_5,omitempty"`
-	CpuLoad15          *float64       `json:"cpu_load_15,omitempty"`
-	MemoryTotal        *uint64        `json:"memory_total,omitempty"`
-	MemoryUsed         *uint64        `json:"memory_used,omitempty"`
-	MemoryAvailable    *uint64        `json:"memory_available,omitempty"`
-	MemoryUsagePercent *float64       `json:"memory_usage_percent,omitempty"`
-	SwapTotal          *uint64        `json:"swap_total,omitempty"`
-	SwapUsed           *uint64        `json:"swap_used,omitempty"`
-	SwapUsagePercent   *float64       `json:"swap_usage_percent,omitempty"`
-	DiskMetrics        []DiskMetric   `json:"disk_metrics,omitempty"`
+	CpuUsage           *float64        `json:"cpu_usage,omitempty"`
+	CpuLoad1           *float64        `json:"cpu_load_1,omitempty"`
+	CpuLoad5           *float64        `json:"cpu_load_5,omitempty"`
+	CpuLoad15          *float64        `json:"cpu_load_15,omitempty"`
+	MemoryTotal        *uint64         `json:"memory_total,omitempty"`
+	MemoryUsed         *uint64         `json:"memory_used,omitempty"`
+	MemoryAvailable    *uint64         `json:"memory_available,omitempty"`
+	MemoryUsagePercent *float64        `json:"memory_usage_percent,omitempty"`
+	SwapTotal          *uint64         `json:"swap_total,omitempty"`
+	SwapUsed           *uint64         `json:"swap_used,omitempty"`
+	SwapUsagePercent   *float64        `json:"swap_usage_percent,omitempty"`
+	DiskMetrics        []DiskMetric    `json:"disk_metrics,omitempty"`
 	NetworkMetrics     []NetworkMetric `json:"network_metrics,omitempty"`
-	CollectedAt        string         `json:"collected_at"`
+	CollectedAt        string          `json:"collected_at"`
 }
 
 type DiskMetric struct {
@@ -84,7 +83,7 @@ func main() {
 				log.Fatal("Secret must be exactly 64 characters long")
 			}
 
-			// TODO: The server ID should be provided by the installation script 
+			// TODO: The server ID should be provided by the installation script
 			// or retrieved from the server API. For now, we'll use a hash of the secret
 			config.ServerId = fmt.Sprintf("%x", sha256.Sum256([]byte(config.Secret)))[:16]
 
@@ -197,7 +196,7 @@ func collectMetrics() (*ServerMetrics, error) {
 			if stat.Name == "lo" {
 				continue
 			}
-			
+
 			networkMetric := NetworkMetric{
 				InterfaceName: stat.Name,
 				RxBytes:       stat.BytesRecv,
@@ -261,10 +260,4 @@ func createHMACSignature(timestamp, payload, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(message))
 	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func checkForUpdates() {
-	// TODO: Implement auto-update functionality
-	// Check GitHub releases and download if newer version available
-	log.Println("Auto-update check skipped (not implemented yet)")
 }
