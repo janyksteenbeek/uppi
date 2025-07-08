@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ServerResource\Pages;
 use App\Models\Server;
 use Filament\Forms;
+use Filament\Forms\Components\Actions;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -92,15 +93,18 @@ class ServerResource extends Resource
                                         'x-on:click' => 'navigator.clipboard.writeText($el.dataset.copy); $tooltip("Secret copied")',
                                     ])
                             ),
-                        Forms\Components\Actions\Action::make('regenerate_secret')
-                            ->label('Regenerate Secret')
-                            ->color('warning')
-                            ->icon('heroicon-o-arrow-path')
-                            ->requiresConfirmation()
-                            ->modalHeading('Regenerate Secret Key')
-                            ->modalDescription('Are you sure you want to regenerate the secret key? You will need to update your monitoring daemon configuration.')
-                            ->action(fn (Server $record) => $record->generateNewSecret())
-                            ->visible(fn (?Server $record) => $record && $record->exists),
+                        
+                        Actions::make([
+                            Forms\Components\Actions\Action::make('regenerate_secret')
+                                ->label('Regenerate Secret')
+                                ->color('warning')
+                                ->icon('heroicon-o-arrow-path')
+                                ->requiresConfirmation()
+                                ->modalHeading('Regenerate Secret Key')
+                                ->modalDescription('Are you sure you want to regenerate the secret key? You will need to update your monitoring daemon configuration.')
+                                ->action(fn (Server $record) => $record->generateNewSecret())
+                                ->visible(fn (?Server $record) => $record && $record->exists),
+                        ])->columnSpanFull(),
                     ])->columns(1),
             ]);
     }
