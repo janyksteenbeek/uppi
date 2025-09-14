@@ -35,6 +35,7 @@ class TriggerAlertJob implements ShouldQueue
     public function handle(): void
     {
         $monitor = $this->check->monitor;
+        $this->check->refresh();
 
         if ($this->check->status === Status::FAIL) {
             $this->handleMonitorDown($monitor);
@@ -108,15 +109,19 @@ class TriggerAlertJob implements ShouldQueue
 
     protected function getActiveAnomaly(Monitor $monitor): ?Anomaly
     {
+        $region = $this->check->region;
         return $monitor->anomalies()
             ->whereNull('ended_at')
+            ->when($region, fn ($q) => $q->where('region', $region))
             ->lockForUpdate()
             ->first();
     }
 
     protected function getRecentChecks(Monitor $monitor): Collection
     {
+        $region = $this->check->region;
         return $monitor->checks()
+            ->when($region, fn ($q) => $q->where('region', $region))
             ->latest('checked_at')
             ->take($monitor->consecutive_threshold)
             ->get()
@@ -146,6 +151,7 @@ class TriggerAlertJob implements ShouldQueue
         $anomaly = new Anomaly([
             'started_at' => $firstFailedCheck->checked_at,
             'monitor_id' => $monitor->id,
+            'region' => $firstFailedCheck->region,
         ]);
 
         $anomaly->save();
@@ -162,11 +168,17 @@ class TriggerAlertJob implements ShouldQueue
     protected function associateChecksWithAnomaly(Monitor $monitor, Check $startingCheck, Anomaly $anomaly): void
     {
         $status = $startingCheck->status;
+        $region = $startingCheck->region;
 
-        $monitor->checks()
+        $query = $monitor->checks()
             ->where('checked_at', '>=', $startingCheck->checked_at)
-            ->where('status', $status)
-            ->update(['anomaly_id' => $anomaly->id]);
+            ->where('status', $status);
+
+        if ($region) {
+            $query->where('region', $region);
+        }
+
+        $query->update(['anomaly_id' => $anomaly->id]);
     }
 
     protected function associateCheckWithAnomaly(Anomaly $anomaly): void

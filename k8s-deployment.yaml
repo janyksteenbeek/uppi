@@ -96,6 +96,17 @@ spec:
         env:
         - name: REDIS_HOST
           value: redis
+        - name: CHECKER_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: uppi-env
+              key: AWS_DEFAULT_REGION
+        - name: CHECKER_SERVER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CHECKER_REGIONS
+          value: "us-east-1,eu-west-1"
         resources:
           requests:
             memory: "128Mi"
@@ -131,6 +142,17 @@ spec:
         env:
         - name: REDIS_HOST
           value: redis
+        - name: CHECKER_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: uppi-env
+              key: AWS_DEFAULT_REGION
+        - name: CHECKER_SERVER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CHECKER_REGIONS
+          value: "us-east-1,eu-west-1"
         resources:
           requests:
             memory: "128Mi"
