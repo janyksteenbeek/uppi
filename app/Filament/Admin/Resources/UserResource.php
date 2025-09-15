@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\UserResource\Pages;
 use App\Models\User;
 use App\Traits\WithoutUserScopes;
+use Carbon\CarbonTimeZone;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,6 +38,18 @@ class UserResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_admin')
                     ->required(),
+                Forms\Components\Select::make('timezone')
+                    ->options(
+                        collect(CarbonTimeZone::listIdentifiers())
+                            ->mapWithKeys(function ($timezone) {
+                                return [$timezone => $timezone];
+                            })
+                            ->toArray()
+                    )
+                    ->searchable()
+                    ->optionsLimit(450)
+                    ->required()
+                    ->in(CarbonTimeZone::listIdentifiers())
             ]);
     }
 
@@ -54,6 +67,9 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('timezone')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -23,6 +23,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'name',
         'email',
         'password',
+        'timezone'
     ];
 
     protected $hidden = [

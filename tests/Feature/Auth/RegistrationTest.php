@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Pages\Auth\Register;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -13,12 +14,13 @@ test('registration page can be rendered', function () {
 });
 
 test('new users can register', function () {
-    Livewire::test(\Filament\Pages\Auth\Register::class)
+    Livewire::test(Register::class)
         ->fillForm([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'passwordPassword',
             'passwordConfirmation' => 'passwordPassword',
+            'timezone' => 'UTC',
         ])
         ->call('register')
         ->assertHasNoFormErrors();
@@ -26,6 +28,7 @@ test('new users can register', function () {
     assertDatabaseHas('users', [
         'name' => 'Test User',
         'email' => 'test@example.com',
+        'timezone' => 'UTC',
     ]);
 
     $user = User::where('email', 'test@example.com')->first();
@@ -39,7 +42,7 @@ test('email must be unique', function () {
         'email' => 'test@example.com',
     ]);
 
-    Livewire::test(\Filament\Pages\Auth\Register::class)
+    Livewire::test(Register::class)
         ->fillForm([
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -51,7 +54,7 @@ test('email must be unique', function () {
 });
 
 test('password must be confirmed', function () {
-    Livewire::test(\Filament\Pages\Auth\Register::class)
+    Livewire::test(Register::class)
         ->fillForm([
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -67,7 +70,7 @@ test('password must be confirmed', function () {
 });
 
 test('email must be valid format', function () {
-    Livewire::test(\Filament\Pages\Auth\Register::class)
+    Livewire::test(Register::class)
         ->fillForm([
             'name' => 'Test User',
             'email' => 'not-an-email',
@@ -83,7 +86,7 @@ test('email must be valid format', function () {
 });
 
 test('name is required', function () {
-    Livewire::test(\Filament\Pages\Auth\Register::class)
+    Livewire::test(Register::class)
         ->fillForm([
             'name' => '',
             'email' => 'test@example.com',
@@ -92,6 +95,23 @@ test('name is required', function () {
         ])
         ->call('register')
         ->assertHasFormErrors(['name']);
+
+    assertDatabaseMissing('users', [
+        'email' => 'test@example.com',
+    ]);
+});
+
+test('timezone must be valid', function () {
+    Livewire::test(Register::class)
+        ->fillForm([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'timezone' => '',
+        ])
+        ->call('register')
+        ->assertHasFormErrors(['timezone']);
 
     assertDatabaseMissing('users', [
         'email' => 'test@example.com',
