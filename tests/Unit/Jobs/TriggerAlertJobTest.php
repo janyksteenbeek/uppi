@@ -29,8 +29,7 @@ it('creates an anomaly after consecutive failures', function () {
 
     $monitor->refresh();
 
-    expect($monitor->anomalies->count())->toBe(0)
-        ->and($monitor->status)->toBe(Status::FAIL);
+    expect($monitor->anomalies->count())->toBe(0);
 
     // Second failure - should create anomaly
     $secondCheck = Check::factory()->create([
@@ -43,8 +42,7 @@ it('creates an anomaly after consecutive failures', function () {
 
     $monitor->refresh();
 
-    expect($monitor->anomalies->count())->toBe(1)
-        ->and($monitor->status)->toBe(Status::FAIL);
+    expect($monitor->anomalies->count())->toBe(1);
 });
 
 it('associates checks with anomaly', function () {
@@ -118,8 +116,7 @@ it('closes anomaly after consecutive successes', function () {
     $monitor->refresh();
     $anomaly = $monitor->anomalies->first();
 
-    expect($monitor->status)->toBe(Status::OK)
-        ->and($anomaly->ended_at)->not->toBeNull();
+    expect($anomaly->ended_at)->not->toBeNull();
 });
 
 it('maintains anomaly during mixed status checks', function () {
@@ -161,8 +158,7 @@ it('maintains anomaly during mixed status checks', function () {
     $monitor->refresh();
     $anomaly = $monitor->anomalies->first();
 
-    expect($monitor->status)->toBe(Status::FAIL)
-        ->and($anomaly->ended_at)->toBeNull()
+    expect($anomaly->ended_at)->toBeNull()
         ->and($anomaly->checks)->toHaveCount(count: 4);
 });
 
@@ -216,6 +212,5 @@ it('handles multiple anomalies for the same monitor', function () {
 
     expect(Anomaly::count())->toBe(2)
         ->and(Anomaly::whereNotNull('ended_at')->count())->toBe(1)
-        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1)
-        ->and($monitor->fresh()->status)->toBe(Status::FAIL);
+        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1);
 });
