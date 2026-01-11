@@ -153,6 +153,17 @@ class TestResource extends Resource
                     ->label('Status')
                     ->badge()
                     ->default('-')
+                    ->description(function (Test $record) {
+                        $lastRun = $record->lastRun;
+                        if (! $lastRun) {
+                            return null;
+                        }
+
+                        $successCount = $lastRun->runSteps()->where('status', \App\Enums\Tests\TestStatus::SUCCESS)->count();
+                        $totalCount = $lastRun->runSteps()->count();
+
+                        return "{$successCount}/{$totalCount} steps";
+                    })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
