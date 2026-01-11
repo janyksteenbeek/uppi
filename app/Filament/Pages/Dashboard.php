@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Widgets\ActiveAnomalies;
 use App\Filament\Widgets\AnomaliesPerMonitor;
+use App\Filament\Widgets\RecentTestRuns;
 use App\Filament\Widgets\ResponseTime;
 use App\Filament\Widgets\StatusWidget;
 use Illuminate\Contracts\Support\Htmlable;
@@ -36,21 +37,25 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     public function getWidgets(): array
     {
-        $widgets = [];
-        if ($this->isOk) {
-            return [
+        $baseWidgets = $this->isOk
+            ? [
                 StatusWidget::class,
                 ResponseTime::class,
                 AnomaliesPerMonitor::class,
                 ActiveAnomalies::class,
+            ]
+            : [
+                ActiveAnomalies::class,
+                StatusWidget::class,
+                ResponseTime::class,
+                AnomaliesPerMonitor::class,
             ];
+
+        // Add test runs widget if user has the feature
+        if (auth()->user()->hasFeature('run-tests')) {
+            $baseWidgets[] = RecentTestRuns::class;
         }
 
-        return [
-            ActiveAnomalies::class,
-            StatusWidget::class,
-            ResponseTime::class,
-            AnomaliesPerMonitor::class,
-        ];
+        return $baseWidgets;
     }
 }
