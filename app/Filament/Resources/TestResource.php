@@ -21,11 +21,11 @@ class TestResource extends Resource
 {
     protected static ?string $model = Test::class;
 
-    protected static ?int $navigationSort = 3;
-
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
 
     protected static ?string $navigationGroup = 'Monitoring';
+
+    protected static ?int $navigationSort = 2;
 
     public static function getEloquentQuery(): Builder
     {

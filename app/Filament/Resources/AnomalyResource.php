@@ -18,6 +18,8 @@ class AnomalyResource extends Resource
 
     protected static ?string $navigationLabel = 'History';
 
+    protected static ?string $navigationGroup = 'Monitoring';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form

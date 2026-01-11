@@ -21,11 +21,11 @@ class MonitorResource extends Resource
 {
     protected static ?string $model = Monitor::class;
 
-    protected static ?int $navigationSort = 2;
-
     protected static ?string $navigationIcon = 'heroicon-o-heart';
 
     protected static ?string $navigationGroup = 'Monitoring';
+
+    protected static ?int $navigationSort = 1;
 
     public static function getNavigationBadge(): ?string
     {

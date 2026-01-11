@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\Tests\TestStatus;
+use App\Filament\Resources\TestResource;
 use App\Models\TestRun;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,7 +20,7 @@ class RecentTestRuns extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()->hasFeature('run-tests');
+        return auth()->check() && auth()->user()->hasFeature('run-tests');
     }
 
     public function placeholder(): View
@@ -50,7 +51,7 @@ class RecentTestRuns extends BaseWidget
                 Tables\Columns\TextColumn::make('test.name')
                     ->label('Test')
                     ->searchable()
-                    ->url(fn ($record) => $record->test ? route('filament.app.resources.tests.edit', $record->test) : null),
+                    ->url(fn ($record) => $record->test ? TestResource::getUrl('edit', ['record' => $record->test]) : null),
                 Tables\Columns\TextColumn::make('steps_progress')
                     ->label('Steps')
                     ->state(function ($record) {
