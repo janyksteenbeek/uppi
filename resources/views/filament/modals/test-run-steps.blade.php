@@ -18,7 +18,7 @@
                     ];
                 @endphp
                 <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium {{ $statusColors[$run->status->value] }}">
-                    <x-dynamic-component :component="$statusIcons[$run->status->value]" class="h-4 w-4" />
+                    <x-filament::icon :icon="$statusIcons[$run->status->value]" class="h-4 w-4" />
                     {{ $run->status->getLabel() }}
                 </span>
                 @if($run->duration_ms)
@@ -41,7 +41,7 @@
             {{-- Entrypoint --}}
             <div class="relative flex items-start gap-4 pl-10">
                 <div class="absolute left-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 ring-4 ring-white dark:ring-gray-900">
-                    <x-heroicon-s-globe-alt class="h-3 w-3 text-white" />
+                    <x-filament::icon icon="heroicon-s-globe-alt" class="h-3 w-3 text-white" />
                 </div>
                 <div class="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
                     <div class="flex items-center justify-between">
@@ -79,11 +79,11 @@
                 <div class="relative flex items-start gap-4 pl-10">
                     <div class="absolute left-2 flex h-5 w-5 items-center justify-center rounded-full {{ $dotColor }} ring-4 ring-white dark:ring-gray-900">
                         @if($isSuccess)
-                            <x-heroicon-s-check class="h-3 w-3 text-white" />
+                            <x-filament::icon icon="heroicon-s-check" class="h-3 w-3 text-white" />
                         @elseif($isFailure)
-                            <x-heroicon-s-x-mark class="h-3 w-3 text-white" />
+                            <x-filament::icon icon="heroicon-s-x-mark" class="h-3 w-3 text-white" />
                         @elseif($isRunning)
-                            <x-heroicon-s-arrow-path class="h-3 w-3 text-white animate-spin" />
+                            <x-filament::icon icon="heroicon-s-arrow-path" class="h-3 w-3 text-white animate-spin" />
                         @else
                             <span class="h-2 w-2 rounded-full bg-white"></span>
                         @endif
@@ -92,7 +92,7 @@
                     <div class="flex-1 rounded-lg border {{ $borderColor }} bg-white dark:bg-gray-800 p-3 {{ $isFailure ? 'ring-1 ring-red-500' : '' }}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <x-dynamic-component :component="$step->type->getIcon()" class="h-4 w-4 text-gray-400" />
+                                <x-filament::icon :icon="$step->type->getIcon()" class="h-4 w-4 text-gray-400" />
                                 <span class="font-medium text-gray-900 dark:text-white">
                                     {{ $step->type->getLabel() }}
                                 </span>

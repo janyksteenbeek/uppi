@@ -2,7 +2,10 @@
     <x-filament::section>
         <div class="flex items-start gap-4">
             <div class="flex-shrink-0 rounded-full bg-warning-100 p-2 dark:bg-warning-900">
-                <x-heroicon-o-exclamation-triangle class="h-6 w-6 text-warning-600 dark:text-warning-400" />
+                <x-filament::icon
+                    icon="heroicon-o-exclamation-triangle"
+                    class="h-6 w-6 text-warning-600 dark:text-warning-400"
+                />
             </div>
             <div>
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">
