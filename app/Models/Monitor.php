@@ -158,4 +158,12 @@ class Monitor extends Model
     {
         return $this->hasMany(StatusPageItem::class);
     }
+
+    /**
+     * Get the test for this monitor (when type is TEST)
+     */
+    public function test(): BelongsTo
+    {
+        return $this->belongsTo(Test::class, 'address');
+    }
 }

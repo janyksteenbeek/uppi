@@ -1,0 +1,220 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Enums\Tests\TestFlowBlockType;
+use App\Enums\Tests\TestStatus;
+use App\Filament\Resources\TestResource\Pages;
+use App\Filament\Resources\TestResource\RelationManagers;
+use App\Filament\Resources\TestResource\Widgets;
+use App\Models\Test;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+
+class TestResource extends Resource
+{
+    protected static ?string $model = Test::class;
+
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $navigationIcon = 'heroicon-o-beaker';
+
+    protected static ?string $navigationGroup = 'Monitoring';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('user_id', Auth::id());
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Basic information')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->maxLength(255)
+                            ->helperText('A descriptive name for this test'),
+                        Forms\Components\TextInput::make('entrypoint_url')
+                            ->required()
+                            ->url()
+                            ->label('Entrypoint URL')
+                            ->helperText('The starting URL for the test flow'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Test flow')
+                    ->description('Build your test flow by adding steps. The test starts by visiting the entrypoint URL, then executes each step in order.')
+                    ->schema([
+                        Forms\Components\Repeater::make('steps')
+                            ->relationship()
+                            ->orderColumn('sort_order')
+                            ->label('')
+                            ->schema([
+                                Forms\Components\Select::make('type')
+                                    ->options(TestFlowBlockType::options())
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('value', null))
+                                    ->helperText(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getDescription())
+                                    ->columnSpanFull(),
+                                Forms\Components\TextInput::make('value')
+                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getValueLabel() ?? 'Value')
+                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
+                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                        TestFlowBlockType::VISIT => 'https://example.com/page',
+                                        TestFlowBlockType::WAIT_FOR_TEXT => 'Welcome to our site',
+                                        TestFlowBlockType::TYPE => 'john@example.com',
+                                        TestFlowBlockType::PRESS => 'Submit',
+                                        TestFlowBlockType::CLICK_LINK => 'Tarieven',
+                                        default => null,
+                                    })
+                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                        TestFlowBlockType::PRESS => 'Text shown on the button element',
+                                        TestFlowBlockType::CLICK_LINK => 'Text shown on the link (exact match)',
+                                        TestFlowBlockType::WAIT_FOR_TEXT => 'Text that must appear on the page',
+                                        default => null,
+                                    })
+                                    ->columnSpan(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ? 1 : 2),
+                                Forms\Components\TextInput::make('selector')
+                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getSelectorLabel() ?? 'Selector')
+                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
+                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                        TestFlowBlockType::TYPE => '#email, [name="email"], .input-field',
+                                        TestFlowBlockType::CLICK => '#submit-btn, .nav-link, [data-action="save"]',
+                                        default => null,
+                                    })
+                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                        TestFlowBlockType::TYPE => 'CSS selector or input name attribute',
+                                        TestFlowBlockType::CLICK => 'CSS selector for any clickable element',
+                                        default => null,
+                                    })
+                                    ->columnSpan(1),
+                            ])
+                            ->columns(2)
+                            ->reorderable()
+                            ->collapsible()
+                            ->cloneable()
+                            ->itemLabel(fn (array $state): ?string => TestFlowBlockType::tryFrom($state['type'] ?? '')?->getLabel() . (isset($state['value']) && $state['value'] ? ': ' . \Str::limit($state['value'], 30) : (isset($state['selector']) && $state['selector'] ? ': ' . \Str::limit($state['selector'], 30) : '')))
+                            ->addActionLabel('Add step')
+                            ->defaultItems(0),
+                    ]),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('lastRun.status')
+                    ->label('Status')
+                    ->badge()
+                    ->default('-')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('entrypoint_url')
+                    ->label('URL')
+                    ->searchable()
+                    ->limit(40)
+                    ->tooltip(fn (Test $record) => $record->entrypoint_url),
+                Tables\Columns\TextColumn::make('steps_count')
+                    ->label('Steps')
+                    ->counts('steps')
+                    ->suffix(' steps'),
+                Tables\Columns\TextColumn::make('monitors_count')
+                    ->label('Monitors')
+                    ->counts('monitors')
+                    ->suffix(' monitors'),
+                Tables\Columns\TextColumn::make('last_run_at')
+                    ->label('Last run')
+                    ->since()
+                    ->tooltip(fn (Test $record) => $record->last_run_at?->format('j F Y, g:i a'))
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('lastRun.duration_ms')
+                    ->label('Duration')
+                    ->formatStateUsing(fn ($state) => $state ? number_format($state / 1000, 2) . 's' : '-')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('last_run_status')
+                    ->label('Status')
+                    ->options(TestStatus::options())
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (! $data['value']) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('lastRun', fn (Builder $q) => $q->where('status', $data['value']));
+                    }),
+            ])
+            ->actions([
+                Tables\Actions\Action::make('run')
+                    ->label('Run now')
+                    ->icon('heroicon-o-play')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Run test now')
+                    ->modalDescription('This will queue the test to run immediately.')
+                    ->visible(fn () => Auth::user()->hasFeature('run-tests'))
+                    ->action(function (Test $record) {
+                        // TODO: Dispatch the test job
+                        \Filament\Notifications\Notification::make()
+                            ->title('Test queued')
+                            ->body('The test has been queued to run.')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\EditAction::make(),
+            ])
+            ->emptyStateHeading('Create your first test')
+            ->emptyStateDescription('Set up automated browser tests to verify your website or application is working correctly. Then use them in monitors.')
+            ->emptyStateIcon('heroicon-o-beaker')
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make()
+                    ->label('Create a test')
+                    ->icon('heroicon-o-plus'),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\RunsRelationManager::class,
+        ];
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            Widgets\FeatureNotEnabledWidget::class,
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListTests::route('/'),
+            'create' => Pages\CreateTest::route('/create'),
+            'edit' => Pages\EditTest::route('/{record}/edit'),
+        ];
+    }
+}

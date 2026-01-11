@@ -42,3 +42,11 @@ Route::get('/embed/{user}/embed.js', function (User $user) {
 })->name('embed.js');
 
 Route::get('/privacy', PrivacyController::class)->name('privacy');
+
+Route::get('/test-screenshot/{testRunStep}', function (\App\Models\TestRunStep $testRunStep) {
+    if (! $testRunStep->screenshot_path || ! \Storage::exists($testRunStep->screenshot_path)) {
+        abort(404);
+    }
+
+    return \Storage::response($testRunStep->screenshot_path);
+})->name('test-screenshot')->middleware('signed');

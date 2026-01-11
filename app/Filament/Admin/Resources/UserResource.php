@@ -37,6 +37,10 @@ class UserResource extends Resource
                     ->maxLength(255),
                 Forms\Components\Toggle::make('is_admin')
                     ->required(),
+                Forms\Components\CheckboxList::make('feature_flags')
+                    ->options(User::availableFeatureFlags())
+                    ->label('Feature flags')
+                    ->helperText('Enable experimental features for this user'),
             ]);
     }
 
@@ -64,12 +68,28 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_admin')
                     ->boolean(),
+                Tables\Columns\TextColumn::make('feature_flags')
+                    ->label('Features')
+                    ->badge()
+                    ->separator(',')
+                    ->getStateUsing(fn (User $record) => $record->feature_flags ?? []),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('toggle_tests')
+                    ->label(fn (User $user) => $user->hasFeature('run-tests') ? 'Disable tests' : 'Enable tests')
+                    ->icon('heroicon-o-beaker')
+                    ->color(fn (User $user) => $user->hasFeature('run-tests') ? 'danger' : 'success')
+                    ->action(function (User $user) {
+                        if ($user->hasFeature('run-tests')) {
+                            $user->disableFeature('run-tests');
+                        } else {
+                            $user->enableFeature('run-tests');
+                        }
+                    }),
                 Tables\Actions\Action::make('impersonate')
                     ->label('Impersonate')
                     ->icon('heroicon-o-arrow-right-end-on-rectangle')

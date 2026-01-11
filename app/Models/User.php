@@ -97,6 +97,34 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'feature_flags' => 'array',
+        ];
+    }
+
+    public function hasFeature(string $feature): bool
+    {
+        return in_array($feature, $this->feature_flags ?? []);
+    }
+
+    public function enableFeature(string $feature): void
+    {
+        $flags = $this->feature_flags ?? [];
+        if (! in_array($feature, $flags)) {
+            $flags[] = $feature;
+            $this->update(['feature_flags' => $flags]);
+        }
+    }
+
+    public function disableFeature(string $feature): void
+    {
+        $flags = $this->feature_flags ?? [];
+        $this->update(['feature_flags' => array_values(array_diff($flags, [$feature]))]);
+    }
+
+    public static function availableFeatureFlags(): array
+    {
+        return [
+            'run-tests' => 'Run browser tests',
         ];
     }
 

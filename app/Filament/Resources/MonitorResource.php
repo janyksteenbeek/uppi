@@ -25,6 +25,8 @@ class MonitorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-heart';
 
+    protected static ?string $navigationGroup = 'Monitoring';
+
     public static function getNavigationBadge(): ?string
     {
         if (! Auth::check()) {
@@ -62,12 +64,39 @@ class MonitorResource extends Resource
                                 MonitorType::HTTP->value => 'heroicon-o-globe-alt',
                                 MonitorType::TCP->value => 'heroicon-o-server-stack',
                                 MonitorType::PULSE->value => 'heroicon-o-clock',
+                                MonitorType::TEST->value => 'heroicon-o-beaker',
                             ])
                             ->options(MonitorType::options())
                             ->required()
                             ->live(),
+                        Forms\Components\Select::make('address')
+                            ->options(fn () => \App\Models\Test::where('user_id', auth()->id())->pluck('name', 'id'))
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->label('Test')
+                            ->helperText('Select the test to run for this monitor')
+                            ->visible(fn (Get $get) => $get('type') === MonitorType::TEST->value)
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('entrypoint_url')
+                                    ->required()
+                                    ->url()
+                                    ->label('Entrypoint URL'),
+                            ])
+                            ->createOptionUsing(function (array $data): string {
+                                $test = \App\Models\Test::create([
+                                    'user_id' => auth()->id(),
+                                    'name' => $data['name'],
+                                    'entrypoint_url' => $data['entrypoint_url'],
+                                ]);
+                                return $test->id;
+                            }),
                         Forms\Components\TextInput::make('address')
                             ->required()
+                            ->visible(fn (Get $get) => $get('type') !== MonitorType::TEST->value)
                             ->live()
                             ->url(fn (Get $get) => $get('type') === MonitorType::HTTP->value)
                             ->numeric(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
