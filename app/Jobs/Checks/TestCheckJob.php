@@ -12,6 +12,7 @@ use App\Models\TestStep;
 use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
+use Illuminate\Support\Facades\Log;
 use Laravel\Dusk\Browser;
 
 class TestCheckJob extends CheckJob
@@ -42,6 +43,12 @@ class TestCheckJob extends CheckJob
         try {
             return $this->runTest();
         } catch (\Exception $e) {
+            Log::error('[TestCheckJob] Test failed with exception', [
+                'test_run_id' => $this->testRun?->id,
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return $this->handleTestException($e);
         }
     }
@@ -53,16 +60,28 @@ class TestCheckJob extends CheckJob
 
         $browser = $this->createBrowser();
 
+        Log::info('[TestCheckJob] Browser created, visiting entrypoint', [
+            'url' => $this->test->entrypoint_url,
+        ]);
+
         try {
             // Visit entrypoint
             $browser->visit($this->test->entrypoint_url);
 
             // Execute each step
-            foreach ($this->testRun->runSteps as $runStep) {
+            foreach ($this->testRun->runSteps as $index => $runStep) {
+                Log::debug('[TestCheckJob] Executing step', [
+                    'step_index' => $index,
+                    'step_type' => $runStep->testStep->type->value,
+                    'step_value' => $runStep->testStep->value,
+                    'step_selector' => $runStep->testStep->selector,
+                ]);
+
                 $this->executeStep($browser, $runStep);
 
                 // Check for early success
                 if ($runStep->testStep->type === TestFlowBlockType::SUCCESS) {
+                    Log::info('[TestCheckJob] Early success triggered at step', ['step_index' => $index]);
                     break;
                 }
             }
@@ -70,6 +89,12 @@ class TestCheckJob extends CheckJob
             $durationMs = $this->calculateDuration($startTime);
             $this->testRun->markAsSuccess($durationMs);
             $this->test->updateLastRun();
+
+            Log::info('[TestCheckJob] Test completed successfully', [
+                'test_run_id' => $this->testRun->id,
+                'duration_ms' => $durationMs,
+                'steps_completed' => $this->testRun->getCompletedStepsCount(),
+            ]);
 
             return $this->successResult($durationMs);
         } finally {
@@ -91,6 +116,15 @@ class TestCheckJob extends CheckJob
             $runStep->markAsSuccess($durationMs);
         } catch (\Exception $e) {
             $durationMs = $this->calculateDuration($stepStart);
+
+            Log::error('[TestCheckJob] Step failed', [
+                'step_type' => $step->type->value,
+                'step_value' => $step->value,
+                'step_selector' => $step->selector,
+                'error' => $e->getMessage(),
+                'duration_ms' => $durationMs,
+            ]);
+
             $htmlSnapshot = $this->captureHtml($browser);
             $runStep->markAsFailure($e->getMessage(), $durationMs, null, $htmlSnapshot);
 
@@ -227,6 +261,8 @@ class TestCheckJob extends CheckJob
 
     protected function createBrowser(): Browser
     {
+        $driverUrl = env('DUSK_DRIVER_URL', 'http://localhost:9515');
+
         $options = (new ChromeOptions)->addArguments([
             '--headless=new',
             '--disable-gpu',
@@ -240,12 +276,22 @@ class TestCheckJob extends CheckJob
             $options
         );
 
-        $driver = RemoteWebDriver::create(
-            env('DUSK_DRIVER_URL', 'http://localhost:9515'),
-            $capabilities
-        );
+        try {
+            Log::debug('[TestCheckJob] Connecting to WebDriver', ['url' => $driverUrl]);
 
-        return new Browser($driver);
+            $driver = RemoteWebDriver::create($driverUrl, $capabilities);
+
+            Log::debug('[TestCheckJob] WebDriver connected successfully');
+
+            return new Browser($driver);
+        } catch (\Exception $e) {
+            Log::error('[TestCheckJob] Failed to connect to WebDriver', [
+                'url' => $driverUrl,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 
     protected function calculateDuration(float $startTime): int
