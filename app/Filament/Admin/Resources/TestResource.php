@@ -82,14 +82,15 @@ class TestResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Owner')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('user.feature_flags')
+                    ->label('Feature')
+                    ->icon(fn ($state) => in_array('run-tests', $state ?? []) ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
+                    ->color(fn ($state) => in_array('run-tests', $state ?? []) ? 'success' : 'danger')
+                    ->tooltip(fn ($state) => in_array('run-tests', $state ?? []) ? 'User has tests enabled' : 'User does not have tests enabled'),
                 Tables\Columns\TextColumn::make('lastRun.status')
                     ->label('Status')
                     ->badge()
@@ -100,22 +101,32 @@ class TestResource extends Resource
                 Tables\Columns\TextColumn::make('entrypoint_url')
                     ->label('URL')
                     ->searchable()
-                    ->limit(40),
+                    ->limit(30)
+                    ->tooltip(fn (Test $record) => $record->entrypoint_url),
                 Tables\Columns\TextColumn::make('steps_count')
                     ->label('Steps')
-                    ->counts('steps'),
+                    ->counts('steps')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('monitors_count')
                     ->label('Monitors')
-                    ->counts('monitors'),
+                    ->counts('monitors')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('runs_count')
+                    ->label('Runs')
+                    ->counts('runs')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('last_run_at')
                     ->label('Last run')
                     ->since()
+                    ->tooltip(fn (Test $record) => $record->last_run_at?->format('j F Y, g:i a'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Created')
+                    ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('last_run_status')
                     ->label('Status')
@@ -127,6 +138,17 @@ class TestResource extends Resource
 
                         return $query->whereHas('lastRun', fn (Builder $q) => $q->where('status', $data['value']));
                     }),
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->relationship('user', 'name')
+                    ->label('Owner')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\Filter::make('has_monitors')
+                    ->label('Has monitors')
+                    ->query(fn ($query) => $query->has('monitors')),
+                Tables\Filters\Filter::make('user_has_feature')
+                    ->label('User has tests enabled')
+                    ->query(fn ($query) => $query->whereHas('user', fn ($q) => $q->whereJsonContains('feature_flags', 'run-tests'))),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

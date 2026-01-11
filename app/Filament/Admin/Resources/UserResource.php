@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Traits\WithoutUserScopes;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
@@ -23,24 +25,43 @@ class UserResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('is_admin')
-                    ->required(),
-                Forms\Components\CheckboxList::make('feature_flags')
-                    ->options(User::availableFeatureFlags())
-                    ->label('Feature flags')
-                    ->helperText('Enable experimental features for this user'),
+                Forms\Components\Section::make('Account Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('email')
+                            ->email()
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255),
+                        Forms\Components\DateTimePicker::make('email_verified_at')
+                            ->label('Email verified at')
+                            ->helperText('Leave empty to mark email as unverified'),
+                    ])->columns(3),
+
+                Forms\Components\Section::make('Security')
+                    ->schema([
+                        Forms\Components\TextInput::make('password')
+                            ->password()
+                            ->dehydrateStateUsing(fn ($state) => $state ? Hash::make($state) : null)
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->maxLength(255)
+                            ->helperText(fn (string $operation) => $operation === 'edit' ? 'Leave empty to keep current password' : null),
+                        Forms\Components\Toggle::make('is_admin')
+                            ->label('Administrator')
+                            ->helperText('Administrators can access the backstage panel'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Feature Flags')
+                    ->description('Enable experimental features for this user')
+                    ->schema([
+                        Forms\Components\CheckboxList::make('feature_flags')
+                            ->options(User::availableFeatureFlags())
+                            ->label('')
+                            ->columns(2),
+                    ]),
             ]);
     }
 
@@ -48,56 +69,126 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->copyable(),
+                Tables\Columns\TextColumn::make('monitors_count')
+                    ->label('Monitors')
+                    ->counts('monitors')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('email_verified_at')
+                    ->label('Verified')
+                    ->boolean()
+                    ->getStateUsing(fn (User $record) => $record->email_verified_at !== null)
+                    ->trueIcon('heroicon-o-check-badge')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger'),
                 Tables\Columns\IconColumn::make('is_admin')
-                    ->boolean(),
+                    ->label('Admin')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-shield-check')
+                    ->falseIcon('heroicon-o-user')
+                    ->trueColor('warning')
+                    ->falseColor('gray'),
                 Tables\Columns\TextColumn::make('feature_flags')
                     ->label('Features')
                     ->badge()
-                    ->separator(',')
+                    ->color('info')
                     ->getStateUsing(fn (User $record) => $record->feature_flags ?? []),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Registered')
+                    ->since()
+                    ->tooltip(fn (User $record) => $record->created_at->format('j F Y, g:i a'))
+                    ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('is_admin')
+                    ->label('Admin status'),
+                Tables\Filters\TernaryFilter::make('email_verified_at')
+                    ->label('Email verified')
+                    ->nullable(),
+                Tables\Filters\Filter::make('has_tests_feature')
+                    ->label('Has tests feature')
+                    ->query(fn ($query) => $query->whereJsonContains('feature_flags', 'run-tests')),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('toggle_tests')
-                    ->label(fn (User $user) => $user->hasFeature('run-tests') ? 'Disable tests' : 'Enable tests')
-                    ->icon('heroicon-o-beaker')
-                    ->color(fn (User $user) => $user->hasFeature('run-tests') ? 'danger' : 'success')
-                    ->action(function (User $user) {
-                        if ($user->hasFeature('run-tests')) {
-                            $user->disableFeature('run-tests');
-                        } else {
-                            $user->enableFeature('run-tests');
-                        }
-                    }),
-                Tables\Actions\Action::make('impersonate')
-                    ->label('Impersonate')
-                    ->icon('heroicon-o-arrow-right-end-on-rectangle')
-                    ->action(fn (User $user) => $user->impersonate()),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('toggle_tests')
+                        ->label(fn (User $user) => $user->hasFeature('run-tests') ? 'Disable tests' : 'Enable tests')
+                        ->icon('heroicon-o-beaker')
+                        ->color(fn (User $user) => $user->hasFeature('run-tests') ? 'danger' : 'success')
+                        ->action(function (User $user) {
+                            if ($user->hasFeature('run-tests')) {
+                                $user->disableFeature('run-tests');
+                                Notification::make()
+                                    ->title('Tests disabled')
+                                    ->body("Browser tests feature disabled for {$user->name}")
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $user->enableFeature('run-tests');
+                                Notification::make()
+                                    ->title('Tests enabled')
+                                    ->body("Browser tests feature enabled for {$user->name}")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+                    Tables\Actions\Action::make('verify_email')
+                        ->label('Verify email')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('success')
+                        ->visible(fn (User $user) => $user->email_verified_at === null)
+                        ->action(function (User $user) {
+                            $user->update(['email_verified_at' => now()]);
+                            Notification::make()
+                                ->title('Email verified')
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\Action::make('impersonate')
+                        ->label('Impersonate')
+                        ->icon('heroicon-o-arrow-right-end-on-rectangle')
+                        ->color('gray')
+                        ->action(fn (User $user) => $user->impersonate())
+                        ->requiresConfirmation()
+                        ->modalHeading('Impersonate user')
+                        ->modalDescription(fn (User $user) => "You will be logged in as {$user->name}. Make sure to log out when done."),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('enable_tests')
+                        ->label('Enable tests feature')
+                        ->icon('heroicon-o-beaker')
+                        ->action(function ($records) {
+                            $records->each(fn (User $user) => $user->enableFeature('run-tests'));
+                            Notification::make()
+                                ->title('Tests enabled')
+                                ->body('Browser tests feature enabled for selected users')
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('disable_tests')
+                        ->label('Disable tests feature')
+                        ->icon('heroicon-o-beaker')
+                        ->color('danger')
+                        ->action(function ($records) {
+                            $records->each(fn (User $user) => $user->disableFeature('run-tests'));
+                            Notification::make()
+                                ->title('Tests disabled')
+                                ->body('Browser tests feature disabled for selected users')
+                                ->warning()
+                                ->send();
+                        }),
                 ]),
             ]);
     }
