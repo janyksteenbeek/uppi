@@ -212,151 +212,171 @@
              class="transition-all duration-700 delay-200 ease-out">
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {{-- HTTP Details --}}
-                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                     {{-- HTTP Animation - Request/Response --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
                         <div class="flex items-center gap-6">
                             {{-- Browser/Client --}}
                             <div class="relative">
-                                <div class="w-10 h-8 rounded bg-gray-700 flex items-center justify-center">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3" />
+                                <div class="w-10 h-8 rounded bg-gray-200 flex items-center justify-center">
+                                    {{-- Lucide: monitor --}}
+                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="14" x="2" y="3" rx="2"/>
+                                        <line x1="8" x2="16" y1="21" y2="21"/>
+                                        <line x1="12" x2="12" y1="17" y2="21"/>
                                     </svg>
                                 </div>
                             </div>
                             {{-- Request arrow --}}
                             <div class="relative w-16">
-                                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-700"></div>
-                                <div class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-green-400 animate-[httpRequest_2s_ease-in-out_infinite]" style="width: 0;"></div>
-                                <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 text-gray-600" fill="currentColor" viewBox="0 0 8 8"><path d="M0 0 L8 4 L0 8 Z"/></svg>
+                                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-300"></div>
+                                <div class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-green-500 animate-[httpRequest_2s_ease-in-out_infinite]" style="width: 0;"></div>
+                                <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 text-gray-400" fill="currentColor" viewBox="0 0 8 8"><path d="M0 0 L8 4 L0 8 Z"/></svg>
                             </div>
                             {{-- Server --}}
                             <div class="relative">
-                                <div class="w-10 h-10 rounded bg-gray-700 flex items-center justify-center">
-                                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3" />
+                                <div class="w-10 h-10 rounded bg-gray-200 flex items-center justify-center">
+                                    {{-- Lucide: server --}}
+                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+                                        <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+                                        <line x1="6" x2="6.01" y1="6" y2="6"/>
+                                        <line x1="6" x2="6.01" y1="18" y2="18"/>
                                     </svg>
                                 </div>
                                 {{-- Status indicator --}}
-                                <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                                <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
                             </div>
                         </div>
                         {{-- Status code badge --}}
-                        <div class="absolute bottom-0 left-1/2 -translate-x-1/2">
-                            <span class="inline-flex items-center rounded bg-green-500/20 px-2 py-0.5 text-xs font-mono text-green-400 animate-[fadeInOut_2s_ease-in-out_infinite]">200 OK</span>
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2">
+                            <span class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-mono text-green-600 animate-[fadeInOut_2s_ease-in-out_infinite]">200 OK</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 text-white">
-                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: globe --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                            <path d="M2 12h20"/>
                         </svg>
                         <span class="font-semibold">HTTP Monitor</span>
                     </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Status code validation
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Response body matching
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Custom headers & body
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Response time tracking
                         </li>
                     </ul>
                 </div>
 
                 {{-- TCP Details --}}
-                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                     {{-- TCP Animation - Port connections --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
                         <div class="flex items-center gap-2">
                             {{-- Server with ports --}}
                             <div class="relative">
-                                <div class="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700 flex flex-col items-center justify-center gap-1 p-2">
-                                    <svg class="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3" />
+                                <div class="w-16 h-16 rounded-lg bg-gray-100 border border-gray-200 flex flex-col items-center justify-center gap-1 p-2">
+                                    {{-- Lucide: database --}}
+                                    <svg class="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                        <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                                        <path d="M3 12A9 3 0 0 0 21 12"/>
                                     </svg>
                                 </div>
                             </div>
                             {{-- Port indicators --}}
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
                                     <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75"></div>
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75"></div>
                                     </div>
                                     <span class="text-[10px] text-gray-500 font-mono ml-1">:443</span>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
                                     <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.3s]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" style="animation-delay: 0.3s;"></div>
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.3s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.3s;"></div>
                                     </div>
                                     <span class="text-[10px] text-gray-500 font-mono ml-1">:3306</span>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
                                     <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.6s]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" style="animation-delay: 0.6s;"></div>
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.6s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.6s;"></div>
                                     </div>
                                     <span class="text-[10px] text-gray-500 font-mono ml-1">:6379</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 text-white">
-                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: network --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="16" y="16" width="6" height="6" rx="1"/>
+                            <rect x="2" y="16" width="6" height="6" rx="1"/>
+                            <rect x="9" y="2" width="6" height="6" rx="1"/>
+                            <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
+                            <path d="M12 12V8"/>
                         </svg>
                         <span class="font-semibold">TCP Monitor</span>
                     </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Port availability check
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Database connections
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Mail server monitoring
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Any TCP service
                         </li>
                     </ul>
                 </div>
 
                 {{-- Cron Details --}}
-                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                     {{-- Cron Animation - Clock with heartbeat --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
                         <div class="flex items-center gap-4">
                             {{-- Animated clock --}}
                             <div class="relative w-14 h-14">
-                                <div class="absolute inset-0 rounded-full border-2 border-gray-700"></div>
+                                <div class="absolute inset-0 rounded-full border-2 border-gray-300"></div>
                                 {{-- Clock face dots --}}
-                                <div class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
-                                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
-                                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
-                                <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
+                                <div class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
                                 {{-- Clock hands --}}
-                                <div class="absolute top-1/2 left-1/2 w-0.5 h-4 bg-gray-400 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockMinute_4s_linear_infinite]"></div>
-                                <div class="absolute top-1/2 left-1/2 w-0.5 h-3 bg-red-400 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockSecond_2s_steps(60)_infinite]"></div>
-                                <div class="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-gray-400 -translate-x-1/2 -translate-y-1/2"></div>
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-4 bg-gray-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockMinute_4s_linear_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-3 bg-red-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockSecond_2s_steps(60)_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-gray-500 -translate-x-1/2 -translate-y-1/2"></div>
                             </div>
                             {{-- Heartbeat line --}}
                             <div class="flex-1">
@@ -370,32 +390,35 @@
                                           stroke-dashoffset="200"/>
                                 </svg>
                                 <div class="text-center mt-1">
-                                    <span class="text-[10px] text-green-400 font-mono animate-pulse">CHECK-IN ✓</span>
+                                    <span class="text-[10px] text-green-600 font-mono animate-pulse">CHECK-IN ✓</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 text-white">
-                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: clock --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
                         </svg>
                         <span class="font-semibold">Cron Monitor</span>
                     </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Heartbeat check-ins
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Configurable grace period
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Background job tracking
                         </li>
                         <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                             Unique check-in URLs
                         </li>
                     </ul>
