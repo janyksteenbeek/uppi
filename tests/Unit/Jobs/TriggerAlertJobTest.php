@@ -29,9 +29,11 @@ it('creates an anomaly after consecutive failures', function () {
 
     $monitor->refresh();
 
-    expect($monitor->anomalies->count())->toBe(0);
+    // After first failure: no anomaly yet, status still UNKNOWN (threshold not met)
+    expect($monitor->anomalies->count())->toBe(0)
+        ->and($monitor->status)->toBe(Status::UNKNOWN);
 
-    // Second failure - should create anomaly
+    // Second failure - should create anomaly and update status
     $secondCheck = Check::factory()->create([
         'monitor_id' => $monitor->id,
         'status' => Status::FAIL,
@@ -42,7 +44,9 @@ it('creates an anomaly after consecutive failures', function () {
 
     $monitor->refresh();
 
-    expect($monitor->anomalies->count())->toBe(1);
+    // After second failure: anomaly created, status is now FAIL
+    expect($monitor->anomalies->count())->toBe(1)
+        ->and($monitor->status)->toBe(Status::FAIL);
 });
 
 it('associates checks with anomaly', function () {
@@ -116,7 +120,9 @@ it('closes anomaly after consecutive successes', function () {
     $monitor->refresh();
     $anomaly = $monitor->anomalies->first();
 
-    expect($anomaly->ended_at)->not->toBeNull();
+    // After recovery threshold met: anomaly closed, status is now OK
+    expect($anomaly->ended_at)->not->toBeNull()
+        ->and($monitor->status)->toBe(Status::OK);
 });
 
 it('maintains anomaly during mixed status checks', function () {
@@ -158,8 +164,10 @@ it('maintains anomaly during mixed status checks', function () {
     $monitor->refresh();
     $anomaly = $monitor->anomalies->first();
 
+    // Anomaly still open, status still FAIL (recovery threshold not met due to mixed checks)
     expect($anomaly->ended_at)->toBeNull()
-        ->and($anomaly->checks)->toHaveCount(count: 4);
+        ->and($anomaly->checks)->toHaveCount(count: 4)
+        ->and($monitor->status)->toBe(Status::FAIL);
 });
 
 it('handles multiple anomalies for the same monitor', function () {
@@ -210,7 +218,9 @@ it('handles multiple anomalies for the same monitor', function () {
         ]),
     ])->each(fn ($check) => (new TriggerAlertJob($check))->handle());
 
+    // Two anomalies: one closed, one open. Status should be FAIL (second anomaly active)
     expect(Anomaly::count())->toBe(2)
         ->and(Anomaly::whereNotNull('ended_at')->count())->toBe(1)
-        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1);
+        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1)
+        ->and($monitor->fresh()->status)->toBe(Status::FAIL);
 });
