@@ -49,10 +49,8 @@ class MainPanelProvider extends PanelProvider
             ->pages([
             ])
             ->navigationGroups([
-                NavigationGroup::make('Monitoring')
-                    ->icon('heroicon-o-heart'),
-                NavigationGroup::make('Status Pages')
-                    ->icon('heroicon-o-eye'),
+                NavigationGroup::make('Monitoring'),
+                NavigationGroup::make('Status Pages'),
             ])
             ->darkMode(false)
             ->registration()
