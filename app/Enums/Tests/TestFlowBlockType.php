@@ -11,6 +11,9 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
     case VISIT = 'visit';
     case WAIT_FOR_TEXT = 'wait_for_text';
     case TYPE = 'type';
+    case SELECT = 'select';
+    case CHECK = 'check';
+    case UNCHECK = 'uncheck';
     case PRESS = 'press';
     case CLICK_LINK = 'click_link';
     case CLICK = 'click';
@@ -26,6 +29,9 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
             self::VISIT => 'heroicon-o-globe-alt',
             self::WAIT_FOR_TEXT => 'heroicon-o-clock',
             self::TYPE => 'heroicon-o-pencil',
+            self::SELECT => 'heroicon-o-chevron-up-down',
+            self::CHECK => 'heroicon-o-check-circle',
+            self::UNCHECK => 'heroicon-o-x-circle',
             self::PRESS => 'heroicon-o-cursor-arrow-rays',
             self::CLICK_LINK => 'heroicon-o-link',
             self::CLICK => 'heroicon-o-cursor-arrow-ripple',
@@ -33,7 +39,7 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
             self::FORWARD => 'heroicon-o-arrow-right',
             self::REFRESH => 'heroicon-o-arrow-path',
             self::SCREENSHOT => 'heroicon-o-camera',
-            self::SUCCESS => 'heroicon-o-check-circle',
+            self::SUCCESS => 'heroicon-o-flag',
         };
     }
 
@@ -43,6 +49,9 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
             self::VISIT => 'info',
             self::WAIT_FOR_TEXT => 'warning',
             self::TYPE => 'primary',
+            self::SELECT => 'primary',
+            self::CHECK => 'success',
+            self::UNCHECK => 'danger',
             self::PRESS => 'success',
             self::CLICK_LINK => 'info',
             self::CLICK => 'warning',
@@ -60,6 +69,9 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
             self::VISIT => 'Visit URL',
             self::WAIT_FOR_TEXT => 'Wait for text',
             self::TYPE => 'Type text',
+            self::SELECT => 'Select option',
+            self::CHECK => 'Check checkbox',
+            self::UNCHECK => 'Uncheck checkbox',
             self::PRESS => 'Press button',
             self::CLICK_LINK => 'Click link',
             self::CLICK => 'Click element',
@@ -76,8 +88,11 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
         return match ($this) {
             self::VISIT => 'Navigate to a specific URL',
             self::WAIT_FOR_TEXT => 'Wait until specific text appears on the page',
-            self::TYPE => 'Type text into a form field',
-            self::PRESS => 'Click a button element',
+            self::TYPE => 'Type text into a form field (use field name or CSS selector)',
+            self::SELECT => 'Select a value from a dropdown (use field name or CSS selector)',
+            self::CHECK => 'Check a checkbox (use field name or CSS selector)',
+            self::UNCHECK => 'Uncheck a checkbox (use field name or CSS selector)',
+            self::PRESS => 'Click a button element by its text',
             self::CLICK_LINK => 'Click a link by its text',
             self::CLICK => 'Click an element by CSS selector',
             self::BACK => 'Navigate back in browser history',
@@ -91,15 +106,15 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
     public function requiresValue(): bool
     {
         return match ($this) {
-            self::VISIT, self::WAIT_FOR_TEXT, self::TYPE, self::PRESS, self::CLICK_LINK => true,
-            self::CLICK, self::BACK, self::FORWARD, self::REFRESH, self::SCREENSHOT, self::SUCCESS => false,
+            self::VISIT, self::WAIT_FOR_TEXT, self::TYPE, self::PRESS, self::CLICK_LINK, self::SELECT => true,
+            self::CHECK, self::UNCHECK, self::CLICK, self::BACK, self::FORWARD, self::REFRESH, self::SCREENSHOT, self::SUCCESS => false,
         };
     }
 
     public function requiresSelector(): bool
     {
         return match ($this) {
-            self::TYPE, self::CLICK => true,
+            self::TYPE, self::SELECT, self::CHECK, self::UNCHECK, self::CLICK => true,
             default => false,
         };
     }
@@ -110,6 +125,7 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
             self::VISIT => 'URL',
             self::WAIT_FOR_TEXT => 'Text to wait for',
             self::TYPE => 'Text to type',
+            self::SELECT => 'Option value',
             self::PRESS => 'Button text',
             self::CLICK_LINK => 'Link text',
             default => null,
@@ -119,7 +135,9 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
     public function getSelectorLabel(): ?string
     {
         return match ($this) {
-            self::TYPE => 'CSS selector or field name',
+            self::TYPE => 'Field (name attribute or CSS selector)',
+            self::SELECT => 'Field (name attribute or CSS selector)',
+            self::CHECK, self::UNCHECK => 'Field (name attribute or CSS selector)',
             self::CLICK => 'CSS selector',
             default => null,
         };

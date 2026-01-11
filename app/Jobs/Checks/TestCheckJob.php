@@ -163,6 +163,9 @@ class TestCheckJob extends CheckJob
             TestFlowBlockType::VISIT => $this->actionVisit($browser, $step),
             TestFlowBlockType::WAIT_FOR_TEXT => $this->actionWaitForText($browser, $step),
             TestFlowBlockType::TYPE => $this->actionType($browser, $step),
+            TestFlowBlockType::SELECT => $this->actionSelect($browser, $step),
+            TestFlowBlockType::CHECK => $this->actionCheck($browser, $step),
+            TestFlowBlockType::UNCHECK => $this->actionUncheck($browser, $step),
             TestFlowBlockType::PRESS => $this->actionPress($browser, $step),
             TestFlowBlockType::CLICK_LINK => $this->actionClickLink($browser, $step),
             TestFlowBlockType::CLICK => $this->actionClick($browser, $step),
@@ -191,6 +194,21 @@ class TestCheckJob extends CheckJob
     protected function actionType(Browser $browser, TestStep $step): void
     {
         $browser->type($step->selector, $step->value);
+    }
+
+    protected function actionSelect(Browser $browser, TestStep $step): void
+    {
+        $browser->select($step->selector, $step->value);
+    }
+
+    protected function actionCheck(Browser $browser, TestStep $step): void
+    {
+        $browser->check($step->selector);
+    }
+
+    protected function actionUncheck(Browser $browser, TestStep $step): void
+    {
+        $browser->uncheck($step->selector);
     }
 
     protected function actionPress(Browser $browser, TestStep $step): void

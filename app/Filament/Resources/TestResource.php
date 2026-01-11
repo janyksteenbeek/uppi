@@ -72,11 +72,14 @@ class TestResource extends Resource
                                         TestFlowBlockType::VISIT => 'https://example.com/page',
                                         TestFlowBlockType::WAIT_FOR_TEXT => 'Welcome to our site',
                                         TestFlowBlockType::TYPE => 'john@example.com',
+                                        TestFlowBlockType::SELECT => 'option-value',
                                         TestFlowBlockType::PRESS => 'Submit',
-                                        TestFlowBlockType::CLICK_LINK => 'Tarieven',
+                                        TestFlowBlockType::CLICK_LINK => 'Read more',
                                         default => null,
                                     })
                                     ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                        TestFlowBlockType::TYPE => 'The text to type into the field',
+                                        TestFlowBlockType::SELECT => 'The option value (not display text)',
                                         TestFlowBlockType::PRESS => 'Text shown on the button element',
                                         TestFlowBlockType::CLICK_LINK => 'Text shown on the link (exact match)',
                                         TestFlowBlockType::WAIT_FOR_TEXT => 'Text that must appear on the page',
@@ -88,12 +91,16 @@ class TestResource extends Resource
                                     ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
                                     ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
                                     ->placeholder(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
-                                        TestFlowBlockType::TYPE => '#email, [name="email"], .input-field',
-                                        TestFlowBlockType::CLICK => '#submit-btn, .nav-link, [data-action="save"]',
+                                        TestFlowBlockType::TYPE => 'email or #email or [name="email"]',
+                                        TestFlowBlockType::SELECT => 'country or #country or [name="country"]',
+                                        TestFlowBlockType::CHECK, TestFlowBlockType::UNCHECK => 'terms or #terms or [name="accept_terms"]',
+                                        TestFlowBlockType::CLICK => '#submit-btn, .nav-link',
                                         default => null,
                                     })
                                     ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
-                                        TestFlowBlockType::TYPE => 'CSS selector or input name attribute',
+                                        TestFlowBlockType::TYPE => 'Field name attribute (e.g. "email") or CSS selector (e.g. "#email")',
+                                        TestFlowBlockType::SELECT => 'Field name attribute (e.g. "country") or CSS selector (e.g. "#country")',
+                                        TestFlowBlockType::CHECK, TestFlowBlockType::UNCHECK => 'Field name attribute or CSS selector',
                                         TestFlowBlockType::CLICK => 'CSS selector for any clickable element',
                                         default => null,
                                     })
