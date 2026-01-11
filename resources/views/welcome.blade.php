@@ -206,66 +206,342 @@
             </p>
         </div>
 
-        <div class="mx-auto mt-16 max-w-5xl">
-            <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-                {{-- Monitor Type Cards --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
-                     class="transition-all duration-700 delay-100 ease-out group relative rounded-2xl bg-gradient-to-b from-gray-50 to-white p-8 ring-1 ring-gray-200 hover:ring-red-200 hover:shadow-lg hover:shadow-red-100/50">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500 text-white shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        {{-- Monitor Type Details --}}
+        <div class="mx-auto mt-16 max-w-5xl"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
+             class="transition-all duration-700 delay-200 ease-out">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {{-- HTTP Details --}}
+                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                    {{-- HTTP Animation - Request/Response --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                        <div class="flex items-center gap-6">
+                            {{-- Browser/Client --}}
+                            <div class="relative">
+                                <div class="w-10 h-8 rounded bg-gray-700 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            {{-- Request arrow --}}
+                            <div class="relative w-16">
+                                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-700"></div>
+                                <div class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-green-400 animate-[httpRequest_2s_ease-in-out_infinite]" style="width: 0;"></div>
+                                <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 text-gray-600" fill="currentColor" viewBox="0 0 8 8"><path d="M0 0 L8 4 L0 8 Z"/></svg>
+                            </div>
+                            {{-- Server --}}
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded bg-gray-700 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3" />
+                                    </svg>
+                                </div>
+                                {{-- Status indicator --}}
+                                <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                            </div>
+                        </div>
+                        {{-- Status code badge --}}
+                        <div class="absolute bottom-0 left-1/2 -translate-x-1/2">
+                            <span class="inline-flex items-center rounded bg-green-500/20 px-2 py-0.5 text-xs font-mono text-green-400 animate-[fadeInOut_2s_ease-in-out_infinite]">200 OK</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-white">
+                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
                         </svg>
+                        <span class="font-semibold">HTTP Monitor</span>
                     </div>
-                    <h3 class="mt-6 text-lg font-semibold text-gray-900">HTTP Monitoring</h3>
-                    <p class="mt-2 text-sm text-gray-600">Monitor websites, APIs, and webhooks. Check status codes, response times, and content validation.</p>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Status code validation
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Response body matching
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Custom headers & body
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Response time tracking
+                        </li>
+                    </ul>
                 </div>
 
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
-                     class="transition-all duration-700 delay-200 ease-out group relative rounded-2xl bg-gradient-to-b from-gray-50 to-white p-8 ring-1 ring-gray-200 hover:ring-red-200 hover:shadow-lg hover:shadow-red-100/50">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500 text-white shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                {{-- TCP Details --}}
+                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                    {{-- TCP Animation - Port connections --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                        <div class="flex items-center gap-2">
+                            {{-- Server with ports --}}
+                            <div class="relative">
+                                <div class="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700 flex flex-col items-center justify-center gap-1 p-2">
+                                    <svg class="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            {{-- Port indicators --}}
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:443</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.3s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" style="animation-delay: 0.3s;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:3306</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-700"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-400 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.6s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-400 animate-ping opacity-75" style="animation-delay: 0.6s;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:6379</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-white">
+                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
                         </svg>
+                        <span class="font-semibold">TCP Monitor</span>
                     </div>
-                    <h3 class="mt-6 text-lg font-semibold text-gray-900">TCP Monitoring</h3>
-                    <p class="mt-2 text-sm text-gray-600">Monitor databases, mail servers, and any TCP service. Verify port availability and connection health.</p>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Port availability check
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Database connections
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Mail server monitoring
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Any TCP service
+                        </li>
+                    </ul>
                 </div>
 
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
-                     class="transition-all duration-700 delay-300 ease-out group relative rounded-2xl bg-gradient-to-b from-gray-50 to-white p-8 ring-1 ring-gray-200 hover:ring-red-200 hover:shadow-lg hover:shadow-red-100/50">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500 text-white shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                {{-- Cron Details --}}
+                <div class="rounded-2xl bg-gray-900 p-6 overflow-hidden">
+                    {{-- Cron Animation - Clock with heartbeat --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center">
+                        <div class="flex items-center gap-4">
+                            {{-- Animated clock --}}
+                            <div class="relative w-14 h-14">
+                                <div class="absolute inset-0 rounded-full border-2 border-gray-700"></div>
+                                {{-- Clock face dots --}}
+                                <div class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
+                                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
+                                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
+                                <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-600"></div>
+                                {{-- Clock hands --}}
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-4 bg-gray-400 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockMinute_4s_linear_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-3 bg-red-400 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockSecond_2s_steps(60)_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-gray-400 -translate-x-1/2 -translate-y-1/2"></div>
+                            </div>
+                            {{-- Heartbeat line --}}
+                            <div class="flex-1">
+                                <svg class="w-24 h-8" viewBox="0 0 100 32">
+                                    <path d="M0,16 L20,16 L25,16 L30,4 L35,28 L40,16 L60,16 L65,16 L70,4 L75,28 L80,16 L100,16" 
+                                          fill="none" 
+                                          stroke="#22c55e" 
+                                          stroke-width="2"
+                                          class="animate-[heartbeat_2s_ease-in-out_infinite]"
+                                          stroke-dasharray="200"
+                                          stroke-dashoffset="200"/>
+                                </svg>
+                                <div class="text-center mt-1">
+                                    <span class="text-[10px] text-green-400 font-mono animate-pulse">CHECK-IN ✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-white">
+                        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
+                        <span class="font-semibold">Cron Monitor</span>
                     </div>
-                    <h3 class="mt-6 text-lg font-semibold text-gray-900">Cron Monitoring</h3>
-                    <p class="mt-2 text-sm text-gray-600">Track scheduled tasks and background jobs. Get alerted if your cron jobs don't check in on time.</p>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Heartbeat check-ins
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Configurable grace period
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Background job tracking
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                            Unique check-in URLs
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        {{-- Stats Animation --}}
-        <div class="mx-auto mt-20 max-w-4xl"
-             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
-             class="transition-all duration-700 delay-500 ease-out">
-            <div class="rounded-3xl bg-gray-900 p-8 sm:p-12">
-                <div class="grid grid-cols-2 gap-8 sm:grid-cols-4">
-                    <div class="text-center" x-data="{ count: 0 }" x-init="shown && setTimeout(() => { let interval = setInterval(() => { if(count < 99) count++; else clearInterval(interval); }, 20); }, 600)">
-                        <div class="text-4xl font-bold text-white" x-text="count + '.9%'">0%</div>
-                        <div class="mt-2 text-sm text-gray-400">Uptime SLA</div>
+<style>
+    @keyframes httpRequest {
+        0%, 100% { width: 0; opacity: 0; }
+        10% { opacity: 1; }
+        50% { width: 100%; opacity: 1; }
+        60%, 100% { width: 100%; opacity: 0; }
+    }
+    @keyframes fadeInOut {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+    @keyframes tcpPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+    }
+    @keyframes clockMinute {
+        from { transform: translate(-50%, -100%) rotate(0deg); }
+        to { transform: translate(-50%, -100%) rotate(360deg); }
+    }
+    @keyframes clockSecond {
+        from { transform: translate(-50%, -100%) rotate(0deg); }
+        to { transform: translate(-50%, -100%) rotate(360deg); }
+    }
+    @keyframes heartbeat {
+        0% { stroke-dashoffset: 200; }
+        100% { stroke-dashoffset: 0; }
+    }
+</style>
+
+{{-- Alert Channels Section --}}
+<div class="bg-gray-50 py-24 sm:py-32"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+             class="transition-all duration-700 ease-out">
+            <p class="text-base font-semibold text-red-600">Instant notifications</p>
+            <h2 class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+                Get alerted your way
+            </h2>
+            <p class="mt-6 text-lg/8 text-gray-600">
+                Choose from multiple notification channels. Mix and match per monitor for the perfect alert setup.
+            </p>
+        </div>
+
+        <div class="mx-auto mt-16 max-w-4xl">
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {{-- Email --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-100 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                        <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                        </svg>
                     </div>
-                    <div class="text-center" x-data="{ count: 0 }" x-init="shown && setTimeout(() => { let interval = setInterval(() => { if(count < 60) count++; else clearInterval(interval); }, 30); }, 700)">
-                        <div class="text-4xl font-bold text-white"><span x-text="count">0</span>s</div>
-                        <div class="mt-2 text-sm text-gray-400">Check Interval</div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Email</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Detailed alert emails</p>
+                </div>
+
+                {{-- Slack --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-150 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-purple-100">
+                        <svg class="h-7 w-7 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                        </svg>
                     </div>
-                    <div class="text-center" x-data="{ count: 0 }" x-init="shown && setTimeout(() => { let interval = setInterval(() => { if(count < 10) count++; else clearInterval(interval); }, 100); }, 800)">
-                        <div class="text-4xl font-bold text-white"><span x-text="count">0</span>+</div>
-                        <div class="mt-2 text-sm text-gray-400">Alert Channels</div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Slack</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Channel notifications</p>
+                </div>
+
+                {{-- Telegram --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-200 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                        <svg class="h-7 w-7 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                        </svg>
                     </div>
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-red-500">Free</div>
-                        <div class="mt-2 text-sm text-gray-400">Forever</div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Telegram</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Bot messages</p>
+                </div>
+
+                {{-- Pushover --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-250 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-100">
+                        <svg class="h-7 w-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        </svg>
                     </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Pushover</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Push notifications</p>
+                </div>
+
+                {{-- SMS (Bird) --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-300 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                        <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">SMS</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Via Bird</p>
+                </div>
+
+                {{-- Webhook --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-350 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+                        <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Webhooks</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Custom integrations</p>
+                </div>
+
+                {{-- Mobile App --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-400 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200 sm:col-span-2 lg:col-span-1">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900">
+                        <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Mobile App</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">iOS & Android</p>
+                </div>
+
+                {{-- More coming --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-450 ease-out flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-6">
+                    <p class="text-sm font-medium text-gray-500">More coming soon...</p>
+                    <a href="https://github.com/janyksteenbeek/uppi" class="mt-2 text-xs text-red-600 hover:text-red-500">Contribute →</a>
                 </div>
             </div>
         </div>
@@ -327,7 +603,7 @@
                             <h3 class="font-semibold text-gray-900">Screenshots & Snapshots</h3>
                             <p class="mt-1 text-sm text-gray-600">Capture screenshots and HTML snapshots on failure for easy debugging.</p>
                         </div>
-                    </div>
+                        </div>
 
                     <div class="flex gap-4"
                          :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
@@ -343,7 +619,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                        </div>
 
             {{-- Test Flow Animation --}}
             <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'"
@@ -364,7 +640,7 @@
                                 your-app.com/checkout
                             </div>
                         </div>
-                    </div>
+                        </div>
 
                     {{-- Test Steps --}}
                     <div class="mt-6 space-y-3">
@@ -494,7 +770,7 @@
                          style="transition-delay: {{ ($index + 1) * 100 }}ms;">
                         <dt class="text-base font-semibold text-gray-900">{{ $feature['title'] }}</dt>
                         <dd class="mt-2 text-sm text-gray-600">{{ $feature['desc'] }}</dd>
-                    </div>
+            </div>
                 @endforeach
             </dl>
         </div>
