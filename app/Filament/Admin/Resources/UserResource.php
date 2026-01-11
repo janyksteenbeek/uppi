@@ -157,7 +157,8 @@ class UserResource extends Resource
                         ->label('Impersonate')
                         ->icon('heroicon-o-arrow-right-end-on-rectangle')
                         ->color('gray')
-                        ->action(fn (User $user) => $user->impersonate())
+                        ->action(fn (User $user) => auth()->login($user))
+                        ->successRedirectUrl('/')
                         ->requiresConfirmation()
                         ->modalHeading('Impersonate user')
                         ->modalDescription(fn (User $user) => "You will be logged in as {$user->name}. Make sure to log out when done."),

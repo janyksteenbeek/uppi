@@ -3,7 +3,7 @@ services:
     image: selenium/standalone-chrome:latest
     shm_size: 2gb
     ports:
-      - "4444:4444"
+      - "9515:4444"
       - "7900:7900"
     environment:
       - SE_NODE_MAX_SESSIONS=5

@@ -58,9 +58,9 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->hasMany(StatusPage::class);
     }
 
-    public function impersonate()
+    public function impersonate(): void
     {
-        auth()->loginUsingId($this->id);
+        auth()->login($this);
     }
 
     public function isOk(): bool
