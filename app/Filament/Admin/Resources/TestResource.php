@@ -66,12 +66,39 @@ class TestResource extends Resource
                                     ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
                                     ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
                                     ->columnSpan(1),
+                                Forms\Components\TextInput::make('delay_ms')
+                                    ->label('Wait after')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(30000)
+                                    ->step(100)
+                                    ->suffix('ms')
+                                    ->placeholder('0')
+                                    ->helperText('Pause before next step')
+                                    ->columnSpanFull(),
                             ])
                             ->columns(2)
                             ->reorderable()
                             ->collapsible()
                             ->cloneable()
-                            ->itemLabel(fn (array $state): ?string => TestFlowBlockType::tryFrom($state['type'] ?? '')?->getLabel() . (isset($state['value']) && $state['value'] ? ': ' . \Str::limit($state['value'], 30) : (isset($state['selector']) && $state['selector'] ? ': ' . \Str::limit($state['selector'], 30) : '')))
+                            ->itemLabel(function (array $state): ?string {
+                                $label = TestFlowBlockType::tryFrom($state['type'] ?? '')?->getLabel() ?? 'Step';
+
+                                if (isset($state['value']) && $state['value']) {
+                                    $label .= ': ' . \Str::limit($state['value'], 30);
+                                } elseif (isset($state['selector']) && $state['selector']) {
+                                    $label .= ': ' . \Str::limit($state['selector'], 30);
+                                }
+
+                                if (isset($state['delay_ms']) && $state['delay_ms'] > 0) {
+                                    $delay = $state['delay_ms'] >= 1000
+                                        ? number_format($state['delay_ms'] / 1000, 1) . 's'
+                                        : $state['delay_ms'] . 'ms';
+                                    $label .= " ⏱ {$delay}";
+                                }
+
+                                return $label;
+                            })
                             ->addActionLabel('Add step')
                             ->defaultItems(0),
                     ]),

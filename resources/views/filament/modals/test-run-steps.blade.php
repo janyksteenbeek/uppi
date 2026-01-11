@@ -109,7 +109,7 @@
                             </div>
                         </div>
                         
-                        @if($step->value || $step->selector)
+                        @if($step->value || $step->selector || $step->delay_ms)
                             <div class="mt-2 flex flex-wrap gap-2">
                                 @if($step->value)
                                     <code class="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-300">
@@ -120,6 +120,12 @@
                                     <code class="rounded bg-purple-100 dark:bg-purple-900 px-2 py-1 text-xs text-purple-700 dark:text-purple-300">
                                         {{ $step->selector }}
                                     </code>
+                                @endif
+                                @if($step->delay_ms)
+                                    <span class="inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-900 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">
+                                        <x-filament::icon icon="heroicon-o-clock" class="h-3 w-3" />
+                                        {{ $step->delay_ms >= 1000 ? number_format($step->delay_ms / 1000, 1) . 's' : $step->delay_ms . 'ms' }} wait
+                                    </span>
                                 @endif
                             </div>
                         @endif

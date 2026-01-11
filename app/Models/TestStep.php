@@ -18,7 +18,24 @@ class TestStep extends Model
     protected $casts = [
         'type' => TestFlowBlockType::class,
         'sort_order' => 'integer',
+        'delay_ms' => 'integer',
     ];
+
+    /**
+     * Get the delay in seconds for display purposes.
+     */
+    public function getDelaySecondsAttribute(): ?float
+    {
+        return $this->delay_ms ? $this->delay_ms / 1000 : null;
+    }
+
+    /**
+     * Check if this step has a delay configured.
+     */
+    public function hasDelay(): bool
+    {
+        return $this->delay_ms && $this->delay_ms > 0;
+    }
 
     public function test(): BelongsTo
     {

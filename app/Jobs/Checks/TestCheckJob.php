@@ -112,6 +112,9 @@ class TestCheckJob extends CheckJob
         try {
             $this->dispatchStepAction($browser, $step, $runStep);
 
+            // Apply delay after step execution if configured
+            $this->applyStepDelay($step);
+
             $durationMs = $this->calculateDuration($stepStart);
             $runStep->markAsSuccess($durationMs);
         } catch (\Exception $e) {
@@ -129,6 +132,21 @@ class TestCheckJob extends CheckJob
             $runStep->markAsFailure($e->getMessage(), $durationMs, null, $htmlSnapshot);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Apply the configured delay after a step execution.
+     * This allows things like AJAX requests or animations to complete.
+     */
+    protected function applyStepDelay(TestStep $step): void
+    {
+        if ($step->hasDelay()) {
+            Log::debug('[TestCheckJob] Applying step delay', [
+                'delay_ms' => $step->delay_ms,
+            ]);
+
+            usleep($step->delay_ms * 1000); // Convert ms to microseconds
         }
     }
 
