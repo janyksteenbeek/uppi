@@ -204,12 +204,17 @@ class TestResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Run test now')
                     ->modalDescription('This will queue the test to run immediately.')
-                    ->visible(fn () => Auth::user()->hasFeature('run-tests'))
+                    ->visible(fn ($record) => Auth::user()->hasFeature('run-tests') && $record->monitors()->exists())
                     ->action(function (Test $record) {
-                        // TODO: Dispatch the test job
+                        $monitor = $record->monitors()->first();
+
+
+                        // Dispatch the test job
+                        \App\Jobs\Checks\TestCheckJob::dispatch($monitor);
+
                         \Filament\Notifications\Notification::make()
                             ->title('Test queued')
-                            ->body('The test has been queued to run.')
+                            ->body('The test has been queued to run. Results will appear shortly.')
                             ->success()
                             ->send();
                     }),
