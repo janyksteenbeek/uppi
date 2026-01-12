@@ -19,7 +19,9 @@ class StatusPageResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-eye';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?string $navigationGroup = 'Status Pages';
+
+    protected static ?int $navigationSort = 1;
 
     public static function getEloquentQuery(): Builder
     {

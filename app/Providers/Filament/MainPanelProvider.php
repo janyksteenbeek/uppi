@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Resources\PersonalAccessTokenResource;
 use App\Filament\Widgets\ActiveAnomalies;
 use App\Filament\Widgets\AnomaliesPerMonitor;
+use App\Filament\Widgets\RecentTestRuns;
 use App\Filament\Widgets\ResponseTime;
 use App\Filament\Widgets\StatusWidget;
 use App\Models\SocialiteUser;
@@ -15,6 +16,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -46,6 +48,10 @@ class MainPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
             ])
+            ->navigationGroups([
+                NavigationGroup::make('Monitoring'),
+                NavigationGroup::make('Status Pages'),
+            ])
             ->darkMode(false)
             ->registration()
             ->profile()
@@ -57,6 +63,7 @@ class MainPanelProvider extends PanelProvider
                 ResponseTime::class,
                 AnomaliesPerMonitor::class,
                 ActiveAnomalies::class,
+                RecentTestRuns::class,
             ])
             ->middleware([
                 EncryptCookies::class,

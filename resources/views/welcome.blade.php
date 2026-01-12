@@ -34,7 +34,8 @@
 
     <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700&display=swap" rel="stylesheet"/>
     <script defer src="https://statisfyer.nl/script.js" data-website-id="5e2d6b2a-67a0-4965-ace2-8677b879fbdf"></script>
-    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script defer src="https://unpkg.com/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     @vite('resources/css/app.css')
     @vite('resources/js/app.js')
@@ -188,105 +189,613 @@
     </div>
 </div>
 
-<div class="overflow-hidden bg-white py-24 sm:py-32" id="features">
+{{-- Monitors Section --}}
+<div class="relative overflow-hidden bg-white py-24 sm:py-32" id="features"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
     <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div
-            class="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
-            <div class="lg:ml-auto lg:pl-4 lg:pt-4">
-                <div class="lg:max-w-lg">
-                    <p class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">Uppi has
-                        everything you need to monitor your services.</p>
-                    <p class="mt-6 text-lg/8 text-gray-600">Features you expect from a world-class uptime monitoring
-                        service, and all for free.</p>
-                    <dl class="mt-10 max-w-xl space-y-5 text-base/7 text-gray-600 lg:max-w-none">
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                HTTP & TCP monitoring.
-                            </dt>
-                            <dd class="inline">
-                                Different monitoring types for every use case. Monitor your website, API, or any other
-                                service.
-                            </dd>
-                        </div>
+        <div class="mx-auto max-w-2xl text-center"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+             class="transition-all duration-700 ease-out">
+            <p class="text-base font-semibold text-red-600">Real-time monitoring</p>
+            <h2 class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+                Monitor everything.<br>Miss nothing.
+            </h2>
+            <p class="mt-6 text-lg/8 text-gray-600">
+                HTTP, TCP, and cron-job monitoring with minute-by-minute precision. Get instant alerts when things go wrong.
+            </p>
+        </div>
 
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Cron-job monitoring.
-                            </dt>
-                            <dd class="inline">
-                                Monitor your recurring background tasks with ease. Add a check-in URL to your cron job to get notified when your background task did not run as expected.
-                            </dd>
+        {{-- Monitor Type Details --}}
+        <div class="mx-auto mt-16 max-w-5xl"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
+             class="transition-all duration-700 delay-200 ease-out">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {{-- HTTP Details --}}
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    {{-- HTTP Animation - Request/Response --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
+                        <div class="flex items-center gap-6">
+                            {{-- Browser/Client --}}
+                            <div class="relative">
+                                <div class="w-10 h-8 rounded bg-gray-200 flex items-center justify-center">
+                                    {{-- Lucide: monitor --}}
+                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="14" x="2" y="3" rx="2"/>
+                                        <line x1="8" x2="16" y1="21" y2="21"/>
+                                        <line x1="12" x2="12" y1="17" y2="21"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            {{-- Request arrow --}}
+                            <div class="relative w-16">
+                                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-300"></div>
+                                <div class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-green-500 animate-[httpRequest_2s_ease-in-out_infinite]" style="width: 0;"></div>
+                                <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 text-gray-400" fill="currentColor" viewBox="0 0 8 8"><path d="M0 0 L8 4 L0 8 Z"/></svg>
+                            </div>
+                            {{-- Server --}}
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded bg-gray-200 flex items-center justify-center">
+                                    {{-- Lucide: server --}}
+                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
+                                        <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
+                                        <line x1="6" x2="6.01" y1="6" y2="6"/>
+                                        <line x1="6" x2="6.01" y1="18" y2="18"/>
+                                    </svg>
+                                </div>
+                                {{-- Status indicator --}}
+                                <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                            </div>
                         </div>
+                        {{-- Status code badge --}}
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2">
+                            <span class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-mono text-green-600 animate-[fadeInOut_2s_ease-in-out_infinite]">200 OK</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: globe --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                            <path d="M2 12h20"/>
+                        </svg>
+                        <span class="font-semibold">HTTP Monitor</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2">
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Status code validation
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Response body matching
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Custom headers & body
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Response time tracking
+                        </li>
+                    </ul>
+                </div>
 
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Alert Routing.
-                            </dt>
-                            <dd class="inline">
-                                Set up alert routing rules for each individual monitor. Get notified via the Uppi mobile
-                                app, email, SMS, Slack, Pushover or Bird.
-                            </dd>
+                {{-- TCP Details --}}
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    {{-- TCP Animation - Port connections --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
+                        <div class="flex items-center gap-2">
+                            {{-- Server with ports --}}
+                            <div class="relative">
+                                <div class="w-16 h-16 rounded-lg bg-gray-100 border border-gray-200 flex flex-col items-center justify-center gap-1 p-2">
+                                    {{-- Lucide: database --}}
+                                    <svg class="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                        <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                                        <path d="M3 12A9 3 0 0 0 21 12"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            {{-- Port indicators --}}
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:443</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.3s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.3s;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:3306</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <div class="w-8 h-0.5 bg-gray-300"></div>
+                                    <div class="relative">
+                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.6s]"></div>
+                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.6s;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:6379</span>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: network --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="16" y="16" width="6" height="6" rx="1"/>
+                            <rect x="2" y="16" width="6" height="6" rx="1"/>
+                            <rect x="9" y="2" width="6" height="6" rx="1"/>
+                            <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
+                            <path d="M12 12V8"/>
+                        </svg>
+                        <span class="font-semibold">TCP Monitor</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2">
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Port availability check
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Database connections
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Mail server monitoring
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Any TCP service
+                        </li>
+                    </ul>
+                </div>
 
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Uptime & Response Time.
-                            </dt>
-                            <dd class="inline">
-                                Track your website's uptime and response time. Get insights into your website's
-                                performance.
-                            </dd>
+                {{-- Cron Details --}}
+                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    {{-- Cron Animation - Clock with heartbeat --}}
+                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
+                        <div class="flex items-center gap-4">
+                            {{-- Animated clock --}}
+                            <div class="relative w-14 h-14">
+                                <div class="absolute inset-0 rounded-full border-2 border-gray-300"></div>
+                                {{-- Clock face dots --}}
+                                <div class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
+                                {{-- Clock hands --}}
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-4 bg-gray-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockMinute_4s_linear_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-0.5 h-3 bg-red-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockSecond_2s_steps(60)_infinite]"></div>
+                                <div class="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-gray-500 -translate-x-1/2 -translate-y-1/2"></div>
+                            </div>
+                            {{-- Heartbeat line --}}
+                            <div class="flex-1">
+                                <svg class="w-24 h-8" viewBox="0 0 100 32">
+                                    <path d="M0,16 L20,16 L25,16 L30,4 L35,28 L40,16 L60,16 L65,16 L70,4 L75,28 L80,16 L100,16" 
+                                          fill="none" 
+                                          stroke="#22c55e" 
+                                          stroke-width="2"
+                                          class="animate-[heartbeat_2s_ease-in-out_infinite]"
+                                          stroke-dasharray="200"
+                                          stroke-dashoffset="200"/>
+                                </svg>
+                                <div class="text-center mt-1">
+                                    <span class="text-[10px] text-green-600 font-mono animate-pulse">CHECK-IN ✓</span>
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Mobile App.
-                            </dt>
-                            <dd class="inline">
-                                Get notified when your website goes down, wherever you are. Available for iOS and
-                                Android.
-                            </dd>
-                        </div>
-
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Public Status Pages.
-                            </dt>
-                            <dd class="inline">
-                                Share your website's status with your users. Customize your status page to match your
-                                brand. Embed it on your website, or use your public status page on Uppi <a
-                                    href="https://uppi.dev/s/uppi" class="underline text-red-500">like this one</a>.
-                            </dd>
-                        </div>
-
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Minute-by-minute monitoring & thresholds.
-                            </dt>
-                            <dd class="inline">
-                                Monitor your website every minute. Set up your own interval & thresholds to prevent
-                                false-positive alerts.
-                            </dd>
-                        </div>
-
-                        <div class="relative ">
-                            <dt class="inline font-semibold text-gray-900">
-                                Open-source.
-                            </dt>
-                            <dd class="inline">
-                                Uppi is licensed under CC-BY-NC. You can host Uppi yourself, or use the hosted
-                                version for free.
-                            </dd>
-                        </div>
-                    </dl>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-900">
+                        {{-- Lucide: clock --}}
+                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span class="font-semibold">Cron Monitor</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
+                        <li class="flex items-center gap-2">
+                            {{-- Lucide: check --}}
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Heartbeat check-ins
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Configurable grace period
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Background job tracking
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            Unique check-in URLs
+                        </li>
+                    </ul>
                 </div>
             </div>
-            <div class="flex items-center justify-end lg:order-first">
-                <img src="{{ asset('static/screenshot-edit.png') }}"
-                     alt="Product screenshot"
-                     class="w-[48rem] max-w-none rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]" width="2432"
-                     height="1442">
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes httpRequest {
+        0%, 100% { width: 0; opacity: 0; }
+        10% { opacity: 1; }
+        50% { width: 100%; opacity: 1; }
+        60%, 100% { width: 100%; opacity: 0; }
+    }
+    @keyframes fadeInOut {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+    @keyframes tcpPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.8; }
+    }
+    @keyframes clockMinute {
+        from { transform: translate(-50%, -100%) rotate(0deg); }
+        to { transform: translate(-50%, -100%) rotate(360deg); }
+    }
+    @keyframes clockSecond {
+        from { transform: translate(-50%, -100%) rotate(0deg); }
+        to { transform: translate(-50%, -100%) rotate(360deg); }
+    }
+    @keyframes heartbeat {
+        0% { stroke-dashoffset: 200; }
+        100% { stroke-dashoffset: 0; }
+    }
+</style>
+
+{{-- Alert Channels Section --}}
+<div class="bg-gray-50 py-24 sm:py-32"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+             class="transition-all duration-700 ease-out">
+            <p class="text-base font-semibold text-red-600">Instant notifications</p>
+            <h2 class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+                Get alerted your way
+            </h2>
+            <p class="mt-6 text-lg/8 text-gray-600">
+                Choose from multiple notification channels. Mix and match per monitor for the perfect alert setup.
+            </p>
+        </div>
+
+        <div class="mx-auto mt-16 max-w-4xl">
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {{-- Email --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-100 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                        <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Email</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Detailed alert emails</p>
+                </div>
+
+                {{-- Slack --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-150 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-purple-100">
+                        <svg class="h-7 w-7 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Slack</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Channel notifications</p>
+                </div>
+
+                {{-- Telegram --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-200 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+                        <svg class="h-7 w-7 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Telegram</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Bot messages</p>
+                </div>
+
+                {{-- Pushover --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-250 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-100">
+                        <svg class="h-7 w-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Pushover</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Push notifications</p>
+                </div>
+
+                {{-- SMS (Bird) --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-300 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                        <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">SMS</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Via Bird</p>
+                </div>
+
+                {{-- Webhook --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-350 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+                        <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Webhooks</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">Custom integrations</p>
+                </div>
+
+                {{-- Mobile App --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-400 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200 sm:col-span-2 lg:col-span-1">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900">
+                        <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-4 font-semibold text-gray-900">Mobile App</h3>
+                    <p class="mt-1 text-center text-xs text-gray-500">iOS & Android</p>
+                </div>
+
+                {{-- More coming --}}
+                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                     class="transition-all duration-500 delay-450 ease-out flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-6">
+                    <p class="text-sm font-medium text-gray-500">More coming soon...</p>
+                    <a href="https://github.com/janyksteenbeek/uppi" class="mt-2 text-xs text-red-600 hover:text-red-500">Contribute →</a>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- Browser Tests Section --}}
+<div class="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white py-24 sm:py-32"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
+    {{-- Background decoration --}}
+    <div class="absolute inset-0 -z-10">
+        <div class="absolute top-1/4 left-0 h-72 w-72 rounded-full bg-red-100 opacity-50 blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-0 h-96 w-96 rounded-full bg-red-50 opacity-60 blur-3xl"></div>
+    </div>
+
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
+            {{-- Text Content --}}
+            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'"
+                 class="transition-all duration-700 ease-out">
+                <div class="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-1.5 text-sm font-medium text-red-700">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                    </svg>
+                    Browser Tests
+                </div>
+                <h2 class="mt-6 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+                    Test user flows.<br>Catch issues before users do.
+                </h2>
+                <p class="mt-6 text-lg text-gray-600">
+                    Go beyond simple uptime checks. Create automated browser tests that simulate real user interactions—clicking, typing, navigating—and verify your application works end-to-end.
+                </p>
+
+                <div class="mt-10 space-y-6">
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.2s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Visual Test Builder</h3>
+                            <p class="mt-1 text-sm text-gray-600">Build tests step-by-step with an intuitive interface. No coding required.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.3s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Screenshots & Snapshots</h3>
+                            <p class="mt-1 text-sm text-gray-600">Capture screenshots and HTML snapshots on failure for easy debugging.</p>
+                        </div>
+                        </div>
+
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.4s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Integrated with Monitors</h3>
+                            <p class="mt-1 text-sm text-gray-600">Run tests on a schedule as part of your monitoring. Same alerts, same dashboard.</p>
+                        </div>
+                    </div>
+                </div>
+                        </div>
+
+            {{-- Test Flow Animation --}}
+            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'"
+                 class="transition-all duration-700 delay-300 ease-out">
+                <div class="relative rounded-2xl bg-gray-900 p-6 shadow-2xl ring-1 ring-white/10">
+                    {{-- Browser Chrome --}}
+                    <div class="flex items-center gap-2 pb-4 border-b border-gray-700">
+                        <div class="flex gap-1.5">
+                            <div class="h-3 w-3 rounded-full bg-red-500"></div>
+                            <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
+                            <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="flex-1 ml-4">
+                            <div class="flex items-center gap-2 rounded-md bg-gray-800 px-3 py-1.5 text-xs text-gray-400">
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                </svg>
+                                your-app.com/checkout
+                            </div>
+                        </div>
+                        </div>
+
+                    {{-- Test Steps --}}
+                    <div class="mt-6 space-y-3">
+                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
+                             x-data="{ animate: false }"
+                             x-init="setTimeout(() => animate = true, 800)"
+                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
+                             style="transition: opacity 0.3s ease-out;">
+                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
+                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-green-400">Visit</div>
+                                <div class="text-xs text-gray-500">https://your-app.com/login</div>
+                            </div>
+                            <div class="text-xs text-gray-500">124ms</div>
+                        </div>
+
+                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
+                             x-data="{ animate: false }"
+                             x-init="setTimeout(() => animate = true, 1100)"
+                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
+                             style="transition: opacity 0.3s ease-out;">
+                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
+                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-green-400">Type</div>
+                                <div class="text-xs text-gray-500">#email → user@example.com</div>
+                            </div>
+                            <div class="text-xs text-gray-500">89ms</div>
+                        </div>
+
+                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
+                             x-data="{ animate: false }"
+                             x-init="setTimeout(() => animate = true, 1400)"
+                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
+                             style="transition: opacity 0.3s ease-out;">
+                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
+                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-green-400">Press</div>
+                                <div class="text-xs text-gray-500">Sign In</div>
+                            </div>
+                            <div class="text-xs text-gray-500">312ms</div>
+                        </div>
+
+                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
+                             x-data="{ animate: false }"
+                             x-init="setTimeout(() => animate = true, 1700)"
+                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
+                             style="transition: opacity 0.3s ease-out;">
+                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
+                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-green-400">Wait for text</div>
+                                <div class="text-xs text-gray-500">Welcome back!</div>
+                            </div>
+                            <div class="text-xs text-gray-500">1.2s</div>
+                        </div>
+
+                        <div class="flex items-center gap-3 rounded-lg bg-gray-800 p-3 ring-1 ring-gray-700"
+                             x-data="{ animate: false }"
+                             x-init="setTimeout(() => animate = true, 2000)"
+                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
+                             style="transition: opacity 0.3s ease-out;">
+                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-500">
+                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5" />
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-white">Success</div>
+                                <div class="text-xs text-gray-500">Test completed</div>
+                            </div>
+                            <div class="text-xs text-green-400 font-medium">1.7s total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Features Grid Section --}}
+<div class="overflow-hidden bg-white py-24 sm:py-32"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center"
+             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+             class="transition-all duration-700 ease-out">
+            <h2 class="text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
+                Everything you need.<br>Nothing you don't.
+            </h2>
+            <p class="mt-6 text-lg/8 text-gray-600">
+                Features you expect from a world-class monitoring service, completely free and open-source.
+            </p>
+        </div>
+
+        <div class="mx-auto mt-16 max-w-5xl">
+            <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                @php
+                    $features = [
+                        ['title' => 'Alert Routing', 'desc' => 'Get notified via mobile app, email, SMS, Slack, Pushover, or Bird.'],
+                        ['title' => 'Response Time Tracking', 'desc' => 'Monitor performance trends and catch slowdowns early.'],
+                        ['title' => 'Mobile App', 'desc' => 'Native iOS and Android apps for alerts on the go.'],
+                        ['title' => 'Status Pages', 'desc' => 'Beautiful public status pages for your users.'],
+                        ['title' => 'Custom Intervals', 'desc' => 'Check every minute or set your own schedule.'],
+                        ['title' => 'Open Source', 'desc' => 'Self-host or use our hosted version. Your choice.'],
+                    ];
+                @endphp
+
+                @foreach($features as $index => $feature)
+                    <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
+                         class="transition-all duration-500 ease-out rounded-xl bg-gray-50 p-6 hover:bg-gray-100"
+                         style="transition-delay: {{ ($index + 1) * 100 }}ms;">
+                        <dt class="text-base font-semibold text-gray-900">{{ $feature['title'] }}</dt>
+                        <dd class="mt-2 text-sm text-gray-600">{{ $feature['desc'] }}</dd>
+            </div>
+                @endforeach
+            </dl>
         </div>
     </div>
 </div>

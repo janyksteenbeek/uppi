@@ -23,7 +23,9 @@ class UpdateResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-newspaper';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?string $navigationGroup = 'Status Pages';
+
+    protected static ?int $navigationSort = 2;
 
     protected static function getStatusCollection(Get $get): Collection
     {

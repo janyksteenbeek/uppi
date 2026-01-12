@@ -60,6 +60,9 @@ class TriggerAlertJob implements ShouldQueue
 
             // Only proceed if we have enough consecutive failures
             if ($this->hasMetFailureThreshold($recentChecks)) {
+                // Update monitor status to FAIL now that threshold is met
+                $monitor->update(['status' => Status::FAIL]);
+
                 // Find the first failed check in the sequence (this is when the problem started)
                 $firstFailedCheck = $recentChecks->reverse()->first();
 
@@ -88,6 +91,9 @@ class TriggerAlertJob implements ShouldQueue
 
             // Only proceed if we have enough consecutive successes
             if ($this->hasMetRecoveryThreshold($recentChecks)) {
+                // Update monitor status to OK now that recovery threshold is met
+                $monitor->update(['status' => Status::OK]);
+
                 // Find the first successful check in the sequence
                 $firstSuccessCheck = $recentChecks->reverse()->first();
 

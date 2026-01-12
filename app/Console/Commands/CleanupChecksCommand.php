@@ -10,54 +10,103 @@ use Illuminate\Support\Facades\DB;
 
 class CleanupChecksCommand extends Command
 {
-    protected $signature = 'checks:cleanup';
+    protected $signature = 'checks:cleanup 
+                            {--days=7 : Number of days to keep detailed checks}
+                            {--dry-run : Show what would be deleted without actually deleting}
+                            {--force : Force delete (permanently remove, not soft delete)}';
 
     protected $description = 'Clean up old checks, keeping only the last successful check per day when all checks were OK';
 
-    public function handle()
+    public function handle(): int
     {
-        $cutoffDate = Carbon::now()->subDays(7);
+        $days = (int) $this->option('days');
+        $dryRun = $this->option('dry-run');
+        $forceDelete = $this->option('force');
 
-        // Get all dates before cutoff that have checks
-        $dates = Check::query()
-            ->select(DB::raw('DATE(checked_at) as date'))
-            ->where('checked_at', '<', $cutoffDate)
-            ->groupBy('date')
-            ->get()
-            ->pluck('date');
+        $cutoffDate = Carbon::now()->subDays($days)->startOfDay();
 
-        $totalDeleted = 0;
+        $this->info("Cleaning up checks older than {$cutoffDate->toDateString()} ({$days} days)");
 
-        foreach ($dates as $date) {
-            // For each date, group by monitor
-            $monitors = Check::query()
-                ->select('monitor_id')
-                ->whereDate('checked_at', $date)
-                ->groupBy('monitor_id')
-                ->get();
-
-            foreach ($monitors as $monitor) {
-                // Get all checks for this monitor on this date
-                $checksForDay = Check::query()
-                    ->where('monitor_id', $monitor->monitor_id)
-                    ->whereDate('checked_at', $date)
-                    ->get();
-
-                // If all checks were OK, delete all but the last one
-                if ($checksForDay->every(fn ($check) => $check->status === Status::OK)) {
-                    $lastCheck = $checksForDay->sortByDesc('checked_at')->first();
-
-                    $deleted = Check::query()
-                        ->where('monitor_id', $monitor->monitor_id)
-                        ->whereDate('checked_at', $date)
-                        ->where('id', '!=', $lastCheck->id)
-                        ->delete();
-
-                    $totalDeleted += $deleted;
-                }
-            }
+        if ($dryRun) {
+            $this->warn('DRY RUN - No records will be deleted');
         }
 
-        $this->info("Deleted {$totalDeleted} checks.");
+        // Get all monitor/date combinations that have checks before cutoff
+        $checksToProcess = Check::query()
+            ->select('monitor_id', DB::raw('DATE(checked_at) as check_date'))
+            ->where('checked_at', '<', $cutoffDate)
+            ->groupBy('monitor_id', 'check_date')
+            ->get();
+
+        if ($checksToProcess->isEmpty()) {
+            $this->info('No old checks found to clean up.');
+
+            return self::SUCCESS;
+        }
+
+        $this->info("Found {$checksToProcess->count()} monitor/date combinations to process");
+
+        $totalDeleted = 0;
+        $totalKept = 0;
+        $bar = $this->output->createProgressBar($checksToProcess->count());
+        $bar->start();
+
+        foreach ($checksToProcess as $group) {
+            $monitorId = $group->monitor_id;
+            $checkDate = $group->check_date;
+
+            // Get all checks for this monitor on this date
+            $checksForDay = Check::query()
+                ->where('monitor_id', $monitorId)
+                ->whereDate('checked_at', $checkDate)
+                ->orderBy('checked_at', 'desc')
+                ->get();
+
+            if ($checksForDay->isEmpty()) {
+                $bar->advance();
+                continue;
+            }
+
+            // Check if ALL checks for this day were OK
+            $allOk = $checksForDay->every(fn ($check) => $check->status === Status::OK);
+
+            if ($allOk && $checksForDay->count() > 1) {
+                // Keep only the last check of the day, delete the rest
+                $keepCheck = $checksForDay->first(); // Already ordered by checked_at desc
+                $toDelete = $checksForDay->slice(1);
+
+                if (! $dryRun) {
+                    $query = Check::query()
+                        ->where('monitor_id', $monitorId)
+                        ->whereDate('checked_at', $checkDate)
+                        ->where('id', '!=', $keepCheck->id);
+
+                    if ($forceDelete) {
+                        $deleted = $query->forceDelete();
+                    } else {
+                        $deleted = $query->delete();
+                    }
+
+                    $totalDeleted += $deleted;
+                } else {
+                    $totalDeleted += $toDelete->count();
+                }
+
+                $totalKept++;
+            }
+
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine(2);
+
+        $deleteType = $forceDelete ? 'permanently deleted' : 'soft deleted';
+        $action = $dryRun ? 'Would have deleted' : ucfirst($deleteType);
+
+        $this->info("{$action} {$totalDeleted} checks.");
+        $this->info("Kept {$totalKept} representative checks (1 per day for all-OK days).");
+
+        return self::SUCCESS;
     }
 }

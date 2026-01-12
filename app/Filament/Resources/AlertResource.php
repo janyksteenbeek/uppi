@@ -25,6 +25,8 @@ final class AlertResource extends Resource
 
     protected static ?string $navigationLabel = 'Alerts';
 
+    protected static ?string $navigationGroup = 'Monitoring';
+
     protected static ?int $navigationSort = 3;
 
     public static function registrationCode(): string

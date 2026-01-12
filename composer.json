@@ -18,6 +18,7 @@
         "laravel-notification-channels/messagebird": "dev-master",
         "laravel-notification-channels/pushover": "^4.0",
         "laravel-notification-channels/telegram": "^6.0",
+        "laravel/dusk": "^8.3",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.30",
         "laravel/octane": "^2.6",
@@ -25,7 +26,8 @@
         "laravel/slack-notification-channel": "^3.4",
         "laravel/tinker": "^2.9",
         "owenvoke/blade-fontawesome": "^2.8",
-        "sentry/sentry-laravel": "^4.10"
+        "sentry/sentry-laravel": "^4.10",
+        "stechstudio/filament-impersonate": "^3.16"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.14",
@@ -35,9 +37,9 @@
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.1",
-        "pestphp/pest": "^3.7",
-        "pestphp/pest-plugin-arch": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-arch": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
     },
     "autoload": {
         "psr-4": {
