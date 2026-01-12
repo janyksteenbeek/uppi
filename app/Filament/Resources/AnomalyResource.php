@@ -8,6 +8,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 
 class AnomalyResource extends Resource
@@ -75,8 +76,86 @@ class AnomalyResource extends Resource
             ])
             ->defaultSort('started_at', 'desc')
             ->filters([
-                //
-            ])
+                Tables\Filters\SelectFilter::make('monitor_id')
+                    ->label('Monitor')
+                    ->options(fn () => Auth::user()->monitors()->pluck('name', 'id'))
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('monitor_type')
+                    ->label('Type')
+                    ->options(\App\Enums\Monitors\MonitorType::class)
+                    ->query(fn ($query, array $data) => $data['value']
+                        ? $query->whereHas('monitor', fn ($q) => $q->where('type', $data['value']))
+                        : $query
+                    ),
+                Tables\Filters\TernaryFilter::make('status')
+                    ->label('Status')
+                    ->placeholder('All')
+                    ->trueLabel('Resolved')
+                    ->falseLabel('Ongoing')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('ended_at'),
+                        false: fn ($query) => $query->whereNull('ended_at'),
+                    ),
+                Tables\Filters\Filter::make('started_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('started_from')
+                            ->label('Started from'),
+                        Forms\Components\DatePicker::make('started_until')
+                            ->label('Started until'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['started_from'], fn ($q) => $q->whereDate('started_at', '>=', $data['started_from']))
+                            ->when($data['started_until'], fn ($q) => $q->whereDate('started_at', '<=', $data['started_until']));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['started_from'] ?? null) {
+                            $indicators['started_from'] = 'From ' . \Carbon\Carbon::parse($data['started_from'])->format('M j, Y');
+                        }
+                        if ($data['started_until'] ?? null) {
+                            $indicators['started_until'] = 'Until ' . \Carbon\Carbon::parse($data['started_until'])->format('M j, Y');
+                        }
+                        return $indicators;
+                    }),
+                Tables\Filters\Filter::make('duration')
+                    ->form([
+                        Forms\Components\Select::make('duration')
+                            ->label('Duration')
+                            ->options([
+                                '5' => 'More than 5 minutes',
+                                '30' => 'More than 30 minutes',
+                                '60' => 'More than 1 hour',
+                                '360' => 'More than 6 hours',
+                                '1440' => 'More than 24 hours',
+                            ]),
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (! $data['duration']) {
+                            return $query;
+                        }
+                        $minutes = (int) $data['duration'];
+                        return $query->whereRaw(
+                            'TIMESTAMPDIFF(MINUTE, started_at, COALESCE(ended_at, NOW())) >= ?',
+                            [$minutes]
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (! $data['duration']) {
+                            return null;
+                        }
+                        $labels = [
+                            '5' => '> 5 min',
+                            '30' => '> 30 min',
+                            '60' => '> 1 hour',
+                            '360' => '> 6 hours',
+                            '1440' => '> 24 hours',
+                        ];
+                        return 'Duration: ' . ($labels[$data['duration']] ?? $data['duration']);
+                    }),
+                ], layout: FiltersLayout::AboveContentCollapsible)
+            ->filtersFormColumns(2)
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\DeleteAction::make(),
