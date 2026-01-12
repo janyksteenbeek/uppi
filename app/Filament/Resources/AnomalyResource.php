@@ -177,6 +177,17 @@ class AnomalyResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                ->with('monitor')
+                ->withCount(['checks', 'triggers'])
+                ->addSelect([
+                    'first_error' => \App\Models\Check::select('output')
+                        ->whereColumn('anomaly_id', 'anomalies.id')
+                        ->whereNotNull('output')
+                        ->orderBy('checked_at')
+                        ->limit(1),
+                ])
+            )
             ->columns([
                 Tables\Columns\TextColumn::make('status')
                     ->label('')
@@ -219,21 +230,18 @@ class AnomalyResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('checks_count')
                     ->label('Checks')
-                    ->counts('checks')
                     ->sortable()
                     ->icon('heroicon-o-signal')
                     ->color('gray'),
                 Tables\Columns\TextColumn::make('triggers_count')
                     ->label('Alerts')
-                    ->counts('triggers')
                     ->sortable()
                     ->icon('heroicon-o-bell')
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 Tables\Columns\TextColumn::make('first_error')
                     ->label('Error')
-                    ->state(fn ($record) => $record->checks()->whereNotNull('output')->first()?->output)
                     ->limit(40)
-                    ->tooltip(fn ($record) => $record->checks()->whereNotNull('output')->first()?->output)
+                    ->tooltip(fn ($record) => $record->first_error)
                     ->placeholder('—')
                     ->toggleable(),
             ])
