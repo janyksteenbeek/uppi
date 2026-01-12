@@ -64,8 +64,10 @@ class AnomalyResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('duration')
                     ->label('Duration')
-                    ->sortable()
-                    ->state(fn ($record) => $record->ended_at ? $record->ended_at->diffForHumans($record->started_at, true) : null),
+                    ->state(fn ($record) => $record->ended_at ? $record->ended_at->diffForHumans($record->started_at, true) : null)
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->orderByRaw('TIMESTAMPDIFF(SECOND, started_at, COALESCE(ended_at, NOW())) ' . $direction);
+                    }),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
