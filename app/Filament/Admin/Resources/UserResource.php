@@ -14,7 +14,6 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
 use STS\FilamentImpersonate\Tables\Actions\Impersonate;
 
-
 class UserResource extends Resource
 {
     use WithoutUserScopes;
@@ -118,6 +117,9 @@ class UserResource extends Resource
                 Tables\Filters\Filter::make('has_tests_feature')
                     ->label('Has tests feature')
                     ->query(fn ($query) => $query->whereJsonContains('feature_flags', 'run-tests')),
+                Tables\Filters\Filter::make('has_server_monitoring_feature')
+                    ->label('Has server monitoring feature')
+                    ->query(fn ($query) => $query->whereJsonContains('feature_flags', 'server-monitoring')),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -143,6 +145,27 @@ class UserResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\Action::make('toggle_server_monitoring')
+                        ->label(fn (User $user) => $user->hasFeature('server-monitoring') ? 'Disable server monitoring' : 'Enable server monitoring')
+                        ->icon('heroicon-o-server')
+                        ->color(fn (User $user) => $user->hasFeature('server-monitoring') ? 'danger' : 'success')
+                        ->action(function (User $user) {
+                            if ($user->hasFeature('server-monitoring')) {
+                                $user->disableFeature('server-monitoring');
+                                Notification::make()
+                                    ->title('Server monitoring disabled')
+                                    ->body("Server monitoring feature disabled for {$user->name}")
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                $user->enableFeature('server-monitoring');
+                                Notification::make()
+                                    ->title('Server monitoring enabled')
+                                    ->body("Server monitoring feature enabled for {$user->name}")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\Action::make('verify_email')
                         ->label('Verify email')
                         ->icon('heroicon-o-check-badge')
@@ -155,7 +178,7 @@ class UserResource extends Resource
                                 ->success()
                                 ->send();
                         }),
-                        Impersonate::make(), 
+                    Impersonate::make(),
                 ]),
             ])
             ->bulkActions([
@@ -181,6 +204,29 @@ class UserResource extends Resource
                             Notification::make()
                                 ->title('Tests disabled')
                                 ->body('Browser tests feature disabled for selected users')
+                                ->warning()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('enable_server_monitoring')
+                        ->label('Enable server monitoring')
+                        ->icon('heroicon-o-server')
+                        ->action(function ($records) {
+                            $records->each(fn (User $user) => $user->enableFeature('server-monitoring'));
+                            Notification::make()
+                                ->title('Server monitoring enabled')
+                                ->body('Server monitoring feature enabled for selected users')
+                                ->success()
+                                ->send();
+                        }),
+                    Tables\Actions\BulkAction::make('disable_server_monitoring')
+                        ->label('Disable server monitoring')
+                        ->icon('heroicon-o-server')
+                        ->color('danger')
+                        ->action(function ($records) {
+                            $records->each(fn (User $user) => $user->disableFeature('server-monitoring'));
+                            Notification::make()
+                                ->title('Server monitoring disabled')
+                                ->body('Server monitoring feature disabled for selected users')
                                 ->warning()
                                 ->send();
                         }),

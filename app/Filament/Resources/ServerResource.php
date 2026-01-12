@@ -23,6 +23,11 @@ class ServerResource extends Resource
 
     protected static ?string $navigationGroup = 'Monitoring';
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Auth::check() && Auth::user()->hasFeature('server-monitoring');
+    }
+
     public static function getNavigationBadge(): ?string
     {
         if (! Auth::check()) {
@@ -40,7 +45,7 @@ class ServerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('user_id', Auth::id());
+        return parent::getEloquentQuery();
     }
 
     public static function form(Form $form): Form
@@ -48,30 +53,44 @@ class ServerResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Server Information')
+                    ->description(fn (string $operation) => $operation === 'create'
+                        ? 'Give your server a name. After creation, you\'ll get an install command to run on your server.'
+                        : null)
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->placeholder('e.g., Production Web Server, Database Server')
+                            ->helperText('A friendly name to identify this server'),
                         Forms\Components\TextInput::make('hostname')
-                            ->required()
                             ->maxLength(255)
-                            ->helperText('FQDN or hostname of the server'),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->visible(fn (string $operation) => $operation === 'edit')
+                            ->helperText('Reported by the monitoring agent'),
                         Forms\Components\TextInput::make('ip_address')
-                            ->required()
-                            ->ip()
+                            ->label('IP Address')
                             ->maxLength(45)
-                            ->helperText('IP address of the server'),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->visible(fn (string $operation) => $operation === 'edit')
+                            ->helperText('Reported by the monitoring agent'),
                         Forms\Components\TextInput::make('os')
+                            ->label('Operating System')
                             ->maxLength(255)
-                            ->placeholder('e.g., Ubuntu 22.04, CentOS 8, Windows Server 2019')
-                            ->helperText('Operating system information'),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->visible(fn (string $operation) => $operation === 'edit')
+                            ->helperText('Reported by the monitoring agent'),
                         Forms\Components\Toggle::make('is_active')
                             ->required()
                             ->default(true)
-                            ->helperText('Enable monitoring for this server'),
+                            ->visible(fn (string $operation) => $operation === 'edit')
+                            ->helperText('Enable or disable monitoring for this server'),
                     ])->columns(2),
-                
+
                 Forms\Components\Section::make('Authentication')
+                    ->visible(fn (string $operation) => $operation === 'edit')
                     ->schema([
                         Forms\Components\TextInput::make('secret')
                             ->label('Secret Key')
@@ -81,7 +100,7 @@ class ServerResource extends Resource
                             ->disabled()
                             ->dehydrated(false)
                             ->formatStateUsing(fn (?Server $record) => $record?->secret)
-                            ->helperText('This secret is used for HMAC authentication. Copy this to configure your monitoring daemon.')
+                            ->helperText('This secret is used for HMAC authentication.')
                             ->suffixAction(
                                 Forms\Components\Actions\Action::make('copy_secret')
                                     ->label('Copy')
@@ -93,7 +112,7 @@ class ServerResource extends Resource
                                         'x-on:click' => 'navigator.clipboard.writeText($el.dataset.copy); $tooltip("Secret copied")',
                                     ])
                             ),
-                        
+
                         Actions::make([
                             Forms\Components\Actions\Action::make('regenerate_secret')
                                 ->label('Regenerate Secret')
@@ -101,9 +120,8 @@ class ServerResource extends Resource
                                 ->icon('heroicon-o-arrow-path')
                                 ->requiresConfirmation()
                                 ->modalHeading('Regenerate Secret Key')
-                                ->modalDescription('Are you sure you want to regenerate the secret key? You will need to update your monitoring daemon configuration.')
-                                ->action(fn (Server $record) => $record->generateNewSecret())
-                                ->visible(fn (?Server $record) => $record && $record->exists),
+                                ->modalDescription('Are you sure you want to regenerate the secret key? You will need to reinstall the monitoring agent on your server.')
+                                ->action(fn (Server $record) => $record->generateNewSecret()),
                         ])->columnSpanFull(),
                     ])->columns(1),
             ]);
@@ -113,98 +131,84 @@ class ServerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\IconColumn::make('online_status')
+                Tables\Columns\TextColumn::make('status_display')
                     ->label('Status')
-                    ->icon(fn (Server $record) => $record->isOnline() ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
-                    ->color(fn (Server $record) => $record->isOnline() ? 'success' : 'danger'),
-                
+                    ->badge()
+                    ->getStateUsing(function (Server $record) {
+                        if ($record->last_seen_at === null) {
+                            return 'Waiting for agent';
+                        }
+                        if ($record->isOnline()) {
+                            return 'Online';
+                        }
+
+                        return 'Offline';
+                    })
+                    ->color(fn (string $state) => match ($state) {
+                        'Online' => 'success',
+                        'Offline' => 'danger',
+                        'Waiting for agent' => 'warning',
+                        default => 'gray',
+                    })
+                    ->icon(fn (string $state) => match ($state) {
+                        'Online' => 'heroicon-o-check-circle',
+                        'Offline' => 'heroicon-o-x-circle',
+                        'Waiting for agent' => 'heroicon-o-clock',
+                        default => null,
+                    }),
+
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
-                    ->sortable(),
-                
-                Tables\Columns\TextColumn::make('hostname')
-                    ->searchable()
-                    ->sortable(),
-                
+                    ->sortable()
+                    ->description(fn (Server $record) => $record->hostname),
+
                 Tables\Columns\TextColumn::make('ip_address')
                     ->label('IP Address')
-                    ->searchable(),
-                
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('os')
                     ->label('OS')
+                    ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
-                
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active'),
-                
+
                 Tables\Columns\TextColumn::make('last_seen_at')
                     ->label('Last Seen')
                     ->since()
+                    ->placeholder('Never')
                     ->tooltip(fn (Server $record) => $record->last_seen_at?->format('j F Y, g:i a'))
                     ->sortable(),
-                
-                Tables\Columns\TextColumn::make('metrics_count')
-                    ->label('Metrics')
-                    ->counts('metrics')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Created')
+                    ->since()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Active Status'),
-                
+                Tables\Filters\Filter::make('waiting')
+                    ->query(fn (Builder $query): Builder => $query->whereNull('last_seen_at'))
+                    ->label('Waiting for Agent'),
+
                 Tables\Filters\Filter::make('online')
                     ->query(fn (Builder $query): Builder => $query->where('last_seen_at', '>=', now()->subMinutes(5)))
-                    ->label('Online Servers'),
-                
-                Tables\Filters\Filter::make('last_seen')
-                    ->form([
-                        Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('last_seen_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('last_seen_at', '<=', $date),
-                            );
-                    })
-                    ->label('Last Seen Date Range'),
+                    ->label('Online'),
+
+                Tables\Filters\Filter::make('offline')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->whereNotNull('last_seen_at')
+                        ->where('last_seen_at', '<', now()->subMinutes(5)))
+                    ->label('Offline'),
             ])
             ->actions([
-                Tables\Actions\Action::make('toggle_active')
-                    ->label(null)
-                    ->iconButton()
-                    ->tooltip(fn (Server $record) => $record->is_active ? 'Deactivate' : 'Activate')
-                    ->action(fn (Server $record) => $record->update(['is_active' => ! $record->is_active]))
-                    ->icon('heroicon-o-power')
-                    ->color(fn (Server $record) => $record->is_active ? 'success' : 'gray'),
-                
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (Server $record) => $record->last_seen_at === null),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('activate')
-                        ->label('Activate')
-                        ->action(fn ($records) => $records->each->update(['is_active' => true]))
-                        ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-check'),
-                    
-                    Tables\Actions\BulkAction::make('deactivate')
-                        ->label('Deactivate')
-                        ->action(fn ($records) => $records->each->update(['is_active' => false]))
-                        ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-x-mark'),
-                    
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
@@ -215,7 +219,8 @@ class ServerResource extends Resource
                 Tables\Actions\CreateAction::make()
                     ->label('Add server')
                     ->icon('heroicon-o-plus'),
-            ]);
+            ])
+            ->recordUrl(fn (Server $record) => ServerResource::getUrl('view', ['record' => $record]));
     }
 
     public static function getRelations(): array

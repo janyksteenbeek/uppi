@@ -1,0 +1,13 @@
+{
+    "agents": [
+        "codex",
+        "cursor"
+    ],
+    "editors": [
+        "codex",
+        "cursor"
+    ],
+    "guidelines": [
+        "filament/filament"
+    ]
+}

@@ -133,6 +133,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return [
             'run-tests' => 'Run browser tests',
+            'server-monitoring' => 'Server monitoring',
         ];
     }
 
