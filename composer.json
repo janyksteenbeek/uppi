@@ -26,7 +26,8 @@
         "laravel/slack-notification-channel": "^3.4",
         "laravel/tinker": "^2.9",
         "owenvoke/blade-fontawesome": "^2.8",
-        "sentry/sentry-laravel": "^4.10"
+        "sentry/sentry-laravel": "^4.10",
+        "stechstudio/filament-impersonate": "^3.16"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.14",

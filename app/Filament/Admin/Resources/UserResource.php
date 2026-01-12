@@ -12,6 +12,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
+use STS\FilamentImpersonate\Tables\Actions\Impersonate;
+
 
 class UserResource extends Resource
 {
@@ -153,15 +155,7 @@ class UserResource extends Resource
                                 ->success()
                                 ->send();
                         }),
-                    Tables\Actions\Action::make('impersonate')
-                        ->label('Impersonate')
-                        ->icon('heroicon-o-arrow-right-end-on-rectangle')
-                        ->color('gray')
-                        ->action(fn (User $user) => auth()->login($user))
-                        ->successRedirectUrl('/')
-                        ->requiresConfirmation()
-                        ->modalHeading('Impersonate user')
-                        ->modalDescription(fn (User $user) => "You will be logged in as {$user->name}. Make sure to log out when done."),
+                        Impersonate::make(), 
                 ]),
             ])
             ->bulkActions([
