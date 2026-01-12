@@ -78,7 +78,7 @@ class AnomalyResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('monitor_id')
                     ->label('Monitor')
-                    ->options(fn () => Auth::user()->monitors()->pluck('name', 'id'))
+                    ->options(fn () => auth()->user()->monitors()->pluck('name', 'id'))
                     ->searchable()
                     ->preload(),
                 Tables\Filters\SelectFilter::make('monitor_type')
