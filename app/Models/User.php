@@ -84,6 +84,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return $this->hasMany(Monitor::class);
     }
 
+    public function servers(): HasMany
+    {
+        return $this->hasMany(Server::class);
+    }
+
     public function anomalies(): HasManyThrough
     {
         return $this->hasManyThrough(Anomaly::class, Monitor::class);
@@ -128,6 +133,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     {
         return [
             'run-tests' => 'Run browser tests',
+            'server-monitoring' => 'Server monitoring',
         ];
     }
 

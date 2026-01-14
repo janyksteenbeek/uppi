@@ -3,12 +3,15 @@
 namespace App\Filament\Resources;
 
 use App\Enums\Monitors\MonitorType;
+use App\Enums\Monitors\ServerMetricType;
 use App\Filament\Resources\MonitorResource\Pages;
 use App\Filament\Resources\MonitorResource\RelationManagers\AlertsRelationManager;
 use App\Models\Monitor;
+use App\Models\Server;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -65,6 +68,7 @@ class MonitorResource extends Resource
                                 MonitorType::TCP->value => 'heroicon-o-server-stack',
                                 MonitorType::PULSE->value => 'heroicon-o-clock',
                                 MonitorType::TEST->value => 'heroicon-o-beaker',
+                                MonitorType::SERVER->value => 'heroicon-o-cpu-chip',
                             ])
                             ->options(MonitorType::options())
                             ->required()
@@ -92,11 +96,12 @@ class MonitorResource extends Resource
                                     'name' => $data['name'],
                                     'entrypoint_url' => $data['entrypoint_url'],
                                 ]);
+
                                 return $test->id;
                             }),
                         Forms\Components\TextInput::make('address')
                             ->required()
-                            ->visible(fn (Get $get) => $get('type') !== MonitorType::TEST->value)
+                            ->visible(fn (Get $get) => ! in_array($get('type'), [MonitorType::TEST->value, MonitorType::SERVER->value]))
                             ->live()
                             ->url(fn (Get $get) => $get('type') === MonitorType::HTTP->value)
                             ->numeric(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
@@ -203,6 +208,84 @@ class MonitorResource extends Resource
                                                 'x-on:click' => 'navigator.clipboard.writeText($el.dataset.copy); $tooltip("CURL copied")',
                                             ])
                                     ),
+                            ])->columns(2),
+
+                        // Server monitoring section
+                        Forms\Components\Section::make('server_monitoring')
+                            ->heading('Server Monitoring')
+                            ->visible(fn (Get $get) => $get('type') === MonitorType::SERVER->value)
+                            ->schema([
+                                Forms\Components\Select::make('server_id')
+                                    ->label('Server')
+                                    ->options(fn () => Server::where('user_id', auth()->id())->pluck('name', 'id'))
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Set $set) => $set('disk_mount_point', null))
+                                    ->helperText('Select the server to monitor'),
+                                Forms\Components\Select::make('metric_type')
+                                    ->label('Metric')
+                                    ->options(ServerMetricType::options())
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set, ?string $state) {
+                                        if ($state) {
+                                            $metricType = ServerMetricType::tryFrom($state);
+                                            if ($metricType) {
+                                                $set('threshold', $metricType->getDefaultThreshold());
+                                            }
+                                        }
+                                        $set('disk_mount_point', null);
+                                    })
+                                    ->helperText('Select the metric to monitor'),
+                                Forms\Components\Select::make('disk_mount_point')
+                                    ->label('Disk')
+                                    ->options(function (Get $get) {
+                                        $serverId = $get('server_id');
+                                        if (! $serverId) {
+                                            return [];
+                                        }
+
+                                        $server = Server::withoutGlobalScopes()->find($serverId);
+                                        if (! $server) {
+                                            return [];
+                                        }
+
+                                        $latestMetric = $server->latestMetric();
+                                        if (! $latestMetric) {
+                                            return [];
+                                        }
+
+                                        return $latestMetric->diskMetrics
+                                            ->pluck('mount_point', 'mount_point')
+                                            ->toArray();
+                                    })
+                                    ->visible(fn (Get $get) => $get('metric_type') === ServerMetricType::DiskUsage->value)
+                                    ->required(fn (Get $get) => $get('metric_type') === ServerMetricType::DiskUsage->value)
+                                    ->searchable()
+                                    ->helperText('Select the disk partition to monitor'),
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\Select::make('threshold_operator')
+                                            ->label('Condition')
+                                            ->options([
+                                                '>' => 'Greater than (>)',
+                                                '>=' => 'Greater than or equal (>=)',
+                                                '<' => 'Less than (<)',
+                                                '<=' => 'Less than or equal (<=)',
+                                            ])
+                                            ->default('>')
+                                            ->required()
+                                            ->helperText('Alert when value is...'),
+                                        Forms\Components\TextInput::make('threshold')
+                                            ->label('Threshold')
+                                            ->numeric()
+                                            ->required()
+                                            ->step(0.1)
+                                            ->suffix(fn (Get $get) => ServerMetricType::tryFrom($get('metric_type'))?->getUnit() ?? '%')
+                                            ->helperText('The threshold value to trigger an alert'),
+                                    ]),
                             ])->columns(2),
 
                         Forms\Components\Toggle::make('is_enabled')

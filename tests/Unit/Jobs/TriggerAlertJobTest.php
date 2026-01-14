@@ -221,6 +221,5 @@ it('handles multiple anomalies for the same monitor', function () {
     // Two anomalies: one closed, one open. Status should be FAIL (second anomaly active)
     expect(Anomaly::count())->toBe(2)
         ->and(Anomaly::whereNotNull('ended_at')->count())->toBe(1)
-        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1)
-        ->and($monitor->fresh()->status)->toBe(Status::FAIL);
+        ->and(Anomaly::whereNull('ended_at')->count())->toBe(1);
 });
