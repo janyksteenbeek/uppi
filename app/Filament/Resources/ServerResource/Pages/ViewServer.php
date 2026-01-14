@@ -200,6 +200,7 @@ class ViewServer extends ViewRecord
                                         Infolists\Components\TextEntry::make('percent')
                                             ->hiddenLabel()
                                             ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
+                                            ->alignEnd()
                                             ->badge()
                                             ->color(fn (?float $state) => match (true) {
                                                 $state > 90 => 'danger',
@@ -245,6 +246,7 @@ class ViewServer extends ViewRecord
                                         Infolists\Components\TextEntry::make('percent')
                                             ->hiddenLabel()
                                             ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
+                                            ->alignEnd()
                                             ->badge()
                                             ->color(fn (?float $state) => match (true) {
                                                 $state > 90 => 'danger',
@@ -360,8 +362,10 @@ class ViewServer extends ViewRecord
                                     ->schema([
                                         Infolists\Components\TextEntry::make('interface')
                                             ->hiddenLabel()
-                                            ->badge()
-                                            ->color(fn ($record) => $record['is_active'] ? 'success' : 'gray')
+                                            ->extraAttributes([
+                                                'style' => 'white-space: normal; word-break: break-word;',
+                                            ])
+                                            ->color(fn ($record) => $record['is_active'] ? null : 'gray')
                                             ->columnSpan(2),
                                         Infolists\Components\TextEntry::make('rx')
                                             ->hiddenLabel()

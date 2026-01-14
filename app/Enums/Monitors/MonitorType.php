@@ -5,6 +5,7 @@ namespace App\Enums\Monitors;
 use App\Jobs\Checks\DummyCheckJob;
 use App\Jobs\Checks\HttpCheckJob;
 use App\Jobs\Checks\PulseCheckJob;
+use App\Jobs\Checks\ServerCheckJob;
 use App\Jobs\Checks\TcpCheckJob;
 use App\Jobs\Checks\TestCheckJob;
 use Filament\Support\Contracts\HasIcon;
@@ -17,6 +18,7 @@ enum MonitorType: string implements HasIcon, HasLabel
     case DUMMY = 'dummy';
     case PULSE = 'pulse';
     case TEST = 'test';
+    case SERVER = 'server';
 
     public function toCheckJob(): string
     {
@@ -26,6 +28,7 @@ enum MonitorType: string implements HasIcon, HasLabel
             self::DUMMY => DummyCheckJob::class,
             self::PULSE => PulseCheckJob::class,
             self::TEST => TestCheckJob::class,
+            self::SERVER => ServerCheckJob::class,
         };
     }
 
@@ -40,6 +43,7 @@ enum MonitorType: string implements HasIcon, HasLabel
             self::DUMMY => '',
             self::PULSE => 'Check-in',
             self::TEST => 'Test',
+            self::SERVER => 'Server',
         };
     }
 
@@ -51,6 +55,7 @@ enum MonitorType: string implements HasIcon, HasLabel
             self::DUMMY => 'heroicon-o-question-mark-circle',
             self::PULSE => 'heroicon-o-clock',
             self::TEST => 'heroicon-o-beaker',
+            self::SERVER => 'heroicon-o-cpu-chip',
         };
     }
 
@@ -66,6 +71,10 @@ enum MonitorType: string implements HasIcon, HasLabel
             $options[self::TEST->value] = self::TEST->getLabel();
         }
 
+        if (auth()->check() && auth()->user()->hasFeature('server-monitoring')) {
+            $options[self::SERVER->value] = self::SERVER->getLabel();
+        }
+
         return $options;
     }
 
@@ -76,6 +85,7 @@ enum MonitorType: string implements HasIcon, HasLabel
             self::TCP->value => self::TCP->getLabel(),
             self::PULSE->value => self::PULSE->getLabel(),
             self::TEST->value => self::TEST->getLabel(),
+            self::SERVER->value => self::SERVER->getLabel(),
         ];
     }
 }

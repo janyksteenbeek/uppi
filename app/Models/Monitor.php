@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\Checks\Status;
 use App\Enums\Monitors\MonitorType;
+use App\Enums\Monitors\ServerMetricType;
 use App\Jobs\Checks\CheckJob;
 use App\Observers\UserIdObserver;
 use Carbon\Carbon;
@@ -35,6 +36,8 @@ class Monitor extends Model
         'consecutive_threshold' => 'integer',
         'auto_create_update' => 'boolean',
         'update_values' => 'array',
+        'metric_type' => ServerMetricType::class,
+        'threshold' => 'decimal:2',
     ];
 
     protected static function booted(): void
@@ -63,6 +66,11 @@ class Monitor extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function server(): BelongsTo
+    {
+        return $this->belongsTo(Server::class);
     }
 
     public function updates(): BelongsToMany
