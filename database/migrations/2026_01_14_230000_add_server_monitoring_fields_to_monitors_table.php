@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('monitors', function (Blueprint $table) {
             $table->foreignUlid('server_id')->nullable()->after('user_id')->constrained()->nullOnDelete();
-            $table->string('server_metric_type')->nullable()->after('server_id');
+            $table->string('metric_type')->nullable()->after('server_id');
             $table->decimal('threshold', 10, 2)->nullable()->after('server_metric_type');
             $table->string('threshold_operator', 10)->default('>')->after('threshold');
             $table->string('disk_mount_point')->nullable()->after('threshold_operator');

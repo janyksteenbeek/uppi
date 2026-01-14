@@ -117,13 +117,14 @@ class ViewServer extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('install_command')
                             ->label('')
-                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}")
+                            ->state(fn (Server $record) => new HtmlString(
+                                '<div style="background-color: #1f2937; color: #4ade80; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;">'.
+                                e("curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}").
+                                '</div>'
+                            ))
+                            ->html()
                             ->copyable()
                             ->copyMessage('Install command copied!')
-                            ->extraAttributes([
-                                'class' => 'font-mono text-sm rounded-lg',
-                                'style' => 'background-color: #1f2937; color: #4ade80; padding: 1rem;',
-                            ])
                             ->columnSpanFull(),
                         Infolists\Components\TextEntry::make('instructions')
                             ->label('')
@@ -138,6 +139,12 @@ class ViewServer extends ViewRecord
                                         <li>Starts sending CPU, memory, disk, and network metrics</li>
                                     </ul>
                                     <p class="mt-3"><strong>Waiting for first metrics...</strong> This page will show data once the agent connects.</p>
+                                    <p class="mt-2">
+                                        <a href="https://github.com/janyksteenbeek/uppi-server-agent" target="_blank" rel="noopener" class="text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1">
+                                            View agent source code on GitHub
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        </a>
+                                    </p>
                                 </div>
                             '))
                             ->html()
@@ -573,13 +580,14 @@ class ViewServer extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('install_command_reconnect')
                             ->label('')
-                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}")
+                            ->state(fn (Server $record) => new HtmlString(
+                                '<div style="background-color: #1f2937; color: #4ade80; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;">'.
+                                e("curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}").
+                                '</div>'
+                            ))
+                            ->html()
                             ->copyable()
                             ->copyMessage('Install command copied!')
-                            ->extraAttributes([
-                                'class' => 'font-mono text-sm rounded-lg',
-                                'style' => 'background-color: #1f2937; color: #4ade80; padding: 1rem;',
-                            ])
                             ->columnSpanFull(),
                     ]),
             ]);
