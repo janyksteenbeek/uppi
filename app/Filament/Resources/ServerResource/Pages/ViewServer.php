@@ -20,6 +20,10 @@ class ViewServer extends ViewRecord
 {
     protected static string $resource = ServerResource::class;
 
+    public bool $showInactiveInterfaces = false;
+
+    public bool $showAllDisks = false;
+
     public function mount(int|string $record): void
     {
         if (! Auth::user()->hasFeature('server-monitoring')) {
@@ -148,38 +152,380 @@ class ViewServer extends ViewRecord
                         Infolists\Components\Section::make('Storage')
                             ->icon('heroicon-o-circle-stack')
                             ->columnSpan(1)
-                            ->extraAttributes(['style' => 'height: 100%;'])
+                            ->headerActions([
+                                Infolists\Components\Actions\Action::make('toggle_disks')
+                                    ->label(fn () => $this->showAllDisks ? 'Show less' : 'Show more')
+                                    ->icon(fn () => $this->showAllDisks ? 'heroicon-o-chevron-up' : 'heroicon-o-chevron-down')
+                                    ->color('gray')
+                                    ->action(function (): void {
+                                        $this->showAllDisks = ! $this->showAllDisks;
+                                        $this->dispatch('$refresh');
+                                    }),
+                            ])
+                            ->description('Mount • Used / Total • %')
                             ->visible(fn () => $server->latestMetric()?->diskMetrics?->isNotEmpty())
                             ->schema([
-                                Infolists\Components\ViewEntry::make('disk_table')
-                                    ->view('filament.infolists.entries.storage-table', [
-                                        'server' => $server,
-                                    ]),
+                                Infolists\Components\RepeatableEntry::make('disk_partitions_top')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return [];
+                                        }
+
+                                        return $latest->diskMetrics
+                                            ->sortByDesc(fn ($disk) => ($disk->used_bytes / max($disk->total_bytes, 1)) * 100)
+                                            ->take(8)
+                                            ->map(fn ($disk) => [
+                                                'mount_point' => $disk->mount_point,
+                                                'used_total' => "{$disk->formatted_used} / {$disk->formatted_total}",
+                                                'percent' => ($disk->used_bytes / max($disk->total_bytes, 1)) * 100,
+                                            ])->toArray();
+                                    })
+                                    ->visible(fn () => ! $this->showAllDisks)
+                                    ->contained(false)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('mount_point')
+                                            ->hiddenLabel()
+                                            ->tooltip(fn ($state) => $state)
+                                            ->extraAttributes([
+                                                'style' => 'white-space: normal; word-break: break-word;',
+                                            ])
+                                            ->columnSpan(2),
+                                        Infolists\Components\TextEntry::make('used_total')
+                                            ->hiddenLabel()
+                                            ->color('gray')
+                                            ->alignEnd()
+                                            ->columnSpan(1),
+                                        Infolists\Components\TextEntry::make('percent')
+                                            ->hiddenLabel()
+                                            ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
+                                            ->badge()
+                                            ->color(fn (?float $state) => match (true) {
+                                                $state > 90 => 'danger',
+                                                $state > 75 => 'warning',
+                                                default => 'success',
+                                            })
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(4)
+                                    ->columnSpanFull(),
+
+                                Infolists\Components\RepeatableEntry::make('disk_partitions_all')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return [];
+                                        }
+
+                                        return $latest->diskMetrics
+                                            ->sortByDesc(fn ($disk) => ($disk->used_bytes / max($disk->total_bytes, 1)) * 100)
+                                            ->map(fn ($disk) => [
+                                                'mount_point' => $disk->mount_point,
+                                                'used_total' => "{$disk->formatted_used} / {$disk->formatted_total}",
+                                                'percent' => ($disk->used_bytes / max($disk->total_bytes, 1)) * 100,
+                                            ])->toArray();
+                                    })
+                                    ->visible(fn () => $this->showAllDisks)
+                                    ->contained(false)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('mount_point')
+                                            ->hiddenLabel()
+                                            ->tooltip(fn ($state) => $state)
+                                            ->extraAttributes([
+                                                'style' => 'white-space: normal; word-break: break-word;',
+                                            ])
+                                            ->columnSpan(2),
+                                        Infolists\Components\TextEntry::make('used_total')
+                                            ->hiddenLabel()
+                                            ->color('gray')
+                                            ->alignEnd()
+                                            ->columnSpan(1),
+                                        Infolists\Components\TextEntry::make('percent')
+                                            ->hiddenLabel()
+                                            ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
+                                            ->badge()
+                                            ->color(fn (?float $state) => match (true) {
+                                                $state > 90 => 'danger',
+                                                $state > 75 => 'warning',
+                                                default => 'success',
+                                            })
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(4)
+                                    ->columnSpanFull(),
+
+                                Infolists\Components\TextEntry::make('disk_partitions_note')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return '';
+                                        }
+
+                                        if ($this->showAllDisks) {
+                                            return 'Showing all partitions';
+                                        }
+
+                                        $total = $latest->diskMetrics->count();
+                                        $shown = min($total, 8);
+                                        $hidden = $total - $shown;
+
+                                        return $hidden > 0 ? "{$hidden} more partition(s) hidden" : 'All partitions shown';
+                                    })
+                                    ->color('gray')
+                                    ->columnSpanFull(),
                             ]),
 
                         // Network Card
                         Infolists\Components\Section::make('Network')
                             ->icon('heroicon-o-signal')
                             ->columnSpan(1)
-                            ->extraAttributes(['style' => 'height: 100%;'])
                             ->visible(fn () => $server->latestMetric()?->networkMetrics?->isNotEmpty())
+                            ->headerActions([
+                                Infolists\Components\Actions\Action::make('toggle_inactive')
+                                    ->label(fn () => $this->showInactiveInterfaces ? 'Hide Inactive' : 'Show Inactive')
+                                    ->icon(fn () => $this->showInactiveInterfaces ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')
+                                    ->color('gray')
+                                    ->action(function (): void {
+                                        $this->showInactiveInterfaces = ! $this->showInactiveInterfaces;
+                                        $this->dispatch('$refresh');
+                                    }),
+                            ])
+                            ->description('Interface • RX • TX')
                             ->schema([
-                                Infolists\Components\ViewEntry::make('network_table')
-                                    ->view('filament.infolists.entries.network-table', [
-                                        'server' => $server,
-                                    ]),
+                                Infolists\Components\RepeatableEntry::make('network_interfaces_active')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return [];
+                                        }
+
+                                        $interfaces = $latest->networkMetrics
+                                            ->filter(fn ($net) => $net->rx_bytes > 0 || $net->tx_bytes > 0)
+                                            ->sortByDesc(fn ($net) => $net->rx_bytes + $net->tx_bytes);
+
+                                        return $interfaces->take(10)->map(fn ($network) => [
+                                            'interface' => $network->interface_name,
+                                            'rx' => $network->formatted_rx_bytes,
+                                            'tx' => $network->formatted_tx_bytes,
+                                            'is_active' => $network->rx_bytes > 0 || $network->tx_bytes > 0,
+                                        ])->toArray();
+                                    })
+                                    ->visible(fn () => ! $this->showInactiveInterfaces)
+                                    ->contained(false)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('interface')
+                                            ->hiddenLabel()
+                                            ->extraAttributes([
+                                                'style' => 'white-space: normal; word-break: break-word;',
+                                            ])
+                                            ->columnSpan(2),
+                                        Infolists\Components\TextEntry::make('rx')
+                                            ->hiddenLabel()
+                                            ->color('success')
+                                            ->formatStateUsing(fn ($state) => '↓ '.$state)
+                                            ->columnSpan(1),
+                                        Infolists\Components\TextEntry::make('tx')
+                                            ->hiddenLabel()
+                                            ->color('info')
+                                            ->formatStateUsing(fn ($state) => '↑ '.$state)
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(4)
+                                    ->columnSpanFull(),
+
+                                Infolists\Components\RepeatableEntry::make('network_interfaces_all')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return [];
+                                        }
+
+                                        return $latest->networkMetrics
+                                            ->sortByDesc(fn ($net) => $net->rx_bytes + $net->tx_bytes)
+                                            ->take(20)
+                                            ->map(fn ($network) => [
+                                                'interface' => $network->interface_name,
+                                                'rx' => $network->formatted_rx_bytes,
+                                                'tx' => $network->formatted_tx_bytes,
+                                                'is_active' => $network->rx_bytes > 0 || $network->tx_bytes > 0,
+                                            ])->toArray();
+                                    })
+                                    ->visible(fn () => $this->showInactiveInterfaces)
+                                    ->contained(false)
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('interface')
+                                            ->hiddenLabel()
+                                            ->badge()
+                                            ->color(fn ($record) => $record['is_active'] ? 'success' : 'gray')
+                                            ->columnSpan(2),
+                                        Infolists\Components\TextEntry::make('rx')
+                                            ->hiddenLabel()
+                                            ->color('success')
+                                            ->formatStateUsing(fn ($state) => '↓ '.$state)
+                                            ->columnSpan(1),
+                                        Infolists\Components\TextEntry::make('tx')
+                                            ->hiddenLabel()
+                                            ->color('info')
+                                            ->formatStateUsing(fn ($state) => '↑ '.$state)
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(4)
+                                    ->columnSpanFull(),
+
+                                Infolists\Components\TextEntry::make('inactive_interfaces_note')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return '';
+                                        }
+
+                                        $inactiveCount = $latest->networkMetrics
+                                            ->filter(fn ($net) => $net->rx_bytes === 0 && $net->tx_bytes === 0)
+                                            ->count();
+
+                                        if ($this->showInactiveInterfaces) {
+                                            return $inactiveCount > 0
+                                                ? "Showing inactive interfaces ({$inactiveCount} inactive)"
+                                                : 'All interfaces are active';
+                                        }
+
+                                        return $inactiveCount > 0 ? "{$inactiveCount} inactive interface(s) hidden" : 'All interfaces are active';
+                                    })
+                                    ->color('gray')
+                                    ->columnSpanFull(),
                             ]),
 
                         // Health Check Card
                         Infolists\Components\Section::make('Health Check')
                             ->icon('heroicon-o-heart')
                             ->columnSpan(1)
-                            ->extraAttributes(['style' => 'height: 100%;'])
                             ->schema([
-                                Infolists\Components\ViewEntry::make('health_check')
-                                    ->view('filament.infolists.entries.health-check', [
-                                        'server' => $server,
-                                    ]),
+                                Infolists\Components\RepeatableEntry::make('health_indicators')
+                                    ->label('')
+                                    ->state(function (Server $record) {
+                                        $latest = $record->latestMetric();
+                                        if (! $latest) {
+                                            return [];
+                                        }
+
+                                        $checks = [];
+
+                                        // CPU
+                                        $cpuUsage = $latest->cpu_usage;
+                                        $status = 'healthy';
+                                        if ($cpuUsage > 90) {
+                                            $status = 'critical';
+                                        } elseif ($cpuUsage > 75) {
+                                            $status = 'warning';
+                                        }
+                                        $checks[] = [
+                                            'name' => 'CPU',
+                                            'value' => number_format($cpuUsage, 1).'%',
+                                            'status' => $status,
+                                        ];
+
+                                        // Memory
+                                        $memoryPercent = $latest->memory_total > 0
+                                            ? ($latest->memory_used / $latest->memory_total) * 100
+                                            : 0;
+                                        $memoryStatus = 'healthy';
+                                        if ($memoryPercent > 90) {
+                                            $memoryStatus = 'critical';
+                                        } elseif ($memoryPercent > 80) {
+                                            $memoryStatus = 'warning';
+                                        }
+                                        $checks[] = [
+                                            'name' => 'Memory',
+                                            'value' => number_format($memoryPercent, 1).'%',
+                                            'status' => $memoryStatus,
+                                        ];
+
+                                        // Swap
+                                        $swapPercent = $latest->swap_total > 0
+                                            ? ($latest->swap_used / $latest->swap_total) * 100
+                                            : 0;
+                                        $swapStatus = 'healthy';
+                                        if ($swapPercent > 50) {
+                                            $swapStatus = 'critical';
+                                        } elseif ($swapPercent > 25) {
+                                            $swapStatus = 'warning';
+                                        }
+                                        $checks[] = [
+                                            'name' => 'Swap',
+                                            'value' => number_format($swapPercent, 1).'%',
+                                            'status' => $swapStatus,
+                                        ];
+
+                                        // Disk (worst)
+                                        $worstDisk = $latest->diskMetrics->sortByDesc('usage_percent')->first();
+                                        $diskPercent = $worstDisk?->usage_percent ?? 0;
+                                        $diskStatus = 'healthy';
+                                        if ($diskPercent > 90) {
+                                            $diskStatus = 'critical';
+                                        } elseif ($diskPercent > 80) {
+                                            $diskStatus = 'warning';
+                                        }
+                                        $checks[] = [
+                                            'name' => 'Disk',
+                                            'value' => number_format($diskPercent, 1).'%',
+                                            'status' => $diskStatus,
+                                        ];
+
+                                        // Load (1m)
+                                        $load1m = $latest->load_average_1m;
+                                        $loadStatus = 'healthy';
+                                        if ($load1m > 10) {
+                                            $loadStatus = 'critical';
+                                        } elseif ($load1m > 5) {
+                                            $loadStatus = 'warning';
+                                        }
+                                        $checks[] = [
+                                            'name' => 'Load (1m)',
+                                            'value' => number_format($load1m, 2),
+                                            'status' => $loadStatus,
+                                        ];
+
+                                        return $checks;
+                                    })
+                                    ->schema([
+                                        Infolists\Components\TextEntry::make('name')
+                                            ->label('')
+                                            ->weight('bold'),
+                                        Infolists\Components\TextEntry::make('value')
+                                            ->label('')
+                                            ->alignEnd(),
+                                        Infolists\Components\TextEntry::make('status')
+                                            ->label('')
+                                            ->formatStateUsing(fn (?string $state) => match ($state) {
+                                                'healthy' => 'Healthy',
+                                                'warning' => 'Warning',
+                                                'critical' => 'Critical',
+                                                null => 'Unknown',
+                                                default => 'Unknown',
+                                            })
+                                            ->badge()
+                                            ->color(fn (?string $state) => match ($state) {
+                                                'healthy' => 'success',
+                                                'warning' => 'warning',
+                                                'critical' => 'danger',
+                                                default => 'gray',
+                                            }),
+                                    ])
+                                    ->columns(3)
+                                    ->columnSpanFull(),
+
+                                Infolists\Components\TextEntry::make('last_updated')
+                                    ->label('')
+                                    ->state(fn (Server $record) => $record->latestMetric()?->created_at?->diffForHumans() ?? '')
+                                    ->color('gray')
+                                    ->size('xs')
+                                    ->columnSpanFull(),
                             ]),
                     ]),
 
