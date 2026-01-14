@@ -455,7 +455,234 @@
         0% { stroke-dashoffset: 200; }
         100% { stroke-dashoffset: 0; }
     }
+    @keyframes cpuPulse {
+        0%, 100% { height: 60%; }
+        25% { height: 75%; }
+        50% { height: 45%; }
+        75% { height: 80%; }
+    }
+    @keyframes memoryWave {
+        0%, 100% { width: 65%; }
+        50% { width: 72%; }
+    }
+    @keyframes diskFill {
+        0%, 100% { width: 78%; }
+        50% { width: 82%; }
+    }
+    @keyframes networkPulse {
+        0% { transform: translateX(-100%); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateX(100%); opacity: 0; }
+    }
+    @keyframes serverGlow {
+        0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.5); }
+    }
+    @keyframes metricFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
 </style>
+
+{{-- Server Monitoring Section --}}
+<div class="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-24 sm:py-32"
+     x-data="{ shown: false }"
+     x-intersect.once.half="shown = true">
+    {{-- Background grid pattern --}}
+    <div class="absolute inset-0 opacity-10">
+        <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="server-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.5" class="text-gray-400"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#server-grid)"/>
+        </svg>
+    </div>
+    {{-- Glowing orbs --}}
+    <div class="absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-green-500/10 blur-3xl"></div>
+    <div class="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-red-500/10 blur-3xl"></div>
+
+    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
+            {{-- Animated Server Visualization --}}
+            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'"
+                 class="transition-all duration-700 delay-300 ease-out order-2 lg:order-1">
+                <div class="relative rounded-2xl bg-gray-800/50 backdrop-blur-sm p-8 ring-1 ring-white/10" style="animation: serverGlow 3s ease-in-out infinite;">
+                    {{-- Server Header --}}
+                    <div class="flex items-center justify-between border-b border-gray-700 pb-4 mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="h-3 w-3 rounded-full bg-green-500"></div>
+                                <div class="absolute inset-0 h-3 w-3 rounded-full bg-green-500 animate-ping"></div>
+                            </div>
+                            <span class="font-mono text-sm text-gray-300">production-server-01</span>
+                        </div>
+                        <span class="text-xs text-gray-500">Ubuntu 24.04 LTS</span>
+                    </div>
+
+                    {{-- Metrics Grid --}}
+                    <div class="grid grid-cols-2 gap-6">
+                        {{-- CPU --}}
+                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite;">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">CPU</span>
+                                <span class="font-mono text-lg text-green-400">27%</span>
+                            </div>
+                            <div class="flex items-end gap-1 h-12">
+                                @for($i = 0; $i < 8; $i++)
+                                    <div class="flex-1 bg-gray-700 rounded-t relative overflow-hidden">
+                                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-500 to-green-400 rounded-t"
+                                             style="animation: cpuPulse 2s ease-in-out infinite; animation-delay: {{ $i * 0.1 }}s; height: {{ 30 + rand(20, 50) }}%;"></div>
+                                    </div>
+                                @endfor
+                            </div>
+                        </div>
+
+                        {{-- Memory --}}
+                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 0.5s;">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Memory</span>
+                                <span class="font-mono text-lg text-blue-400">6.2 / 8 GB</span>
+                            </div>
+                            <div class="h-12 flex flex-col justify-center">
+                                <div class="h-4 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style="animation: memoryWave 3s ease-in-out infinite; width: 77%;"></div>
+                                </div>
+                                <div class="flex justify-between mt-2 text-[10px] text-gray-500">
+                                    <span>Used: 6.2 GB</span>
+                                    <span>Free: 1.8 GB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Disk --}}
+                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 1s;">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Disk /</span>
+                                <span class="font-mono text-lg text-amber-400">78%</span>
+                            </div>
+                            <div class="h-12 flex flex-col justify-center">
+                                <div class="h-4 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style="animation: diskFill 4s ease-in-out infinite; width: 78%;"></div>
+                                </div>
+                                <div class="flex justify-between mt-2 text-[10px] text-gray-500">
+                                    <span>156 GB / 200 GB</span>
+                                    <span>44 GB free</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Network --}}
+                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 1.5s;">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Network</span>
+                                <span class="font-mono text-lg text-purple-400">eth0</span>
+                            </div>
+                            <div class="h-12 flex flex-col justify-center gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-gray-500 w-6">↓ RX</span>
+                                    <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full w-1/3 bg-purple-500 rounded-full" style="animation: networkPulse 2s ease-in-out infinite;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-purple-400 w-16 text-right">12.4 MB/s</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] text-gray-500 w-6">↑ TX</span>
+                                    <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full w-1/4 bg-green-500 rounded-full" style="animation: networkPulse 2.5s ease-in-out infinite 0.5s;"></div>
+                                    </div>
+                                    <span class="text-[10px] text-green-400 w-16 text-right">3.2 MB/s</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Load Average --}}
+                    <div class="mt-6 pt-4 border-t border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Load Average</span>
+                            <div class="flex items-center gap-4 font-mono text-sm">
+                                <span class="text-green-400">0.45 <span class="text-[10px] text-gray-500">1m</span></span>
+                                <span class="text-green-400">0.62 <span class="text-[10px] text-gray-500">5m</span></span>
+                                <span class="text-yellow-400">1.24 <span class="text-[10px] text-gray-500">15m</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Text Content --}}
+            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'"
+                 class="transition-all duration-700 ease-out order-1 lg:order-2">
+                <div class="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-4 py-1.5 text-sm font-medium text-green-400 ring-1 ring-green-500/20">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    New Feature
+                </div>
+                <h2 class="mt-6 text-pretty text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                    Server monitoring.<br>Full visibility.
+                </h2>
+                <p class="mt-6 text-lg text-gray-400">
+                    Monitor your servers with a lightweight agent. Track CPU, memory, disk, network, and load averages in real-time. Get alerted before your servers hit critical thresholds.
+                </p>
+
+                <div class="mt-10 space-y-4">
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.2s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">One-line install</h3>
+                            <p class="mt-1 text-sm text-gray-400">Install the agent with a single curl command. No configuration needed.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.3s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Threshold alerts</h3>
+                            <p class="mt-1 text-sm text-gray-400">Set custom thresholds for any metric. Get notified when things cross the line.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4"
+                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
+                         style="transition: all 0.5s ease-out 0.4s;">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-white">Open source agent</h3>
+                            <p class="mt-1 text-sm text-gray-400">
+                                Audit the code yourself. Lightweight Go binary with minimal footprint.
+                                <a href="https://github.com/janyksteenbeek/uppi-server-agent" target="_blank" class="text-green-400 hover:text-green-300 inline-flex items-center gap-1 ml-1">
+                                    View on GitHub
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- Alert Channels Section --}}
 <div class="bg-gray-50 py-24 sm:py-32"
