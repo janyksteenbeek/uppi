@@ -4,39 +4,35 @@ namespace App\Filament\Resources\ServerResource\Widgets;
 
 use App\Models\Server;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
-use Livewire\Attributes\Reactive;
 
 class ServerLoadChart extends ChartWidget
 {
     protected static ?string $heading = 'Load Average';
 
-    protected static ?string $maxHeight = '250px';
+    protected static ?string $maxHeight = '200px';
 
     protected static ?string $pollingInterval = '30s';
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = [
+        'default' => 2,
+        'lg' => 1,
+    ];
 
-    #[Reactive]
-    public ?string $serverId = null;
+    public ?Model $record = null;
 
     protected function getData(): array
     {
-        if (! $this->serverId) {
+        if (! $this->record) {
             return [
                 'datasets' => [],
                 'labels' => [],
             ];
         }
 
-        $server = Server::withoutGlobalScopes()->find($this->serverId);
-
-        if (! $server) {
-            return [
-                'datasets' => [],
-                'labels' => [],
-            ];
-        }
+        /** @var Server $server */
+        $server = $this->record;
 
         $metrics = $server->metrics()
             ->where('collected_at', '>=', now()->subHours(24))

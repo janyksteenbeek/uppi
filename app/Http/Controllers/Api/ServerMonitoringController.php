@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Server;
-use App\Models\ServerMetric;
 use App\Models\DiskMetric;
 use App\Models\NetworkMetric;
-use Illuminate\Http\Request;
+use App\Models\Server;
+use App\Models\ServerMetric;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -24,19 +24,24 @@ class ServerMonitoringController extends Controller
             $serverModel = Server::withoutGlobalScopes()->findOrFail($server);
 
             // Verify HMAC signature
-            if (!$this->verifyHmacSignature($request, $serverModel->secret)) {
+            if (! $this->verifyHmacSignature($request, $serverModel->secret)) {
                 Log::warning('Invalid HMAC signature for server monitoring', [
                     'server_id' => $server,
                     'ip' => $request->ip(),
                 ]);
-                
+
                 return response()->json([
-                    'error' => 'Invalid signature'
+                    'error' => 'Invalid signature',
                 ], 401);
             }
 
             // Validate the incoming data
             $validated = $request->validate([
+                // Server info (updates server record)
+                'hostname' => 'nullable|string|max:255',
+                'ip_address' => 'nullable|ip|max:45',
+                'os' => 'nullable|string|max:255',
+                // Metrics
                 'cpu_usage' => 'nullable|numeric|min:0|max:100',
                 'cpu_load_1' => 'nullable|numeric|min:0',
                 'cpu_load_5' => 'nullable|numeric|min:0',
@@ -79,7 +84,7 @@ class ServerMonitoringController extends Controller
                 'swap_total' => $validated['swap_total'] ?? null,
                 'swap_used' => $validated['swap_used'] ?? null,
                 'swap_usage_percent' => $validated['swap_usage_percent'] ?? null,
-                'collected_at' => isset($validated['collected_at']) ? 
+                'collected_at' => isset($validated['collected_at']) ?
                     \Carbon\Carbon::parse($validated['collected_at']) : now(),
             ]);
 
@@ -92,7 +97,7 @@ class ServerMonitoringController extends Controller
                         'total_bytes' => $diskData['total_bytes'],
                         'used_bytes' => $diskData['used_bytes'],
                         'available_bytes' => $diskData['available_bytes'],
-                        'usage_percent' => $diskData['usage_percent'] ?? 
+                        'usage_percent' => $diskData['usage_percent'] ??
                             (($diskData['used_bytes'] / max($diskData['total_bytes'], 1)) * 100),
                     ]);
                 }
@@ -114,8 +119,23 @@ class ServerMonitoringController extends Controller
                 }
             }
 
-            // Update server's last_seen_at
-            $serverModel->update(['last_seen_at' => now()]);
+            // Update server info and last_seen_at
+            $serverUpdate = [
+                'last_seen_at' => now(),
+                'external_ip' => $request->ip(),
+            ];
+
+            if (! empty($validated['hostname'])) {
+                $serverUpdate['hostname'] = $validated['hostname'];
+            }
+            if (! empty($validated['ip_address'])) {
+                $serverUpdate['ip_address'] = $validated['ip_address'];
+            }
+            if (! empty($validated['os'])) {
+                $serverUpdate['os'] = $validated['os'];
+            }
+
+            $serverModel->update($serverUpdate);
 
             Log::info('Server metrics received successfully', [
                 'server_id' => $serverModel->id,
@@ -132,19 +152,19 @@ class ServerMonitoringController extends Controller
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'error' => 'Server not found'
+                'error' => 'Server not found',
             ], 404);
-            
+
         } catch (ValidationException $e) {
             Log::warning('Invalid server monitoring data received', [
                 'server_id' => $server,
                 'errors' => $e->errors(),
                 'ip' => $request->ip(),
             ]);
-            
+
             return response()->json([
                 'error' => 'Validation failed',
-                'details' => $e->errors()
+                'details' => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
@@ -153,9 +173,9 @@ class ServerMonitoringController extends Controller
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Internal server error'
+                'error' => 'Internal server error',
             ], 500);
         }
     }
@@ -169,9 +189,9 @@ class ServerMonitoringController extends Controller
             $serverModel = Server::withoutGlobalScopes()->findOrFail($server);
 
             // Verify HMAC signature
-            if (!$this->verifyHmacSignature($request, $serverModel->secret)) {
+            if (! $this->verifyHmacSignature($request, $serverModel->secret)) {
                 return response()->json([
-                    'error' => 'Invalid signature'
+                    'error' => 'Invalid signature',
                 ], 401);
             }
 
@@ -186,18 +206,18 @@ class ServerMonitoringController extends Controller
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
-                'error' => 'Server not found'
+                'error' => 'Server not found',
             ], 404);
-            
+
         } catch (\Exception $e) {
             Log::error('Failed to get server config', [
                 'server_id' => $server,
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Internal server error'
+                'error' => 'Internal server error',
             ], 500);
         }
     }
@@ -209,28 +229,29 @@ class ServerMonitoringController extends Controller
     {
         $signature = $request->header('X-Signature');
         $timestamp = $request->header('X-Timestamp');
-        
-        if (!$signature || !$timestamp) {
+
+        if (! $signature || ! $timestamp) {
             return false;
         }
 
         // Check if timestamp is within acceptable range (5 minutes)
         $requestTime = (int) $timestamp;
         $currentTime = time();
-        
+
         if (abs($currentTime - $requestTime) > 300) {
             Log::warning('Request timestamp too old or in future', [
                 'request_time' => $requestTime,
                 'current_time' => $currentTime,
                 'difference' => abs($currentTime - $requestTime),
             ]);
+
             return false;
         }
 
         // For GET requests, we don't want any content, for POST we want the JSON payload
         $payload = $request->isMethod('GET') ? '' : $request->getContent();
-        $expectedSignature = hash_hmac('sha256', $timestamp . $payload, $secret);
-        
+        $expectedSignature = hash_hmac('sha256', $timestamp.$payload, $secret);
+
         // Debug logging (remove after fixing)
         Log::debug('HMAC verification debug', [
             'method' => $request->method(),
@@ -241,7 +262,7 @@ class ServerMonitoringController extends Controller
             'expected_signature' => $expectedSignature,
             'signature_match' => hash_equals($expectedSignature, $signature),
         ]);
-        
+
         return hash_equals($expectedSignature, $signature);
     }
 
@@ -270,9 +291,9 @@ class ServerMonitoringController extends Controller
             Log::error('Failed to cleanup server metrics', [
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
-                'error' => 'Cleanup failed'
+                'error' => 'Cleanup failed',
             ], 500);
         }
     }

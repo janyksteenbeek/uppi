@@ -5,26 +5,24 @@ namespace App\Filament\Resources\ServerResource\Widgets;
 use App\Models\Server;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Livewire\Attributes\Reactive;
+use Illuminate\Database\Eloquent\Model;
 
 class ServerStatsOverview extends BaseWidget
 {
     protected static ?string $pollingInterval = '10s';
 
-    #[Reactive]
-    public ?string $serverId = null;
+    protected int|string|array $columnSpan = 'full';
+
+    public ?Model $record = null;
 
     protected function getStats(): array
     {
-        if (! $this->serverId) {
+        if (! $this->record) {
             return [];
         }
 
-        $server = Server::withoutGlobalScopes()->find($this->serverId);
-
-        if (! $server) {
-            return [];
-        }
+        /** @var Server $server */
+        $server = $this->record;
 
         $latest = $server->latestMetric();
 

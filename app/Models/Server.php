@@ -22,6 +22,7 @@ class Server extends Model
         'name',
         'hostname',
         'ip_address',
+        'external_ip',
         'os',
         'secret',
         'is_active',
@@ -86,7 +87,7 @@ class Server extends Model
     {
         $this->secret = Str::random(64);
         $this->save();
-        
+
         return $this->secret;
     }
 }

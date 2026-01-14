@@ -34,6 +34,26 @@ class ViewServer extends ViewRecord
         return $this->record->name;
     }
 
+    public function getSubheading(): string|Htmlable|null
+    {
+        /** @var Server $server */
+        $server = $this->record;
+
+        if (! $server->last_seen_at) {
+            return null;
+        }
+
+        $parts = [];
+        if ($server->hostname) {
+            $parts[] = $server->hostname;
+        }
+        if ($server->os) {
+            $parts[] = $server->os;
+        }
+
+        return implode(' • ', $parts) ?: null;
+    }
+
     protected function getHeaderActions(): array
     {
         /** @var Server $server */
@@ -58,38 +78,21 @@ class ViewServer extends ViewRecord
 
         return [
             ServerStatsOverview::class,
-        ];
-    }
-
-    protected function getFooterWidgets(): array
-    {
-        /** @var Server $server */
-        $server = $this->record;
-
-        if ($server->last_seen_at === null || $server->metrics()->count() === 0) {
-            return [];
-        }
-
-        return [
             ServerMetricsChart::class,
             ServerLoadChart::class,
         ];
     }
 
+    protected function getFooterWidgets(): array
+    {
+        return [];
+    }
+
     public function getHeaderWidgetsColumns(): int|array
     {
-        return 1;
-    }
-
-    public function getFooterWidgetsColumns(): int|array
-    {
-        return 1;
-    }
-
-    public function getWidgetData(): array
-    {
         return [
-            'serverId' => $this->record->id,
+            'default' => 1,
+            'lg' => 2,
         ];
     }
 
@@ -110,11 +113,12 @@ class ViewServer extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('install_command')
                             ->label('')
-                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->secret}")
+                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}")
                             ->copyable()
                             ->copyMessage('Install command copied!')
                             ->extraAttributes([
-                                'class' => 'font-mono text-sm bg-gray-900 dark:bg-gray-800 text-green-400 p-4 rounded-lg',
+                                'class' => 'font-mono text-sm rounded-lg',
+                                'style' => 'background-color: #1f2937; color: #4ade80; padding: 1rem;',
                             ])
                             ->columnSpanFull(),
                         Infolists\Components\TextEntry::make('instructions')
@@ -136,8 +140,52 @@ class ViewServer extends ViewRecord
                             ->columnSpanFull(),
                     ]),
 
-                // Server information - shown when data has been received
+                // Three column grid: Storage, Network, Health Check
+                Infolists\Components\Grid::make(3)
+                    ->visible(fn () => $hasReceivedData)
+                    ->schema([
+                        // Storage Card
+                        Infolists\Components\Section::make('Storage')
+                            ->icon('heroicon-o-circle-stack')
+                            ->columnSpan(1)
+                            ->extraAttributes(['style' => 'height: 100%;'])
+                            ->visible(fn () => $server->latestMetric()?->diskMetrics?->isNotEmpty())
+                            ->schema([
+                                Infolists\Components\ViewEntry::make('disk_table')
+                                    ->view('filament.infolists.entries.storage-table', [
+                                        'server' => $server,
+                                    ]),
+                            ]),
+
+                        // Network Card
+                        Infolists\Components\Section::make('Network')
+                            ->icon('heroicon-o-signal')
+                            ->columnSpan(1)
+                            ->extraAttributes(['style' => 'height: 100%;'])
+                            ->visible(fn () => $server->latestMetric()?->networkMetrics?->isNotEmpty())
+                            ->schema([
+                                Infolists\Components\ViewEntry::make('network_table')
+                                    ->view('filament.infolists.entries.network-table', [
+                                        'server' => $server,
+                                    ]),
+                            ]),
+
+                        // Health Check Card
+                        Infolists\Components\Section::make('Health Check')
+                            ->icon('heroicon-o-heart')
+                            ->columnSpan(1)
+                            ->extraAttributes(['style' => 'height: 100%;'])
+                            ->schema([
+                                Infolists\Components\ViewEntry::make('health_check')
+                                    ->view('filament.infolists.entries.health-check', [
+                                        'server' => $server,
+                                    ]),
+                            ]),
+                    ]),
+
+                // Server Details - collapsed at bottom
                 Infolists\Components\Section::make('Server Details')
+                    ->icon('heroicon-o-server')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()
@@ -146,7 +194,11 @@ class ViewServer extends ViewRecord
                             ->copyable()
                             ->placeholder('—'),
                         Infolists\Components\TextEntry::make('ip_address')
-                            ->label('IP Address')
+                            ->label('Internal IP')
+                            ->copyable()
+                            ->placeholder('—'),
+                        Infolists\Components\TextEntry::make('external_ip')
+                            ->label('External IP')
                             ->copyable()
                             ->placeholder('—'),
                         Infolists\Components\TextEntry::make('os')
@@ -158,83 +210,12 @@ class ViewServer extends ViewRecord
                         Infolists\Components\TextEntry::make('created_at')
                             ->label('Added')
                             ->dateTime('j M Y, g:i a'),
-                        Infolists\Components\TextEntry::make('metrics_count')
-                            ->label('Total Data Points')
-                            ->state(fn (Server $record) => number_format($record->metrics()->count())),
                     ])
                     ->columns(3),
 
-                Infolists\Components\Section::make('Disk Usage')
-                    ->visible(fn () => $hasReceivedData && $server->latestMetric()?->diskMetrics?->isNotEmpty())
-                    ->schema([
-                        Infolists\Components\RepeatableEntry::make('disk_partitions')
-                            ->label('')
-                            ->state(function (Server $record) {
-                                $latest = $record->latestMetric();
-                                if (! $latest) {
-                                    return [];
-                                }
-
-                                return $latest->diskMetrics->map(fn ($disk) => [
-                                    'mount_point' => $disk->mount_point,
-                                    'used' => $disk->formatted_used,
-                                    'total' => $disk->formatted_total,
-                                    'percent' => $disk->usage_percent,
-                                ])->toArray();
-                            })
-                            ->schema([
-                                Infolists\Components\TextEntry::make('mount_point')
-                                    ->label('Mount'),
-                                Infolists\Components\TextEntry::make('used')
-                                    ->label('Used'),
-                                Infolists\Components\TextEntry::make('total')
-                                    ->label('Total'),
-                                Infolists\Components\TextEntry::make('percent')
-                                    ->label('Usage')
-                                    ->formatStateUsing(fn ($state) => number_format($state, 1).'%')
-                                    ->badge()
-                                    ->color(fn ($state) => match (true) {
-                                        $state > 90 => 'danger',
-                                        $state > 75 => 'warning',
-                                        default => 'success',
-                                    }),
-                            ])
-                            ->columns(4)
-                            ->columnSpanFull(),
-                    ]),
-
-                Infolists\Components\Section::make('Network Interfaces')
-                    ->visible(fn () => $hasReceivedData && $server->latestMetric()?->networkMetrics?->isNotEmpty())
-                    ->collapsible()
-                    ->schema([
-                        Infolists\Components\RepeatableEntry::make('network_interfaces')
-                            ->label('')
-                            ->state(function (Server $record) {
-                                $latest = $record->latestMetric();
-                                if (! $latest) {
-                                    return [];
-                                }
-
-                                return $latest->networkMetrics->map(fn ($network) => [
-                                    'interface' => $network->interface_name,
-                                    'rx' => $network->formatted_rx_bytes,
-                                    'tx' => $network->formatted_tx_bytes,
-                                ])->toArray();
-                            })
-                            ->schema([
-                                Infolists\Components\TextEntry::make('interface')
-                                    ->label('Interface'),
-                                Infolists\Components\TextEntry::make('rx')
-                                    ->label('Received'),
-                                Infolists\Components\TextEntry::make('tx')
-                                    ->label('Transmitted'),
-                            ])
-                            ->columns(3)
-                            ->columnSpanFull(),
-                    ]),
-
-                // Show install command even for connected servers (collapsed)
+                // Reinstall Agent - collapsed at bottom
                 Infolists\Components\Section::make('Reinstall Agent')
+                    ->icon('heroicon-o-arrow-path')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()
@@ -242,11 +223,12 @@ class ViewServer extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('install_command_reconnect')
                             ->label('')
-                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->secret}")
+                            ->state(fn (Server $record) => "curl -sSL https://raw.githubusercontent.com/janyksteenbeek/uppi-server-agent/main/install.sh | sudo bash -s -- {$record->id}:{$record->secret}")
                             ->copyable()
                             ->copyMessage('Install command copied!')
                             ->extraAttributes([
-                                'class' => 'font-mono text-sm bg-gray-900 dark:bg-gray-800 text-green-400 p-4 rounded-lg',
+                                'class' => 'font-mono text-sm rounded-lg',
+                                'style' => 'background-color: #1f2937; color: #4ade80; padding: 1rem;',
                             ])
                             ->columnSpanFull(),
                     ]),
