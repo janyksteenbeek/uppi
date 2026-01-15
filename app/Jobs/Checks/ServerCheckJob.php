@@ -10,7 +10,8 @@ class ServerCheckJob extends CheckJob
 {
     protected function performCheck(): array
     {
-        $server = Server::withoutGlobalScopes()->find($this->monitor->server_id);
+        // Server ID is stored in the address field
+        $server = Server::withoutGlobalScopes()->find($this->monitor->address);
 
         if (! $server) {
             return [

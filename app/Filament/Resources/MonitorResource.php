@@ -215,7 +215,7 @@ class MonitorResource extends Resource
                             ->heading('Server Monitoring')
                             ->visible(fn (Get $get) => $get('type') === MonitorType::SERVER->value)
                             ->schema([
-                                Forms\Components\Select::make('server_id')
+                                Forms\Components\Select::make('address')
                                     ->label('Server')
                                     ->options(fn () => Server::where('user_id', auth()->id())->pluck('name', 'id'))
                                     ->required()
@@ -242,13 +242,13 @@ class MonitorResource extends Resource
                                 Forms\Components\Select::make('disk_mount_point')
                                     ->label('Disk')
                                     ->options(function (Get $get) {
-                                        $serverId = $get('server_id');
+                                        $serverId = $get('address');
                                         if (! $serverId) {
                                             return [];
                                         }
 
                                         $server = Server::withoutGlobalScopes()->find($serverId);
-                                        if (! $server) {
+                                        if (! $server || $server->user_id !== auth()->id()) {
                                             return [];
                                         }
 

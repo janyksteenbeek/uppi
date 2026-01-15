@@ -68,9 +68,13 @@ class Monitor extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the server for this monitor (when type is SERVER).
+     * Uses the address field to store the server ID.
+     */
     public function server(): BelongsTo
     {
-        return $this->belongsTo(Server::class);
+        return $this->belongsTo(Server::class, 'address');
     }
 
     public function updates(): BelongsToMany
