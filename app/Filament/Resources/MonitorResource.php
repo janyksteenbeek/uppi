@@ -6,6 +6,7 @@ use App\Enums\Monitors\MonitorType;
 use App\Enums\Monitors\ServerMetricType;
 use App\Filament\Resources\MonitorResource\Pages;
 use App\Filament\Resources\MonitorResource\RelationManagers\AlertsRelationManager;
+use App\Filament\Resources\MonitorResource\RelationManagers\AnomaliesRelationManager;
 use App\Models\Monitor;
 use App\Models\Server;
 use Filament\Forms;
@@ -488,6 +489,7 @@ class MonitorResource extends Resource
     {
         return [
             AlertsRelationManager::class,
+            AnomaliesRelationManager::class,
         ];
     }
 
