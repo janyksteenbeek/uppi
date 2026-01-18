@@ -7,11 +7,11 @@
         <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
             <div class="flex-shrink-0 mt-0.5">
                 @if($check->status->value === 'ok')
-                    <x-heroicon-s-check-circle class="w-5 h-5 text-success-500" />
+                    @svg('heroicon-s-check-circle', 'w-5 h-5 text-success-500')
                 @elseif($check->status->value === 'fail')
-                    <x-heroicon-s-x-circle class="w-5 h-5 text-danger-500" />
+                    @svg('heroicon-s-x-circle', 'w-5 h-5 text-danger-500')
                 @else
-                    <x-heroicon-s-question-mark-circle class="w-5 h-5 text-warning-500" />
+                    @svg('heroicon-s-question-mark-circle', 'w-5 h-5 text-warning-500')
                 @endif
             </div>
             <div class="flex-1 min-w-0">
@@ -37,7 +37,7 @@
         </div>
     @empty
         <div class="text-center py-6 text-gray-500 dark:text-gray-400">
-            <x-heroicon-o-signal class="w-8 h-8 mx-auto mb-2 opacity-50" />
+            @svg('heroicon-o-signal', 'w-8 h-8 mx-auto mb-2 opacity-50')
             <p class="text-sm">No checks recorded for this anomaly</p>
         </div>
     @endforelse
