@@ -44,7 +44,7 @@ class MonitoringWall extends Component
                         ->select(['id', 'monitor_id', 'started_at']);
                 },
                 'lastCheck' => function ($query) {
-                    $query->select(['id', 'monitor_id', 'response_time', 'response_code', 'checked_at', 'status']);
+                    $query->select(['checks.id', 'checks.monitor_id', 'checks.response_time', 'checks.response_code', 'checks.checked_at', 'checks.status']);
                 },
             ])
             ->get();
