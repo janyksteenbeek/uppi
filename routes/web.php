@@ -3,6 +3,7 @@
 use App\Http\Controllers\IconController;
 use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\StatusPageController;
+use App\Livewire\MonitoringWall;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,8 @@ Route::get('/embed/{user}/embed.js', function (User $user) {
 })->name('embed.js');
 
 Route::get('/privacy', PrivacyController::class)->name('privacy');
+
+Route::get('/wall', MonitoringWall::class)->name('monitoring-wall')->middleware('auth');
 
 Route::get('/test-screenshot/{testRunStep}', function (\App\Models\TestRunStep $testRunStep) {
     if (! $testRunStep->screenshot_path || ! \Storage::exists($testRunStep->screenshot_path)) {
