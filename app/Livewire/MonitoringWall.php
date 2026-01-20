@@ -55,11 +55,11 @@ class MonitoringWall extends Component
         $responseTimes = [];
         if (! empty($monitorIds)) {
             $responseTimes = Check::query()
-                ->whereIn('monitor_id', $monitorIds)
-                ->whereNotNull('response_time')
-                ->where('checked_at', '>=', now()->subHours(2))
-                ->select(['monitor_id', 'response_time'])
-                ->orderBy('checked_at', 'asc')
+                ->whereIn('checks.monitor_id', $monitorIds)
+                ->whereNotNull('checks.response_time')
+                ->where('checks.checked_at', '>=', now()->subHours(2))
+                ->select(['checks.monitor_id', 'checks.response_time'])
+                ->orderBy('checks.checked_at', 'asc')
                 ->get()
                 ->groupBy('monitor_id')
                 ->map(fn ($checks) => $checks->pluck('response_time')->take(30)->values()->toArray())
