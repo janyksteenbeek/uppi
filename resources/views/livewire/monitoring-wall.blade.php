@@ -1,5 +1,6 @@
 <div
-    x-data="monitoringWall(@js($this->allMonitors->pluck('id', 'name')->toArray()))"
+    wire:poll.30s
+    x-data="monitoringWall(@js($this->monitorOptions))"
     x-init="init()"
     class="h-screen w-screen p-4 flex flex-col"
 >

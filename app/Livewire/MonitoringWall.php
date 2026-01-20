@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Check;
 use App\Models\Monitor;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -28,32 +29,51 @@ class MonitoringWall extends Component
     /**
      * @return Collection<int, Monitor>
      */
-    #[Computed]
+    #[Computed(persist: true, seconds: 30)]
     public function allMonitors(): Collection
     {
-        return Monitor::query()
+        // Get monitors with only essential eager loads
+        // Explicitly filter by user_id to ensure only current user's monitors are shown
+        $monitors = Monitor::query()
+            ->where('user_id', auth()->id())
             ->where('is_enabled', true)
+            ->select(['id', 'name', 'user_id', 'is_enabled'])
             ->with([
                 'anomalies' => function ($query) {
-                    $query->whereNull('ended_at');
+                    $query->whereNull('ended_at')
+                        ->select(['id', 'monitor_id', 'started_at']);
                 },
-                'checks' => function ($query) {
-                    $query->whereNotNull('response_time')
-                        ->where('checked_at', '>=', now()->subHours(6))
-                        ->orderBy('checked_at', 'asc')
-                        ->limit(50);
+                'lastCheck' => function ($query) {
+                    $query->select(['id', 'monitor_id', 'response_time', 'response_code', 'checked_at', 'status']);
                 },
-                'lastCheck',
             ])
-            ->get()
-            ->map(function (Monitor $monitor) {
-                $monitor->has_active_anomaly = $monitor->anomalies->isNotEmpty();
-                $monitor->response_times = $monitor->checks->pluck('response_time')->filter()->values()->toArray();
-                $monitor->active_anomaly = $monitor->anomalies->first();
-                $monitor->downtime_started_at = $monitor->active_anomaly?->started_at?->toIso8601String();
+            ->get();
 
-                return $monitor;
-            });
+        $monitorIds = $monitors->pluck('id')->toArray();
+
+        // Get aggregated response times in a single efficient query
+        $responseTimes = [];
+        if (! empty($monitorIds)) {
+            $responseTimes = Check::query()
+                ->whereIn('monitor_id', $monitorIds)
+                ->whereNotNull('response_time')
+                ->where('checked_at', '>=', now()->subHours(2))
+                ->select(['monitor_id', 'response_time'])
+                ->orderBy('checked_at', 'asc')
+                ->get()
+                ->groupBy('monitor_id')
+                ->map(fn ($checks) => $checks->pluck('response_time')->take(30)->values()->toArray())
+                ->toArray();
+        }
+
+        return $monitors->map(function (Monitor $monitor) use ($responseTimes) {
+            $monitor->has_active_anomaly = $monitor->anomalies->isNotEmpty();
+            $monitor->response_times = $responseTimes[$monitor->id] ?? [];
+            $monitor->active_anomaly = $monitor->anomalies->first();
+            $monitor->downtime_started_at = $monitor->active_anomaly?->started_at?->toIso8601String();
+
+            return $monitor;
+        });
     }
 
     /**
@@ -75,6 +95,15 @@ class MonitoringWall extends Component
             ['has_active_anomaly', 'desc'],
             ['name', 'asc'],
         ])->values();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    #[Computed(persist: true, seconds: 60)]
+    public function monitorOptions(): array
+    {
+        return $this->allMonitors->pluck('id', 'name')->toArray();
     }
 
     public function render(): View
