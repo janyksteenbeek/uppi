@@ -68,25 +68,36 @@ class MonitoringWall extends Component
             ])
             ->get();
 
-        // Get the latest check per selected monitor in one query
-        $latestChecks = Check::query()
-            ->whereIn('checks.monitor_id', $this->selectedMonitorIds)
-            ->whereRaw('checks.id = (select c2.id from checks c2 where c2.monitor_id = checks.monitor_id and c2.deleted_at is null order by c2.checked_at desc limit 1)')
-            ->select(['checks.id', 'checks.monitor_id', 'checks.response_time', 'checks.response_code', 'checks.checked_at', 'checks.status'])
-            ->get()
-            ->keyBy('monitor_id');
+        // Simple per-monitor lookups - each hits index directly with limit 1
+        $latestChecks = collect();
+        $sparklines = collect();
 
-        // Get last 15 response times per monitor for sparklines
-        $sparklines = Check::query()
-            ->whereIn('checks.monitor_id', $this->selectedMonitorIds)
-            ->whereNotNull('checks.response_time')
-            ->where('checks.checked_at', '>=', now()->subHour())
-            ->select(['checks.monitor_id', 'checks.response_time', 'checks.checked_at'])
-            ->orderBy('checks.checked_at', 'desc')
-            ->limit(count($this->selectedMonitorIds) * 15)
-            ->get()
-            ->groupBy('monitor_id')
-            ->map(fn ($checks) => $checks->sortBy('checked_at')->pluck('response_time')->values()->toArray());
+        foreach ($this->selectedMonitorIds as $monitorId) {
+            $latestCheck = Check::query()
+                ->where('monitor_id', $monitorId)
+                ->orderByDesc('checked_at')
+                ->select(['id', 'monitor_id', 'response_time', 'response_code', 'checked_at', 'status'])
+                ->first();
+
+            if ($latestCheck) {
+                $latestChecks->put($monitorId, $latestCheck);
+            }
+
+            $times = Check::query()
+                ->where('monitor_id', $monitorId)
+                ->whereNotNull('response_time')
+                ->where('checked_at', '>=', now()->subHour())
+                ->orderByDesc('checked_at')
+                ->limit(15)
+                ->pluck('response_time')
+                ->reverse()
+                ->values()
+                ->toArray();
+
+            if (! empty($times)) {
+                $sparklines->put($monitorId, $times);
+            }
+        }
 
         return $monitors->map(function (Monitor $monitor) use ($latestChecks, $sparklines) {
             $monitor->has_active_anomaly = $monitor->anomalies->isNotEmpty();
