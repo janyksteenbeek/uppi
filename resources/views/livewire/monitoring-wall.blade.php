@@ -276,20 +276,19 @@
             const minCols = this.downCount > 0 ? 2 : 1;
             const aspectRatio = window.innerWidth / window.innerHeight;
 
-            // Try all reasonable column counts, pick the one with best fit
-            let bestCols = minCols;
-            let bestScore = Infinity;
+            // Start from ideal square-ish layout adjusted for screen aspect ratio
+            let cols = Math.round(Math.sqrt(effectiveCells * aspectRatio));
+            cols = Math.max(minCols, Math.min(cols, effectiveCells));
 
-            for (let c = minCols; c <= Math.min(effectiveCells, 8); c++) {
-                const r = Math.ceil(effectiveCells / c);
-                const waste = (c * r) - effectiveCells;
-                const ratio = c / r;
-                const ratioError = Math.abs(ratio - aspectRatio);
-                // Penalize empty cells heavily, slightly prefer matching screen aspect ratio
-                const score = (waste * 3) + ratioError;
+            // Try cols-1, cols, cols+1 and pick the one with fewest empty cells
+            let bestCols = cols;
+            let bestWaste = Infinity;
 
-                if (score < bestScore) {
-                    bestScore = score;
+            for (let c = Math.max(minCols, cols - 1); c <= Math.min(cols + 1, effectiveCells); c++) {
+                const rows = Math.ceil(effectiveCells / c);
+                const waste = (c * rows) - effectiveCells;
+                if (waste < bestWaste) {
+                    bestWaste = waste;
                     bestCols = c;
                 }
             }
