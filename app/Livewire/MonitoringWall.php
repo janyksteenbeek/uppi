@@ -104,7 +104,7 @@ class MonitoringWall extends Component
             $monitor->active_anomaly = $monitor->anomalies->first();
             $monitor->downtime_started_at = $monitor->active_anomaly?->started_at?->toIso8601String();
             $monitor->latest_check = $latestChecks->get($monitor->id);
-            $monitor->response_times = $sparklines->get($monitor->id, collect())->toArray();
+            $monitor->response_times = $sparklines->get($monitor->id, []);
 
             return $monitor;
         })->sortBy([
