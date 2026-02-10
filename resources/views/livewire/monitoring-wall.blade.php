@@ -1,6 +1,6 @@
 <div
     wire:poll.30s
-    x-data="monitoringWall(@js($this->monitorOptions))"
+    x-data="monitoringWall(@js($this->monitorOptions), {{ $this->displayMonitors->where('has_active_anomaly', true)->count() }})"
     x-init="init()"
     class="h-screen w-screen p-4 flex flex-col"
 >
@@ -98,7 +98,7 @@
                 @endif
                 @class([
                     'rounded-2xl flex flex-col items-center justify-center p-6 transition-all duration-300 relative overflow-hidden',
-                    'bg-red-500 shadow-lg shadow-red-500/30' => $monitor->has_active_anomaly,
+                    'col-span-2 row-span-2 bg-red-500 shadow-lg shadow-red-500/30' => $monitor->has_active_anomaly,
                     'bg-white dark:bg-neutral-800 border-2 border-emerald-400 dark:border-emerald-500 shadow-lg shadow-emerald-500/10' => !$monitor->has_active_anomaly,
                 ])
             >
@@ -256,8 +256,9 @@
 
 @script
 <script>
-    Alpine.data('monitoringWall', (monitors) => ({
+    Alpine.data('monitoringWall', (monitors, downCount) => ({
         monitors: monitors,
+        downCount: downCount,
         selectedMonitors: [],
         settingsOpen: false,
         darkMode: localStorage.getItem('monitoringWallDarkMode') === 'true',
@@ -270,15 +271,19 @@
             const count = this.selectedMonitors.length;
             if (count === 0) return 'grid-template-columns: 1fr';
 
-            const aspectRatio = window.innerWidth / window.innerHeight;
-            let cols = Math.ceil(Math.sqrt(count * aspectRatio));
-            let rows = Math.ceil(count / cols);
+            // Down monitors take 2x2 (4 cells), healthy take 1 cell
+            const healthyCount = count - this.downCount;
+            const effectiveCells = (this.downCount * 4) + healthyCount;
 
-            while ((cols - 1) * rows >= count && cols > 1) {
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            // Need at least 2 cols when there are down monitors (for col-span-2)
+            let minCols = this.downCount > 0 ? 2 : 1;
+            let cols = Math.max(minCols, Math.ceil(Math.sqrt(effectiveCells * aspectRatio)));
+            let rows = Math.ceil(effectiveCells / cols);
+
+            // Ensure we don't have too many empty cells
+            while ((cols - 1) * rows >= effectiveCells && cols > minCols) {
                 cols--;
-            }
-            while (cols * (rows - 1) >= count && rows > 1) {
-                rows--;
             }
 
             return `grid-template-columns: repeat(${cols}, 1fr)`;
