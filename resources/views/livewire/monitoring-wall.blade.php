@@ -150,11 +150,11 @@
                 <div class="relative z-10 text-center flex-1 flex flex-col justify-center">
                     <!-- Monitor Name -->
                     <h2 @class([
-                        'font-bold',
+                        'font-bold max-w-full overflow-hidden text-ellipsis',
                         'text-white' => $monitor->has_active_anomaly,
                         'text-neutral-800 dark:text-white' => !$monitor->has_active_anomaly,
                     ])
-                    style="font-size: clamp(1.25rem, 3vw, 2.5rem);"
+                    style="font-size: clamp(0.75rem, 2vw, 2.5rem);"
                     >
                         {{ $monitor->name }}
                     </h2>
