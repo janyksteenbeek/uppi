@@ -87,7 +87,7 @@
 
     <!-- Monitor Grid -->
     <div
-        class="flex-1 grid gap-3 auto-rows-fr"
+        class="flex-1 grid gap-3 auto-rows-fr grid-flow-dense"
         :style="gridStyle"
     >
         @foreach($this->displayMonitors as $monitor)
