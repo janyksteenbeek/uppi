@@ -27,83 +27,79 @@ class MonitoringWall extends Component
     }
 
     /**
-     * @return Collection<int, Monitor>
+     * Lightweight list for the settings panel only - no heavy relations.
+     *
+     * @return array<string, string>
      */
-    #[Computed(persist: true, seconds: 30)]
-    public function allMonitors(): Collection
+    #[Computed]
+    public function monitorOptions(): array
     {
-        // Get monitors with only essential eager loads
-        // Explicitly filter by user_id to ensure only current user's monitors are shown
-        $monitors = Monitor::query()
+        return Monitor::query()
             ->where('user_id', auth()->id())
             ->where('is_enabled', true)
-            ->select(['id', 'name', 'user_id', 'is_enabled'])
-            ->with([
-                'anomalies' => function ($query) {
-                    $query->whereNull('ended_at')
-                        ->select(['id', 'monitor_id', 'started_at']);
-                },
-                'lastCheck' => function ($query) {
-                    $query->select(['checks.id', 'checks.monitor_id', 'checks.response_time', 'checks.response_code', 'checks.checked_at', 'checks.status']);
-                },
-            ])
-            ->get();
-
-        $monitorIds = $monitors->pluck('id')->toArray();
-
-        // Get aggregated response times in a single efficient query
-        $responseTimes = [];
-        if (! empty($monitorIds)) {
-            $responseTimes = Check::query()
-                ->whereIn('checks.monitor_id', $monitorIds)
-                ->whereNotNull('checks.response_time')
-                ->where('checks.checked_at', '>=', now()->subHours(2))
-                ->select(['checks.monitor_id', 'checks.response_time'])
-                ->orderBy('checks.checked_at', 'asc')
-                ->get()
-                ->groupBy('monitor_id')
-                ->map(fn ($checks) => $checks->pluck('response_time')->take(30)->values()->toArray())
-                ->toArray();
-        }
-
-        return $monitors->map(function (Monitor $monitor) use ($responseTimes) {
-            $monitor->has_active_anomaly = $monitor->anomalies->isNotEmpty();
-            $monitor->response_times = $responseTimes[$monitor->id] ?? [];
-            $monitor->active_anomaly = $monitor->anomalies->first();
-            $monitor->downtime_started_at = $monitor->active_anomaly?->started_at?->toIso8601String();
-
-            return $monitor;
-        });
+            ->orderBy('name')
+            ->pluck('id', 'name')
+            ->toArray();
     }
 
     /**
+     * Only load full data for the monitors that are actually selected.
+     *
      * @return Collection<int, Monitor>
      */
     #[Computed]
     public function displayMonitors(): Collection
     {
-        $monitors = $this->allMonitors;
-
-        if (! empty($this->selectedMonitorIds)) {
-            $monitors = $monitors->filter(function (Monitor $monitor) {
-                return in_array($monitor->id, $this->selectedMonitorIds);
-            });
+        if (empty($this->selectedMonitorIds)) {
+            return collect();
         }
 
-        // Sort: down monitors first, then by name
-        return $monitors->sortBy([
+        $monitors = Monitor::query()
+            ->where('user_id', auth()->id())
+            ->where('is_enabled', true)
+            ->whereIn('id', $this->selectedMonitorIds)
+            ->select(['id', 'name', 'user_id', 'is_enabled', 'last_checked_at'])
+            ->with([
+                'anomalies' => function ($query) {
+                    $query->whereNull('ended_at')
+                        ->select(['id', 'monitor_id', 'started_at'])
+                        ->limit(1);
+                },
+            ])
+            ->get();
+
+        // Get the latest check per selected monitor in one query
+        $latestChecks = Check::query()
+            ->whereIn('checks.monitor_id', $this->selectedMonitorIds)
+            ->whereRaw('checks.id = (select c2.id from checks c2 where c2.monitor_id = checks.monitor_id and c2.deleted_at is null order by c2.checked_at desc limit 1)')
+            ->select(['checks.id', 'checks.monitor_id', 'checks.response_time', 'checks.response_code', 'checks.checked_at', 'checks.status'])
+            ->get()
+            ->keyBy('monitor_id');
+
+        // Get last 15 response times per monitor for sparklines
+        $sparklines = Check::query()
+            ->whereIn('checks.monitor_id', $this->selectedMonitorIds)
+            ->whereNotNull('checks.response_time')
+            ->where('checks.checked_at', '>=', now()->subHour())
+            ->select(['checks.monitor_id', 'checks.response_time', 'checks.checked_at'])
+            ->orderBy('checks.checked_at', 'desc')
+            ->limit(count($this->selectedMonitorIds) * 15)
+            ->get()
+            ->groupBy('monitor_id')
+            ->map(fn ($checks) => $checks->sortBy('checked_at')->pluck('response_time')->values()->toArray());
+
+        return $monitors->map(function (Monitor $monitor) use ($latestChecks, $sparklines) {
+            $monitor->has_active_anomaly = $monitor->anomalies->isNotEmpty();
+            $monitor->active_anomaly = $monitor->anomalies->first();
+            $monitor->downtime_started_at = $monitor->active_anomaly?->started_at?->toIso8601String();
+            $monitor->latest_check = $latestChecks->get($monitor->id);
+            $monitor->response_times = $sparklines->get($monitor->id, collect())->toArray();
+
+            return $monitor;
+        })->sortBy([
             ['has_active_anomaly', 'desc'],
             ['name', 'asc'],
         ])->values();
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    #[Computed(persist: true, seconds: 60)]
-    public function monitorOptions(): array
-    {
-        return $this->allMonitors->pluck('id', 'name')->toArray();
     }
 
     public function render(): View

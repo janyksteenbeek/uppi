@@ -97,7 +97,7 @@
                     x-data="downtimeCounter('{{ $monitor->downtime_started_at }}')"
                 @endif
                 @class([
-                    'rounded-2xl flex flex-col items-center justify-center p-4 transition-all duration-300 relative overflow-hidden',
+                    'rounded-2xl flex flex-col items-center justify-center p-6 transition-all duration-300 relative overflow-hidden',
                     'bg-red-500 shadow-lg shadow-red-500/30' => $monitor->has_active_anomaly,
                     'bg-white dark:bg-neutral-800 border-2 border-emerald-400 dark:border-emerald-500 shadow-lg shadow-emerald-500/10' => !$monitor->has_active_anomaly,
                 ])
@@ -141,19 +141,8 @@
                                     <stop offset="100%" style="stop-color:{{ $strokeColor }};stop-opacity:0" />
                                 </linearGradient>
                             </defs>
-                            <path
-                                d="{{ $areaPath }}"
-                                fill="url(#gradient-{{ $monitor->id }})"
-                            />
-                            <path
-                                d="{{ $linePath }}"
-                                fill="none"
-                                stroke="{{ $strokeColor }}"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                vector-effect="non-scaling-stroke"
-                            />
+                            <path d="{{ $areaPath }}" fill="url(#gradient-{{ $monitor->id }})" />
+                            <path d="{{ $linePath }}" fill="none" stroke="{{ $strokeColor }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
                         </svg>
                     </div>
                 @endif
@@ -161,7 +150,7 @@
                 <div class="relative z-10 text-center flex-1 flex flex-col justify-center">
                     <!-- Monitor Name -->
                     <h2 @class([
-                        'font-bold truncate',
+                        'font-bold',
                         'text-white' => $monitor->has_active_anomaly,
                         'text-neutral-800 dark:text-white' => !$monitor->has_active_anomaly,
                     ])
@@ -174,7 +163,6 @@
                     @if($monitor->has_active_anomaly)
                         <p class="text-red-100 text-base mt-2 uppercase tracking-wide font-semibold">down</p>
 
-                        <!-- Real-time downtime counter -->
                         @if($monitor->downtime_started_at)
                             <p class="text-white font-mono font-bold mt-3" style="font-size: clamp(1.5rem, 4vw, 3rem);" x-text="formattedDuration"></p>
                         @endif
@@ -183,9 +171,9 @@
                     @endif
                 </div>
 
-                <!-- Last Check Info (bottom of card) -->
+                <!-- Last Check Info -->
                 <div class="relative z-10 w-full mt-auto pt-3">
-                    @if($monitor->lastCheck)
+                    @if($monitor->latest_check)
                         <div @class([
                             'flex items-center justify-center gap-4 font-mono',
                             'text-red-100/80' => $monitor->has_active_anomaly,
@@ -193,32 +181,32 @@
                         ])
                         style="font-size: clamp(0.75rem, 1.2vw, 1rem);"
                         >
-                            @if($monitor->lastCheck->response_time)
+                            @if($monitor->latest_check->response_time)
                                 <span class="flex items-center gap-1.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
-                                    {{ round($monitor->lastCheck->response_time) }}ms
+                                    {{ round($monitor->latest_check->response_time) }}ms
                                 </span>
                             @endif
 
-                            @if($monitor->lastCheck->response_code)
+                            @if($monitor->latest_check->response_code)
                                 <span @class([
                                     'px-2 py-1 rounded font-medium',
                                     'bg-red-700/50 text-red-100' => $monitor->has_active_anomaly,
-                                    'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' => !$monitor->has_active_anomaly && $monitor->lastCheck->response_code >= 200 && $monitor->lastCheck->response_code < 300,
-                                    'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' => !$monitor->has_active_anomaly && $monitor->lastCheck->response_code >= 300 && $monitor->lastCheck->response_code < 400,
-                                    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' => !$monitor->has_active_anomaly && $monitor->lastCheck->response_code >= 400,
+                                    'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' => !$monitor->has_active_anomaly && $monitor->latest_check->response_code >= 200 && $monitor->latest_check->response_code < 300,
+                                    'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' => !$monitor->has_active_anomaly && $monitor->latest_check->response_code >= 300 && $monitor->latest_check->response_code < 400,
+                                    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' => !$monitor->has_active_anomaly && $monitor->latest_check->response_code >= 400,
                                 ])>
-                                    {{ $monitor->lastCheck->response_code }}
+                                    {{ $monitor->latest_check->response_code }}
                                 </span>
                             @endif
 
-                            <span class="flex items-center gap-1.5" title="{{ $monitor->lastCheck->checked_at->format('Y-m-d H:i:s') }}">
+                            <span class="flex items-center gap-1.5" title="{{ $monitor->latest_check->checked_at->format('Y-m-d H:i:s') }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {{ $monitor->lastCheck->checked_at->diffForHumans(short: true) }}
+                                {{ $monitor->latest_check->checked_at->diffForHumans(short: true) }}
                             </span>
                         </div>
 
@@ -236,7 +224,7 @@
                                 avg {{ $avgTime }}ms
                             </p>
                         @endif
-                    @else
+                    @elseif($monitor->last_checked_at)
                         <p @class([
                             'text-center',
                             'text-red-100/60' => $monitor->has_active_anomaly,
@@ -244,7 +232,7 @@
                         ])
                         style="font-size: clamp(0.75rem, 1.2vw, 1rem);"
                         >
-                            no checks yet
+                            checked {{ $monitor->last_checked_at->diffForHumans(short: true) }}
                         </p>
                     @endif
                 </div>
@@ -255,10 +243,11 @@
             <div class="col-span-full flex items-center justify-center">
                 <div class="text-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-neutral-300 dark:text-neutral-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     <p class="text-neutral-500 dark:text-neutral-400 text-lg">no monitors selected</p>
-                    <p class="text-neutral-400 dark:text-neutral-500 text-sm mt-1">click the settings icon to select monitors</p>
+                    <p class="text-neutral-400 dark:text-neutral-500 text-sm mt-1">click the settings icon to choose monitors</p>
                 </div>
             </div>
         @endif
@@ -278,7 +267,7 @@
         },
 
         get gridStyle() {
-            const count = this.selectedMonitors.length || Object.keys(this.monitors).length;
+            const count = this.selectedMonitors.length;
             if (count === 0) return 'grid-template-columns: 1fr';
 
             const aspectRatio = window.innerWidth / window.innerHeight;
@@ -303,9 +292,8 @@
                 } catch (e) {
                     this.selectedMonitors = [];
                 }
-            } else {
-                this.selectedMonitors = Object.values(this.monitors);
             }
+            // Default: empty selection, user picks via settings
 
             this.syncWithLivewire();
 

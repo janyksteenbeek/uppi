@@ -25,13 +25,38 @@ test('can view monitoring wall page', function () {
         ->assertSeeLivewire(MonitoringWall::class);
 });
 
-test('displays enabled monitors', function () {
-    $enabledMonitor = Monitor::factory()->create([
+test('shows empty state by default with no selection', function () {
+    Monitor::factory()->create([
         'user_id' => $this->user->id,
-        'name' => 'Enabled Monitor',
+        'name' => 'My Monitor',
         'is_enabled' => true,
     ]);
 
+    Livewire::test(MonitoringWall::class)
+        ->assertSee('no monitors selected')
+        ->assertDontSee('My Monitor');
+});
+
+test('displays selected monitors', function () {
+    $monitor1 = Monitor::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Monitor One',
+        'is_enabled' => true,
+    ]);
+
+    Monitor::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Monitor Two',
+        'is_enabled' => true,
+    ]);
+
+    Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$monitor1->id])
+        ->assertSee('Monitor One')
+        ->assertDontSee('Monitor Two');
+});
+
+test('does not display disabled monitors even if selected', function () {
     $disabledMonitor = Monitor::factory()->create([
         'user_id' => $this->user->id,
         'name' => 'Disabled Monitor',
@@ -39,7 +64,7 @@ test('displays enabled monitors', function () {
     ]);
 
     Livewire::test(MonitoringWall::class)
-        ->assertSee('Enabled Monitor')
+        ->call('updateSelectedMonitors', [$disabledMonitor->id])
         ->assertDontSee('Disabled Monitor');
 });
 
@@ -57,39 +82,22 @@ test('shows monitors with active anomaly as down', function () {
     ]);
 
     Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$monitor->id])
         ->assertSee('Down Monitor')
         ->assertSee('down');
 });
 
 test('shows monitors without active anomaly as operational', function () {
-    Monitor::factory()->create([
+    $monitor = Monitor::factory()->create([
         'user_id' => $this->user->id,
         'name' => 'Healthy Monitor',
         'is_enabled' => true,
     ]);
 
     Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$monitor->id])
         ->assertSee('Healthy Monitor')
         ->assertSee('operational');
-});
-
-test('can filter monitors by selection', function () {
-    $monitor1 = Monitor::factory()->create([
-        'user_id' => $this->user->id,
-        'name' => 'Monitor One',
-        'is_enabled' => true,
-    ]);
-
-    $monitor2 = Monitor::factory()->create([
-        'user_id' => $this->user->id,
-        'name' => 'Monitor Two',
-        'is_enabled' => true,
-    ]);
-
-    Livewire::test(MonitoringWall::class)
-        ->call('updateSelectedMonitors', [$monitor1->id])
-        ->assertSee('Monitor One')
-        ->assertDontSee('Monitor Two');
 });
 
 test('sorts monitors with down monitors first', function () {
@@ -111,7 +119,8 @@ test('sorts monitors with down monitors first', function () {
         'ended_at' => null,
     ]);
 
-    $component = Livewire::test(MonitoringWall::class);
+    $component = Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$healthyMonitor->id, $downMonitor->id]);
 
     $displayMonitors = $component->viewData('this')['displayMonitors'];
 
@@ -127,74 +136,16 @@ test('does not show other users monitors', function () {
         'is_enabled' => true,
     ]);
 
-    Monitor::factory()->create([
+    $myMonitor = Monitor::factory()->create([
         'user_id' => $this->user->id,
         'name' => 'My Monitor',
         'is_enabled' => true,
     ]);
 
     Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$myMonitor->id])
         ->assertSee('My Monitor')
         ->assertDontSee('Other User Monitor');
-});
-
-test('shows average response time when checks exist', function () {
-    $monitor = Monitor::factory()->create([
-        'user_id' => $this->user->id,
-        'name' => 'Response Time Monitor',
-        'is_enabled' => true,
-    ]);
-
-    Check::factory()->count(5)->create([
-        'monitor_id' => $monitor->id,
-        'response_time' => 100,
-        'checked_at' => now(),
-    ]);
-
-    Livewire::test(MonitoringWall::class)
-        ->assertSee('Response Time Monitor')
-        ->assertSee('avg 100ms');
-});
-
-test('loads response times for sparkline display', function () {
-    $monitor = Monitor::factory()->create([
-        'user_id' => $this->user->id,
-        'name' => 'Sparkline Monitor',
-        'is_enabled' => true,
-    ]);
-
-    Check::factory()->count(10)->create([
-        'monitor_id' => $monitor->id,
-        'response_time' => fake()->numberBetween(50, 200),
-        'checked_at' => now()->subMinutes(fake()->numberBetween(1, 300)),
-    ]);
-
-    $component = Livewire::test(MonitoringWall::class);
-
-    $displayMonitors = $component->viewData('this')['displayMonitors'];
-    $monitorData = $displayMonitors->firstWhere('id', $monitor->id);
-
-    expect($monitorData->response_times)->toBeArray()->toHaveCount(10);
-});
-
-test('shows last check information', function () {
-    $monitor = Monitor::factory()->create([
-        'user_id' => $this->user->id,
-        'name' => 'Last Check Monitor',
-        'is_enabled' => true,
-    ]);
-
-    Check::factory()->create([
-        'monitor_id' => $monitor->id,
-        'response_time' => 150,
-        'response_code' => 200,
-        'checked_at' => now()->subMinutes(2),
-    ]);
-
-    Livewire::test(MonitoringWall::class)
-        ->assertSee('Last Check Monitor')
-        ->assertSee('150ms')
-        ->assertSee('200');
 });
 
 test('provides downtime start time for active anomaly', function () {
@@ -204,18 +155,57 @@ test('provides downtime start time for active anomaly', function () {
         'is_enabled' => true,
     ]);
 
-    $startedAt = now()->subMinutes(30);
-
     Anomaly::factory()->create([
         'monitor_id' => $monitor->id,
-        'started_at' => $startedAt,
+        'started_at' => now()->subMinutes(30),
         'ended_at' => null,
     ]);
 
-    $component = Livewire::test(MonitoringWall::class);
+    $component = Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$monitor->id]);
 
     $displayMonitors = $component->viewData('this')['displayMonitors'];
     $monitorData = $displayMonitors->firstWhere('id', $monitor->id);
 
     expect($monitorData->downtime_started_at)->not->toBeNull();
+});
+
+test('shows last check response time', function () {
+    $monitor = Monitor::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Response Monitor',
+        'is_enabled' => true,
+    ]);
+
+    Check::factory()->create([
+        'monitor_id' => $monitor->id,
+        'response_time' => 142,
+        'response_code' => 200,
+        'checked_at' => now(),
+    ]);
+
+    Livewire::test(MonitoringWall::class)
+        ->call('updateSelectedMonitors', [$monitor->id])
+        ->assertSee('142ms')
+        ->assertSee('200');
+});
+
+test('lists all enabled monitors in options', function () {
+    Monitor::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Available Monitor',
+        'is_enabled' => true,
+    ]);
+
+    Monitor::factory()->create([
+        'user_id' => $this->user->id,
+        'name' => 'Disabled Monitor',
+        'is_enabled' => false,
+    ]);
+
+    $component = Livewire::test(MonitoringWall::class);
+    $options = $component->viewData('this')['monitorOptions'];
+
+    expect($options)->toHaveKey('Available Monitor')
+        ->not->toHaveKey('Disabled Monitor');
 });

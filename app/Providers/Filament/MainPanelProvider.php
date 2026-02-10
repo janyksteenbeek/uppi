@@ -106,6 +106,10 @@ class MainPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/main/theme.css')
             ->userMenuItems([
                 MenuItem::make()
+                    ->label('Monitoring Wall')
+                    ->url(fn (): string => route('monitoring-wall'))
+                    ->icon('heroicon-o-tv'),
+                MenuItem::make()
                     ->label('Connections')
                     ->url(fn (): string => PersonalAccessTokenResource::getUrl())
                     ->icon('heroicon-o-device-phone-mobile'),
