@@ -150,11 +150,11 @@
                 <div class="relative z-10 text-center flex-1 flex flex-col justify-center">
                     <!-- Monitor Name -->
                     <h2 @class([
-                        'font-bold max-w-full overflow-hidden text-ellipsis',
+                        'font-bold max-w-full break-words hyphens-auto leading-tight',
                         'text-white' => $monitor->has_active_anomaly,
                         'text-neutral-800 dark:text-white' => !$monitor->has_active_anomaly,
                     ])
-                    style="font-size: clamp(0.75rem, 2vw, 2.5rem);"
+                    style="font-size: clamp(0.75rem, 2vw, 2rem);"
                     >
                         {{ $monitor->name }}
                     </h2>
@@ -271,22 +271,30 @@
             const count = this.selectedMonitors.length;
             if (count === 0) return 'grid-template-columns: 1fr';
 
-            // Down monitors take 2x2 (4 cells), healthy take 1 cell
             const healthyCount = count - this.downCount;
             const effectiveCells = (this.downCount * 4) + healthyCount;
-
+            const minCols = this.downCount > 0 ? 2 : 1;
             const aspectRatio = window.innerWidth / window.innerHeight;
-            // Need at least 2 cols when there are down monitors (for col-span-2)
-            let minCols = this.downCount > 0 ? 2 : 1;
-            let cols = Math.max(minCols, Math.ceil(Math.sqrt(effectiveCells * aspectRatio)));
-            let rows = Math.ceil(effectiveCells / cols);
 
-            // Ensure we don't have too many empty cells
-            while ((cols - 1) * rows >= effectiveCells && cols > minCols) {
-                cols--;
+            // Try all reasonable column counts, pick the one with best fit
+            let bestCols = minCols;
+            let bestScore = Infinity;
+
+            for (let c = minCols; c <= Math.min(effectiveCells, 8); c++) {
+                const r = Math.ceil(effectiveCells / c);
+                const waste = (c * r) - effectiveCells;
+                const ratio = c / r;
+                const ratioError = Math.abs(ratio - aspectRatio);
+                // Penalize empty cells heavily, slightly prefer matching screen aspect ratio
+                const score = (waste * 3) + ratioError;
+
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestCols = c;
+                }
             }
 
-            return `grid-template-columns: repeat(${cols}, 1fr)`;
+            return `grid-template-columns: repeat(${bestCols}, 1fr)`;
         },
 
         init() {
