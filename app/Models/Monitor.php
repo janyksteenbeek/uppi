@@ -155,6 +155,35 @@ class Monitor extends Model
         return $this->hasOne(Check::class)->latestOfMany('checked_at');
     }
 
+    /**
+     * Get the latest status per configured region for this monitor.
+     * Regions with no data will be included with null status.
+     */
+    public function regionStatuses(): array
+    {
+        $regions = collect(config('services.checker.regions', []));
+
+        // If no regions configured, derive from existing data
+        if ($regions->isEmpty()) {
+            $regions = $this->checks()
+                ->select('region')
+                ->whereNotNull('region')
+                ->distinct()
+                ->pluck('region');
+        }
+
+        $statuses = [];
+        foreach ($regions as $region) {
+            $lastCheck = $this->checks()
+                ->where('region', $region)
+                ->latest('checked_at')
+                ->first();
+            $statuses[$region] = $lastCheck?->status;
+        }
+
+        return $statuses;
+    }
+
     public function updateNextCheck(): void
     {
         $this->update([

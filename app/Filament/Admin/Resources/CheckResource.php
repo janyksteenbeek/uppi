@@ -30,6 +30,15 @@ class CheckResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->default('unknown'),
+                Forms\Components\TextInput::make('region')
+                    ->label('Region')
+                    ->maxLength(64)
+                    ->datalist(config('services.checker.regions', []))
+                    ->helperText('Geographic region where this check ran.'),
+                Forms\Components\TextInput::make('server_id')
+                    ->label('Server ID')
+                    ->maxLength(128)
+                    ->helperText('Logical identifier of the checker server.'),
                 Forms\Components\TextInput::make('response_time')
                     ->numeric()
                     ->default(null),
@@ -56,6 +65,17 @@ class CheckResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('region')
+                    ->badge()
+                    ->color(fn ($state) => match (true) {
+                        $state === null => 'gray',
+                        default => 'primary',
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('server_id')
+                    ->label('Server')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('response_time')
                     ->numeric()
                     ->sortable(),
@@ -77,7 +97,11 @@ class CheckResource extends Resource
                     ->searchable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('region')
+                    ->options(function () {
+                        $regions = config('services.checker.regions', []);
+                        return collect($regions)->mapWithKeys(fn ($r) => [$r => $r])->all();
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

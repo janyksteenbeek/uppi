@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'checker' => [
+        'region' => env('CHECKER_REGION', env('APP_REGION', 'us-east-1')),
+        'server_id' => env('CHECKER_SERVER_ID', env('HOSTNAME')),
+        // Comma-separated list of regions to ensure coverage. Example: "us-east-1,eu-west-1,ap-southeast-1"
+        'regions' => array_filter(array_map('trim', explode(',', env('CHECKER_REGIONS', '')))),
+    ],
 
     /*
     |--------------------------------------------------------------------------

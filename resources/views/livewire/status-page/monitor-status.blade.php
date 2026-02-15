@@ -42,6 +42,27 @@
             ])>{{ $item->monitor->status->label() }}</span>
         </div>
     </div>
+    @php
+        $regionStatuses = $item->monitor->regionStatuses();
+    @endphp
+    @if(!empty($regionStatuses))
+        <div class="flex flex-wrap items-center gap-2 mb-5">
+            @foreach($regionStatuses as $region => $status)
+                @php
+                    $bg = 'bg-neutral-100 text-neutral-700 border border-neutral-200';
+                    $dot = 'bg-neutral-400';
+                    if ($status === \App\Enums\Checks\Status::OK) { $bg = 'bg-green-50 text-green-700 border border-green-200'; $dot = 'bg-green-500'; }
+                    elseif ($status === \App\Enums\Checks\Status::FAIL) { $bg = 'bg-red-50 text-red-700 border border-red-200'; $dot = 'bg-red-500'; }
+                    elseif ($status === \App\Enums\Checks\Status::UNKNOWN) { $bg = 'bg-yellow-50 text-yellow-800 border border-yellow-200'; $dot = 'bg-yellow-500'; }
+                @endphp
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium {{ $bg }} shadow-sm">
+                    <span class="w-2 h-2 rounded-full {{ $dot }}"></span>
+                    <span class="uppercase tracking-wide">{{ $region }}</span>
+                    <span class="hidden sm:inline">{{ $status?->label() ?? 'No data' }}</span>
+                </span>
+            @endforeach
+        </div>
+    @endif
     <div class="grid grid-flow-col justify-stretch gap-2 relative">
         @php
             $daysCount = count($dates);
