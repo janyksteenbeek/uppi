@@ -40,7 +40,7 @@ enum UpdateStatus: string implements HasColor, HasIcon, HasLabel
             self::WORK_IN_PROGRESS => 'warning',
             self::RECOVERING => 'warning',
             self::MONITORING => 'warning',
-            self::POST_INCIDENT => 'warning',
+            self::POST_INCIDENT => 'success',
             self::COMPLETED => 'success',
         };
     }
