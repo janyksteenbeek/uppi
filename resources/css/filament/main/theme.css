@@ -1,20 +1,26 @@
-@import '/vendor/filament/filament/resources/css/theme.css';
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
 
-@config 'tailwind.config.js';
+@source '../../../../app/Filament';
+@source '../../../../resources/views/filament';
+@source '../../../../resources/views/auth-banner.blade.php';
+@source '../../../../resources/views/sidebar-user.blade.php';
+@source '../../../../resources/views/blob.blade.php';
+@source '../../../../resources/views/head-start.blade.php';
+@source '../../../../resources/views/footer.blade.php';
 
-/* 
- * Base layout and element styling 
+/*
+ * Base layout and element styling
  */
 .fi-body {
     @apply h-full;
 }
 
 .fi-main-ctn {
-    @apply !h-screen;
+    @apply h-screen!;
 }
 
 .fi-main {
-    @apply my-4 bg-white border ltr:rounded-tl-3xl rtl:rounded-tr-3xl rounded-bl-xl shadow-sm !max-w-full !overflow-y-auto flex-grow;
+    @apply my-4 bg-white border border-gray-200 ltr:rounded-tl-3xl rtl:rounded-tr-3xl rounded-bl-xl shadow-xs max-w-full! overflow-y-auto! grow;
 }
 
 .fi-topbar {
@@ -25,8 +31,8 @@
     @apply bg-transparent ring-0 shadow-none;
 }
 
-/* 
- * Header styling 
+/*
+ * Header styling
  */
 .fi-header-heading {
     @apply text-2xl font-semibold;
@@ -36,15 +42,15 @@
     @apply text-sm text-gray-500/90;
 }
 
-/* 
- * Sidebar styling 
+/*
+ * Sidebar styling
  */
 .fi-sidebar {
     @apply pt-6;
 }
 
 .fi-sidebar-header {
-    @apply bg-transparent ring-0 shadow-none !important;
+    @apply bg-transparent! ring-0! shadow-none!;
 }
 
 .fi-sidebar-nav {
@@ -95,11 +101,11 @@
     stroke-width: 2;
 }
 
-/* 
- * Resource list page styling 
+/*
+ * Resource list page styling
  */
 .fi-main:has(> .fi-resource-list-records-page) {
-    @apply lg:!p-0;
+    @apply lg:p-0!;
 }
 
 .fi-resource-list-records-page .fi-header {
@@ -107,14 +113,14 @@
 }
 
 .fi-resource-list-records-page .fi-ta-ctn {
-    @apply rounded-none ring-0 border-t border-gray-200 shadow-sm;
+    @apply rounded-none ring-0 border-t border-gray-200 shadow-xs;
 }
 
-/* 
- * Auth/Login Page Styling 
+/*
+ * Auth/Login Page Styling
  */
 .fi-simple-layout {
-    @apply bg-gray-50 dark:bg-gray-900 flex gap-8 w-screen overflow-hidden  inset-0 ;
+    @apply bg-gray-50 dark:bg-gray-900 flex gap-8 w-screen overflow-hidden inset-0;
 }
 
 .fi-simple-layout .fi-logo {
@@ -127,7 +133,7 @@
 }
 
 .fi-simple-main {
-    @apply p-0 shadow-none ring-0 bg-transparent !w-full !max-w-none overflow-hidden flex rounded-xl !my-0;
+    @apply p-0 shadow-none ring-0 bg-transparent w-full! max-w-none! overflow-hidden flex rounded-xl my-0!;
 }
 
 /* Two-column layout for auth pages */
@@ -178,7 +184,7 @@
 }
 
 .fi-simple-header-heading {
-    @apply text-xl font-semibold !text-gray-950;
+    @apply text-xl font-semibold text-gray-950!;
 }
 
 .fi-simple-header-subheading {
@@ -189,15 +195,15 @@
     @apply mb-6;
 }
 
-/* 
- * Form element styling 
+/*
+ * Form element styling
  */
 .fi-input, .fi-input-wrapper {
-    @apply !border-gray-200 focus:!border-primary-500 !rounded-lg;
+    @apply border-gray-200! focus:border-primary-500! rounded-lg!;
 }
 
 .fi-input {
-    @apply !py-2.5 !px-3;
+    @apply py-2.5! px-3!;
 }
 
 .fi-form-actions {
@@ -214,47 +220,47 @@
 
 /* Checkbox styling */
 .fi-checkbox {
-    @apply !rounded !ring-0 !border-gray-300;
+    @apply rounded-sm! ring-0! border-gray-300!;
 }
 
-/* 
- * Button styling 
+/*
+ * Button styling
  */
 .fi-btn {
-    @apply !rounded-lg transition-all duration-200;
+    @apply rounded-lg! transition-all duration-200;
 }
 
 .fi-btn-size-md {
-    @apply !py-2.5;
+    @apply py-2.5!;
 }
 
 /* Primary button specific styling */
 .fi-btn-primary {
-    @apply !ring-0 !shadow-sm hover:!shadow-md;
+    @apply ring-0! shadow-xs! hover:shadow-md!;
 }
 
-/* 
- * Social login buttons 
+/*
+ * Social login buttons
  */
 .fi-social-auth-buttons {
     @apply grid grid-cols-1 md:grid-cols-2 gap-3 mt-6;
 }
 
 .fi-social-auth-button {
-    @apply !rounded-lg !py-2.5 !shadow-none !border-gray-300 !text-sm;
+    @apply rounded-lg! py-2.5! shadow-none! border-gray-300! text-sm!;
 }
 
-/* 
- * Custom divider styling 
+/*
+ * Custom divider styling
  */
 .fi-auth-divider {
     @apply relative my-6 flex items-center;
 }
 
-.fi-auth-divider::before, 
+.fi-auth-divider::before,
 .fi-auth-divider::after {
     content: "";
-    @apply flex-grow border-t border-gray-200;
+    @apply grow border-t border-gray-200;
 }
 
 .fi-auth-divider-label {
@@ -265,8 +271,8 @@
     @apply hidden;
 }
 
-/* 
- * Custom aurora background effect 
+/*
+ * Custom aurora background effect
  */
 .aurora-bg {
     @apply absolute inset-0 z-[-1] opacity-70;

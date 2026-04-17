@@ -1,6 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "../views/status-page";
+@source "../views/livewire/status-page";
 
 @layer components {
     .status-icon {
