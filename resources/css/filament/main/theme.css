@@ -138,10 +138,9 @@
 
 /* Two-column layout for auth pages */
 .fi-simple-page {
-    @apply grid grid-cols-1 lg:grid-cols-2 min-h-svh w-full overflow-hidden rounded-xl shadow-xl;
+    @apply grid grid-cols-1 lg:grid-cols-2 w-full overflow-hidden rounded-xl shadow-xl;
     display: grid !important;
     grid-template-rows: auto;
-    height: 100%;
 }
 
 /* Fix for modal forms positioning */
@@ -156,7 +155,6 @@
     @apply col-span-1 row-span-1;
     grid-column: 1;
     grid-row: 1;
-    height: 100%;
 }
 
 /* Style the form side of auth pages */
@@ -164,7 +162,6 @@
     @apply bg-white dark:bg-gray-900 p-6 md:p-8 lg:p-12 flex flex-col justify-center rounded-r-xl;
     grid-column: 2;
     grid-row: 1;
-    height: 100%;
 }
 
 /* On mobile, stack the columns properly */
@@ -177,6 +174,11 @@
 
 .fi-simple-page .fi-sc-form, .fi-simple-page .fi-sc-form + div {
     @apply mt-6 max-w-sm mx-auto w-full;
+}
+
+/* Socialite buttons on auth pages — Filament 5 socialite uses fi-btn.fi-outlined */
+.fi-simple-page .fi-btn.fi-outlined {
+    @apply rounded-lg! py-2.5! shadow-none! border-gray-300! text-sm!;
 }
 
 /* Header styling in simple pages */
