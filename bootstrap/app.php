@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(replace: [
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class => \App\Http\Middleware\VerifyCsrf::class,
         ]);
+        $middleware->redirectGuestsTo(fn () => route('filament.main.auth.login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);

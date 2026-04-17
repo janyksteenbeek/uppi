@@ -114,7 +114,7 @@ class ViewServer extends ViewRecord
         $server = $this->record;
         $hasReceivedData = $server->last_seen_at !== null;
 
-        return $infolist
+        return $schema
             ->schema([
                 // Onboarding section - shown when no data received yet
                 Section::make('Install the monitoring agent')
