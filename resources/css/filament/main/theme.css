@@ -150,8 +150,9 @@
     grid-row: 1;
 }
 
-/* Position the auth-banner in the first column */
-.fi-simple-page > div.h-full {
+/* Position the auth-banner in the first column (render-hook div with the
+   m-8 rounded background; excludes the fixed-position blob overlay) */
+.fi-simple-page > div:not(.fi-simple-page-content):not(.fixed) {
     @apply col-span-1 row-span-1;
     grid-column: 1;
     grid-row: 1;
@@ -159,7 +160,7 @@
 }
 
 /* Style the form side of auth pages */
-.fi-simple-page > section {
+.fi-simple-page-content {
     @apply bg-white dark:bg-gray-900 p-6 md:p-8 lg:p-12 flex flex-col justify-center rounded-r-xl;
     grid-column: 2;
     grid-row: 1;
@@ -168,13 +169,13 @@
 
 /* On mobile, stack the columns properly */
 @media (max-width: 1023px) {
-    .fi-simple-page > section {
+    .fi-simple-page-content {
         grid-column: 1;
         grid-row: 1;
     }
 }
 
-.fi-simple-page .fi-form, .fi-simple-page .fi-form + div {
+.fi-simple-page .fi-sc-form, .fi-simple-page .fi-sc-form + div {
     @apply mt-6 max-w-sm mx-auto w-full;
 }
 
