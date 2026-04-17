@@ -309,7 +309,7 @@ class MonitorResource extends Resource
                                             ->numeric()
                                             ->required()
                                             ->step(0.1)
-                                            ->suffix(fn (Get $get) => ServerMetricType::tryFrom($get('metric_type'))?->getUnit() ?? '%')
+                                            ->suffix(fn (Get $get) => ServerMetricType::resolve($get('metric_type'))?->getUnit() ?? '%')
                                             ->helperText('The threshold value to trigger an alert'),
                                     ]),
                             ])->columns(2),

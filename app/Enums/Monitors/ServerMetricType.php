@@ -2,10 +2,13 @@
 
 namespace App\Enums\Monitors;
 
+use App\Enums\Concerns\ResolvesFromValue;
 use Filament\Support\Contracts\HasLabel;
 
 enum ServerMetricType: string implements HasLabel
 {
+    use ResolvesFromValue;
+
     case CpuUsage = 'cpu_usage';
     case MemoryUsage = 'memory_usage';
     case SwapUsage = 'swap_usage';

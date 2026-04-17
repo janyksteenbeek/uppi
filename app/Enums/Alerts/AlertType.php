@@ -2,6 +2,7 @@
 
 namespace App\Enums\Alerts;
 
+use App\Enums\Concerns\ResolvesFromValue;
 use InvalidArgumentException;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
@@ -13,6 +14,8 @@ use NotificationChannels\Telegram\TelegramChannel;
 
 enum AlertType: string implements HasIcon, HasLabel
 {
+    use ResolvesFromValue;
+
     case EMAIL = 'email';
     case SLACK = 'slack';
     case BIRD = 'bird';

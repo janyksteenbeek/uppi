@@ -83,13 +83,13 @@ class TestResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(fn (Set $set) => $set('value', null))
-                                    ->helperText(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getDescription())
+                                    ->helperText(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->getDescription())
                                     ->columnSpanFull(),
                                 TextInput::make('value')
-                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getValueLabel() ?? 'Value')
-                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
-                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
-                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                    ->label(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->getValueLabel() ?? 'Value')
+                                    ->required(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresValue() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresValue() ?? false)
+                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::resolve($get('type'))) {
                                         TestFlowBlockType::VISIT => 'https://example.com/page',
                                         TestFlowBlockType::WAIT_FOR_TEXT => 'Welcome to our site',
                                         TestFlowBlockType::TYPE => 'john@example.com',
@@ -98,7 +98,7 @@ class TestResource extends Resource
                                         TestFlowBlockType::CLICK_LINK => 'Read more',
                                         default => null,
                                     })
-                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::resolve($get('type'))) {
                                         TestFlowBlockType::TYPE => 'The text to type into the field',
                                         TestFlowBlockType::SELECT => 'The option value (not display text)',
                                         TestFlowBlockType::PRESS => 'Text shown on the button element',
@@ -106,19 +106,19 @@ class TestResource extends Resource
                                         TestFlowBlockType::WAIT_FOR_TEXT => 'Text that must appear on the page',
                                         default => null,
                                     })
-                                    ->columnSpan(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ? 1 : 2),
+                                    ->columnSpan(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ? 1 : 2),
                                 TextInput::make('selector')
-                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getSelectorLabel() ?? 'Selector')
-                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
-                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
-                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                    ->label(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->getSelectorLabel() ?? 'Selector')
+                                    ->required(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ?? false)
+                                    ->placeholder(fn (Get $get) => match (TestFlowBlockType::resolve($get('type'))) {
                                         TestFlowBlockType::TYPE => 'email or #email or [name="email"]',
                                         TestFlowBlockType::SELECT => 'country or #country or [name="country"]',
                                         TestFlowBlockType::CHECK, TestFlowBlockType::UNCHECK => 'terms or #terms or [name="accept_terms"]',
                                         TestFlowBlockType::CLICK => '#submit-btn, .nav-link',
                                         default => null,
                                     })
-                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::tryFrom($get('type'))) {
+                                    ->helperText(fn (Get $get) => match (TestFlowBlockType::resolve($get('type'))) {
                                         TestFlowBlockType::TYPE => 'Field name attribute (e.g. "email") or CSS selector (e.g. "#email")',
                                         TestFlowBlockType::SELECT => 'Field name attribute (e.g. "country") or CSS selector (e.g. "#country")',
                                         TestFlowBlockType::CHECK, TestFlowBlockType::UNCHECK => 'Field name attribute or CSS selector',

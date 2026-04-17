@@ -73,14 +73,14 @@ class TestResource extends Resource
                                     ->afterStateUpdated(fn (Set $set) => $set('value', null))
                                     ->columnSpanFull(),
                                 TextInput::make('value')
-                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getValueLabel() ?? 'Value')
-                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
-                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
-                                    ->columnSpan(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ? 1 : 2),
+                                    ->label(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->getValueLabel() ?? 'Value')
+                                    ->required(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresValue() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresValue() ?? false)
+                                    ->columnSpan(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ? 1 : 2),
                                 TextInput::make('selector')
-                                    ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getSelectorLabel() ?? 'Selector')
-                                    ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
-                                    ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
+                                    ->label(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->getSelectorLabel() ?? 'Selector')
+                                    ->required(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ?? false)
+                                    ->visible(fn (Get $get) => TestFlowBlockType::resolve($get('type'))?->requiresSelector() ?? false)
                                     ->columnSpan(1),
                                 TextInput::make('delay_ms')
                                     ->label('Wait after')

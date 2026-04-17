@@ -2,12 +2,15 @@
 
 namespace App\Enums\Tests;
 
+use App\Enums\Concerns\ResolvesFromValue;
 use Filament\Support\Contracts\HasColor;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
 enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
 {
+    use ResolvesFromValue;
+
     case VISIT = 'visit';
     case WAIT_FOR_TEXT = 'wait_for_text';
     case TYPE = 'type';

@@ -71,17 +71,17 @@ final class AlertResource extends Resource
                         ]),
                 ])
                     ->columnSpanFull()
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EXPO),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::EXPO),
 
                 TextInput::make('name')
                     ->required()
                     ->columnSpanFull()
                     ->live()
-                    ->visible(fn (Get $get, $context) => $context === 'edit' || ($context === 'create' && AlertType::tryFrom($get('type')) !== AlertType::EXPO)),
+                    ->visible(fn (Get $get, $context) => $context === 'edit' || ($context === 'create' && AlertType::resolve($get('type')) !== AlertType::EXPO)),
 
                 TextInput::make('destination')
                     ->helperText(function (Get $get) {
-                        return match (AlertType::tryFrom($get('type'))) {
+                        return match (AlertType::resolve($get('type'))) {
                             AlertType::EMAIL => 'The email address to send the alert to.',
                             AlertType::SLACK => 'The Slack channel to send the alert to.',
                             AlertType::BIRD => 'The phone number to send the alert to.',
@@ -91,19 +91,19 @@ final class AlertResource extends Resource
                             default => null,
                         };
                     })
-                    ->prefix(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::SLACK ? '#' : null)
-                    ->password(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::PUSHOVER)
+                    ->prefix(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::SLACK ? '#' : null)
+                    ->password(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::PUSHOVER)
                     ->live()
                     ->columnSpanFull()
-                    ->hidden(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EXPO)
+                    ->hidden(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::EXPO)
                     ->visible(fn (Get $get) => ! empty($get('type')))
-                    ->email(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EMAIL)
+                    ->email(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::EMAIL)
                     ->required(),
 
                 Toggle::make('is_enabled')
                     ->required()
                     ->default(true)
-                    ->hidden(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EXPO)
+                    ->hidden(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::EXPO)
                     ->columnSpanFull(),
 
                 Section::make([
@@ -113,7 +113,7 @@ final class AlertResource extends Resource
                 ])
                     ->columnSpanFull()
                     ->live()
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::SLACK),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::SLACK),
 
                 Section::make([
                     TextInput::make('config.bird_api_key')
@@ -132,7 +132,7 @@ final class AlertResource extends Resource
                 ])
                     ->columnSpanFull()
                     ->live()
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::BIRD),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::BIRD),
 
                 Section::make([
                     TextInput::make('config.pushover_api_token')
@@ -150,7 +150,7 @@ final class AlertResource extends Resource
                 ])
                     ->columnSpanFull()
                     ->live()
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::PUSHOVER),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::PUSHOVER),
 
                 Section::make([
                     Section::make([
@@ -211,7 +211,7 @@ final class AlertResource extends Resource
                         ]),
                     ]),
                 ])
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::TELEGRAM),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::TELEGRAM),
 
                 Section::make([
                     TextInput::make('config.bird_api_key')
@@ -226,7 +226,7 @@ final class AlertResource extends Resource
                 ])
                     ->columnSpanFull()
                     ->live()
-                    ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::MESSAGEBIRD),
+                    ->visible(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::MESSAGEBIRD),
             ]);
     }
 
