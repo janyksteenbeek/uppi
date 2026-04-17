@@ -106,7 +106,7 @@ class MonitorResource extends Resource
                             ->preload()
                             ->label('Test')
                             ->helperText('Select the test to run for this monitor')
-                            ->visible(fn (Get $get) => $get('type') === MonitorType::TEST->value)
+                            ->visible(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::TEST)
                             ->createOptionForm([
                                 TextInput::make('name')
                                     ->required()
@@ -129,19 +129,19 @@ class MonitorResource extends Resource
                             ->required()
                             ->visible(fn (Get $get) => ! in_array($get('type'), [MonitorType::TEST->value, MonitorType::SERVER->value]))
                             ->live()
-                            ->url(fn (Get $get) => $get('type') === MonitorType::HTTP->value)
-                            ->numeric(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
-                            ->label(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'Maximum age of check-in' : 'Address')
-                            ->helperText(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'The maximum age of the check-in minutes. If the latest check-in is older than this, the monitor will be marked as down.' : 'The address of the server to check. If the server is not reachable, the monitor will be marked as down.')
-                            ->suffix(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'minutes' : null),
+                            ->url(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::HTTP)
+                            ->numeric(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE)
+                            ->label(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE ? 'Maximum age of check-in' : 'Address')
+                            ->helperText(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE ? 'The maximum age of the check-in minutes. If the latest check-in is older than this, the monitor will be marked as down.' : 'The address of the server to check. If the server is not reachable, the monitor will be marked as down.')
+                            ->suffix(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE ? 'minutes' : null),
                         TextInput::make('port')
                             ->numeric()
                             ->requiredIf('type', MonitorType::TCP->value)
-                            ->hidden(fn (Get $get) => $get('type') !== MonitorType::TCP->value)
+                            ->hidden(fn (Get $get) => MonitorType::resolve($get('type')) !== MonitorType::TCP)
                             ->live(),
                         Section::make('pulse_info')
                             ->heading('Check-in')
-                            ->visible(fn (Get $get, ?Monitor $record) => $get('type') === MonitorType::PULSE->value)
+                            ->visible(fn (Get $get, ?Monitor $record) => MonitorType::resolve($get('type')) === MonitorType::PULSE)
                             ->schema([
                                 Group::make([
                                     TextInput::make('pulse_url')
@@ -166,9 +166,9 @@ class MonitorResource extends Resource
                                         ),
 
                                 ])
-                                    ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
+                                    ->visible(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE)
                                     ->columnSpanFull()
-                                    ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value),
+                                    ->hidden(fn (Get $get) => MonitorType::resolve($get('type')) !== MonitorType::PULSE),
                                 TextInput::make('curl_example')
                                     ->dehydrated(false)
                                     ->label('cURL Command')
@@ -186,8 +186,8 @@ class MonitorResource extends Resource
                                         return 'The example commands will be available after creating the monitor';
                                     })
                                     ->helperText('Add one of these commands to your cron job')
-                                    ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
-                                    ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value)
+                                    ->visible(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE)
+                                    ->hidden(fn (Get $get) => MonitorType::resolve($get('type')) !== MonitorType::PULSE)
                                     ->suffixAction(
                                         Action::make('copy_curl')
                                             ->label('Copy CURL')
@@ -217,8 +217,8 @@ class MonitorResource extends Resource
                                         }
                                     })
                                     ->helperText('Add one of these commands to your cron job')
-                                    ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
-                                    ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value)
+                                    ->visible(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::PULSE)
+                                    ->hidden(fn (Get $get) => MonitorType::resolve($get('type')) !== MonitorType::PULSE)
                                     ->suffixAction(
                                         Action::make('copy_wget')
                                             ->label('Copy wget')
@@ -239,7 +239,7 @@ class MonitorResource extends Resource
                         // Server monitoring section
                         Section::make('server_monitoring')
                             ->heading('Server Monitoring')
-                            ->visible(fn (Get $get) => $get('type') === MonitorType::SERVER->value)
+                            ->visible(fn (Get $get) => MonitorType::resolve($get('type')) === MonitorType::SERVER)
                             ->schema([
                                 Select::make('address')
                                     ->label('Server')
@@ -338,7 +338,7 @@ class MonitorResource extends Resource
                             ->helperText('Number of failed checks in a row needed before registering an anomaly and sending an alert'),
                         TextInput::make('user_agent')
                             ->placeholder(config('app.name'))
-                            ->hidden(fn (Get $get) => $get('type') !== MonitorType::HTTP->value)
+                            ->hidden(fn (Get $get) => MonitorType::resolve($get('type')) !== MonitorType::HTTP)
                             ->maxLength(255)
                             ->helperText('Custom User-Agent string for HTTP requests')
                             ->live(),

@@ -179,5 +179,5 @@ test('cannot access someone else\'s alerts', function () {
 
     Livewire::test(ManageAlerts::class)
         ->assertSuccessful()
-        ->assertTableActionHidden('delete', $alert);
+        ->assertCanNotSeeTableRecords([$alert]);
 });

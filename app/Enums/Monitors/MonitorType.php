@@ -2,6 +2,7 @@
 
 namespace App\Enums\Monitors;
 
+use App\Enums\Concerns\ResolvesFromValue;
 use App\Jobs\Checks\DummyCheckJob;
 use App\Jobs\Checks\HttpCheckJob;
 use App\Jobs\Checks\PulseCheckJob;
@@ -13,6 +14,8 @@ use Filament\Support\Contracts\HasLabel;
 
 enum MonitorType: string implements HasIcon, HasLabel
 {
+    use ResolvesFromValue;
+
     case HTTP = 'http';
     case TCP = 'tcp';
     case DUMMY = 'dummy';

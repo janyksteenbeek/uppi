@@ -34,7 +34,7 @@ test('shows empty state by default with no selection', function () {
 
     Livewire::test(MonitoringWall::class)
         ->assertSee('no monitors selected')
-        ->assertDontSee('My Monitor');
+        ->assertDontSeeHtml('>My Monitor</h2>');
 });
 
 test('displays selected monitors', function () {
@@ -50,10 +50,12 @@ test('displays selected monitors', function () {
         'is_enabled' => true,
     ]);
 
-    Livewire::test(MonitoringWall::class)
+    $component = Livewire::test(MonitoringWall::class)
         ->call('updateSelectedMonitors', [$monitor1->id])
-        ->assertSee('Monitor One')
-        ->assertDontSee('Monitor Two');
+        ->assertDontSeeHtml('Monitor Two</h2>');
+
+    expect($component->instance()->displayMonitors->pluck('name')->all())
+        ->toBe(['Monitor One']);
 });
 
 test('does not display disabled monitors even if selected', function () {
@@ -65,7 +67,7 @@ test('does not display disabled monitors even if selected', function () {
 
     Livewire::test(MonitoringWall::class)
         ->call('updateSelectedMonitors', [$disabledMonitor->id])
-        ->assertDontSee('Disabled Monitor');
+        ->assertDontSeeHtml('Disabled Monitor</h2>');
 });
 
 test('shows monitors with active anomaly as down', function () {
@@ -122,7 +124,7 @@ test('sorts monitors with down monitors first', function () {
     $component = Livewire::test(MonitoringWall::class)
         ->call('updateSelectedMonitors', [$healthyMonitor->id, $downMonitor->id]);
 
-    $displayMonitors = $component->viewData('this')['displayMonitors'];
+    $displayMonitors = $component->instance()->displayMonitors;
 
     expect($displayMonitors->first()->id)->toBe($downMonitor->id);
 });
@@ -142,10 +144,12 @@ test('does not show other users monitors', function () {
         'is_enabled' => true,
     ]);
 
-    Livewire::test(MonitoringWall::class)
+    $component = Livewire::test(MonitoringWall::class)
         ->call('updateSelectedMonitors', [$myMonitor->id])
-        ->assertSee('My Monitor')
-        ->assertDontSee('Other User Monitor');
+        ->assertDontSeeHtml('Other User Monitor</h2>');
+
+    expect($component->instance()->displayMonitors->pluck('name')->all())
+        ->toBe(['My Monitor']);
 });
 
 test('provides downtime start time for active anomaly', function () {
@@ -164,7 +168,7 @@ test('provides downtime start time for active anomaly', function () {
     $component = Livewire::test(MonitoringWall::class)
         ->call('updateSelectedMonitors', [$monitor->id]);
 
-    $displayMonitors = $component->viewData('this')['displayMonitors'];
+    $displayMonitors = $component->instance()->displayMonitors;
     $monitorData = $displayMonitors->firstWhere('id', $monitor->id);
 
     expect($monitorData->downtime_started_at)->not->toBeNull();
@@ -204,7 +208,7 @@ test('lists all enabled monitors in options', function () {
     ]);
 
     $component = Livewire::test(MonitoringWall::class);
-    $options = $component->viewData('this')['monitorOptions'];
+    $options = $component->instance()->monitorOptions;
 
     expect($options)->toHaveKey('Available Monitor')
         ->not->toHaveKey('Disabled Monitor');

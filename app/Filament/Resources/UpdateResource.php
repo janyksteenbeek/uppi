@@ -144,6 +144,7 @@ class UpdateResource extends Resource
                                             ->columnSpanFull(),
                                         FileUpload::make('image')
                                             ->image()
+                                            ->disk('public')
                                             ->maxSize(2048)
                                             ->directory('updates')
                                             ->columnSpanFull()

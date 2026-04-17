@@ -64,7 +64,7 @@ final class AlertResource extends Resource
                 Section::make([
                     Hidden::make('uppi_app_info')
                         ->dehydrated(false)
-                        ->required(fn (Get $get) => $get('type') === AlertType::EXPO->value),
+                        ->required(fn (Get $get) => AlertType::resolve($get('type')) === AlertType::EXPO),
                     View::make('filament.forms.components.uppi-app-info')
                         ->viewData([
                             'personal_access_tokens_url' => PersonalAccessTokenResource::getUrl(),
