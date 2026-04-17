@@ -2,11 +2,24 @@
 
 namespace App\Filament\Admin\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\KeyValue;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Admin\Resources\AlertResource\Pages\ListAlerts;
+use App\Filament\Admin\Resources\AlertResource\Pages\CreateAlert;
+use App\Filament\Admin\Resources\AlertResource\Pages\EditAlert;
 use App\Filament\Admin\Resources\AlertResource\Pages;
 use App\Models\Alert;
 use App\Traits\WithoutUserScopes;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,27 +30,27 @@ class AlertResource extends Resource
 
     protected static ?string $model = Alert::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-bell';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-bell';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('user_id')
+        return $schema
+            ->components([
+                Select::make('user_id')
                     ->relationship('user', 'name')
                     ->required(),
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('type')
+                TextInput::make('type')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('destination')
+                TextInput::make('destination')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Toggle::make('is_enabled')
+                Toggle::make('is_enabled')
                     ->required(),
-                Forms\Components\KeyValue::make('config')
+                KeyValue::make('config')
                     ->columnSpanFull(),
             ]);
     }
@@ -46,40 +59,40 @@ class AlertResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('destination')
+                TextColumn::make('destination')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_enabled')
+                IconColumn::make('is_enabled')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('user')
+                SelectFilter::make('user')
                     ->relationship('user', 'name')
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -94,9 +107,9 @@ class AlertResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAlerts::route('/'),
-            'create' => Pages\CreateAlert::route('/create'),
-            'edit' => Pages\EditAlert::route('/{record}/edit'),
+            'index' => ListAlerts::route('/'),
+            'create' => CreateAlert::route('/create'),
+            'edit' => EditAlert::route('/{record}/edit'),
         ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Jobs\Checks;
 
+use Exception;
+use Storage;
 use App\Enums\Checks\Status;
 use App\Enums\Tests\TestFlowBlockType;
 use App\Enums\Tests\TestStatus;
@@ -42,7 +44,7 @@ class TestCheckJob extends CheckJob
 
         try {
             return $this->runTest();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('[TestCheckJob] Test failed with exception', [
                 'test_run_id' => $this->testRun?->id,
                 'exception' => $e->getMessage(),
@@ -117,7 +119,7 @@ class TestCheckJob extends CheckJob
 
             $durationMs = $this->calculateDuration($stepStart);
             $runStep->markAsSuccess($durationMs);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $durationMs = $this->calculateDuration($stepStart);
 
             Log::error('[TestCheckJob] Step failed', [
@@ -154,7 +156,7 @@ class TestCheckJob extends CheckJob
     {
         try {
             return $browser->driver->getPageSource();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return null;
         }
     }
@@ -170,7 +172,7 @@ class TestCheckJob extends CheckJob
 
         $screenshot = $browser->driver->takeScreenshot();
 
-        \Storage::put($filename, $screenshot);
+        Storage::put($filename, $screenshot);
 
         return $filename;
     }
@@ -320,7 +322,7 @@ class TestCheckJob extends CheckJob
             Log::debug('[TestCheckJob] WebDriver connected successfully');
 
             return new Browser($driver);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('[TestCheckJob] Failed to connect to WebDriver', [
                 'url' => $driverUrl,
                 'error' => $e->getMessage(),
@@ -335,7 +337,7 @@ class TestCheckJob extends CheckJob
         return (int) ((microtime(true) - $startTime) * 1000);
     }
 
-    protected function handleTestException(\Exception $e): array
+    protected function handleTestException(Exception $e): array
     {
         $durationMs = $this->calculateDuration($this->startTime);
         $this->testRun->markAsFailure($durationMs);

@@ -2,6 +2,15 @@
 
 namespace App\Filament\Resources\ServerResource\Pages;
 
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\Action;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\IconEntry;
 use App\Filament\Resources\ServerResource;
 use App\Filament\Resources\ServerResource\Widgets\ServerLoadChart;
 use App\Filament\Resources\ServerResource\Widgets\ServerMetricsChart;
@@ -9,7 +18,6 @@ use App\Filament\Resources\ServerResource\Widgets\ServerStatsOverview;
 use App\Models\Server;
 use Filament\Actions;
 use Filament\Infolists;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\Auth;
@@ -64,9 +72,9 @@ class ViewServer extends ViewRecord
         $server = $this->record;
 
         return [
-            Actions\EditAction::make()
+            EditAction::make()
                 ->visible(fn () => $server->last_seen_at !== null),
-            Actions\DeleteAction::make()
+            DeleteAction::make()
                 ->requiresConfirmation(),
         ];
     }
@@ -100,7 +108,7 @@ class ViewServer extends ViewRecord
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         /** @var Server $server */
         $server = $this->record;
@@ -109,13 +117,13 @@ class ViewServer extends ViewRecord
         return $infolist
             ->schema([
                 // Onboarding section - shown when no data received yet
-                Infolists\Components\Section::make('Install the monitoring agent')
+                Section::make('Install the monitoring agent')
                     ->description('Run this command on your server to start sending metrics to Uppi.')
                     ->icon('heroicon-o-command-line')
                     ->iconColor('primary')
                     ->visible(fn () => ! $hasReceivedData)
                     ->schema([
-                        Infolists\Components\TextEntry::make('install_command')
+                        TextEntry::make('install_command')
                             ->label('')
                             ->state(fn (Server $record) => new HtmlString(
                                 '<div style="background-color: #1f2937; color: #4ade80; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;">'.
@@ -126,7 +134,7 @@ class ViewServer extends ViewRecord
                             ->copyable()
                             ->copyMessage('Install command copied!')
                             ->columnSpanFull(),
-                        Infolists\Components\TextEntry::make('instructions')
+                        TextEntry::make('instructions')
                             ->label('')
                             ->state(new HtmlString('
                                 <div class="text-sm text-gray-500 dark:text-gray-400 space-y-2">
@@ -152,15 +160,15 @@ class ViewServer extends ViewRecord
                     ]),
 
                 // Three column grid: Storage, Network, Health Check
-                Infolists\Components\Grid::make(3)
+                Grid::make(3)
                     ->visible(fn () => $hasReceivedData)
                     ->schema([
                         // Storage Card
-                        Infolists\Components\Section::make('Storage')
+                        Section::make('Storage')
                             ->icon('heroicon-o-circle-stack')
                             ->columnSpan(1)
                             ->headerActions([
-                                Infolists\Components\Actions\Action::make('toggle_disks')
+                                Action::make('toggle_disks')
                                     ->label(fn () => $this->showAllDisks ? 'Show less' : 'Show more')
                                     ->icon(fn () => $this->showAllDisks ? 'heroicon-o-chevron-up' : 'heroicon-o-chevron-down')
                                     ->color('gray')
@@ -172,7 +180,7 @@ class ViewServer extends ViewRecord
                             ->description('Mount • Used / Total • %')
                             ->visible(fn () => $server->latestMetric()?->diskMetrics?->isNotEmpty())
                             ->schema([
-                                Infolists\Components\RepeatableEntry::make('disk_partitions_top')
+                                RepeatableEntry::make('disk_partitions_top')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -192,19 +200,19 @@ class ViewServer extends ViewRecord
                                     ->visible(fn () => ! $this->showAllDisks)
                                     ->contained(false)
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('mount_point')
+                                        TextEntry::make('mount_point')
                                             ->hiddenLabel()
                                             ->tooltip(fn ($state) => $state)
                                             ->extraAttributes([
                                                 'style' => 'white-space: normal; word-break: break-word;',
                                             ])
                                             ->columnSpan(2),
-                                        Infolists\Components\TextEntry::make('used_total')
+                                        TextEntry::make('used_total')
                                             ->hiddenLabel()
                                             ->color('gray')
                                             ->alignEnd()
                                             ->columnSpan(1),
-                                        Infolists\Components\TextEntry::make('percent')
+                                        TextEntry::make('percent')
                                             ->hiddenLabel()
                                             ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
                                             ->alignEnd()
@@ -219,7 +227,7 @@ class ViewServer extends ViewRecord
                                     ->columns(4)
                                     ->columnSpanFull(),
 
-                                Infolists\Components\RepeatableEntry::make('disk_partitions_all')
+                                RepeatableEntry::make('disk_partitions_all')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -238,19 +246,19 @@ class ViewServer extends ViewRecord
                                     ->visible(fn () => $this->showAllDisks)
                                     ->contained(false)
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('mount_point')
+                                        TextEntry::make('mount_point')
                                             ->hiddenLabel()
                                             ->tooltip(fn ($state) => $state)
                                             ->extraAttributes([
                                                 'style' => 'white-space: normal; word-break: break-word;',
                                             ])
                                             ->columnSpan(2),
-                                        Infolists\Components\TextEntry::make('used_total')
+                                        TextEntry::make('used_total')
                                             ->hiddenLabel()
                                             ->color('gray')
                                             ->alignEnd()
                                             ->columnSpan(1),
-                                        Infolists\Components\TextEntry::make('percent')
+                                        TextEntry::make('percent')
                                             ->hiddenLabel()
                                             ->formatStateUsing(fn (?float $state) => number_format((float) $state, 1).'%')
                                             ->alignEnd()
@@ -265,7 +273,7 @@ class ViewServer extends ViewRecord
                                     ->columns(4)
                                     ->columnSpanFull(),
 
-                                Infolists\Components\TextEntry::make('disk_partitions_note')
+                                TextEntry::make('disk_partitions_note')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -288,12 +296,12 @@ class ViewServer extends ViewRecord
                             ]),
 
                         // Network Card
-                        Infolists\Components\Section::make('Network')
+                        Section::make('Network')
                             ->icon('heroicon-o-signal')
                             ->columnSpan(1)
                             ->visible(fn () => $server->latestMetric()?->networkMetrics?->isNotEmpty())
                             ->headerActions([
-                                Infolists\Components\Actions\Action::make('toggle_inactive')
+                                Action::make('toggle_inactive')
                                     ->label(fn () => $this->showInactiveInterfaces ? 'Hide Inactive' : 'Show Inactive')
                                     ->icon(fn () => $this->showInactiveInterfaces ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')
                                     ->color('gray')
@@ -304,7 +312,7 @@ class ViewServer extends ViewRecord
                             ])
                             ->description('Interface • RX • TX')
                             ->schema([
-                                Infolists\Components\RepeatableEntry::make('network_interfaces_active')
+                                RepeatableEntry::make('network_interfaces_active')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -326,18 +334,18 @@ class ViewServer extends ViewRecord
                                     ->visible(fn () => ! $this->showInactiveInterfaces)
                                     ->contained(false)
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('interface')
+                                        TextEntry::make('interface')
                                             ->hiddenLabel()
                                             ->extraAttributes([
                                                 'style' => 'white-space: normal; word-break: break-word;',
                                             ])
                                             ->columnSpan(2),
-                                        Infolists\Components\TextEntry::make('rx')
+                                        TextEntry::make('rx')
                                             ->hiddenLabel()
                                             ->color('success')
                                             ->formatStateUsing(fn ($state) => '↓ '.$state)
                                             ->columnSpan(1),
-                                        Infolists\Components\TextEntry::make('tx')
+                                        TextEntry::make('tx')
                                             ->hiddenLabel()
                                             ->color('info')
                                             ->formatStateUsing(fn ($state) => '↑ '.$state)
@@ -346,7 +354,7 @@ class ViewServer extends ViewRecord
                                     ->columns(4)
                                     ->columnSpanFull(),
 
-                                Infolists\Components\RepeatableEntry::make('network_interfaces_all')
+                                RepeatableEntry::make('network_interfaces_all')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -367,19 +375,19 @@ class ViewServer extends ViewRecord
                                     ->visible(fn () => $this->showInactiveInterfaces)
                                     ->contained(false)
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('interface')
+                                        TextEntry::make('interface')
                                             ->hiddenLabel()
                                             ->extraAttributes([
                                                 'style' => 'white-space: normal; word-break: break-word;',
                                             ])
                                             ->color(fn ($record) => $record['is_active'] ? null : 'gray')
                                             ->columnSpan(2),
-                                        Infolists\Components\TextEntry::make('rx')
+                                        TextEntry::make('rx')
                                             ->hiddenLabel()
                                             ->color('success')
                                             ->formatStateUsing(fn ($state) => '↓ '.$state)
                                             ->columnSpan(1),
-                                        Infolists\Components\TextEntry::make('tx')
+                                        TextEntry::make('tx')
                                             ->hiddenLabel()
                                             ->color('info')
                                             ->formatStateUsing(fn ($state) => '↑ '.$state)
@@ -388,7 +396,7 @@ class ViewServer extends ViewRecord
                                     ->columns(4)
                                     ->columnSpanFull(),
 
-                                Infolists\Components\TextEntry::make('inactive_interfaces_note')
+                                TextEntry::make('inactive_interfaces_note')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -413,11 +421,11 @@ class ViewServer extends ViewRecord
                             ]),
 
                         // Health Check Card
-                        Infolists\Components\Section::make('Health Check')
+                        Section::make('Health Check')
                             ->icon('heroicon-o-heart')
                             ->columnSpan(1)
                             ->schema([
-                                Infolists\Components\RepeatableEntry::make('health_indicators')
+                                RepeatableEntry::make('health_indicators')
                                     ->label('')
                                     ->state(function (Server $record) {
                                         $latest = $record->latestMetric();
@@ -505,13 +513,13 @@ class ViewServer extends ViewRecord
                                         return $checks;
                                     })
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('name')
+                                        TextEntry::make('name')
                                             ->label('')
                                             ->weight('bold'),
-                                        Infolists\Components\TextEntry::make('value')
+                                        TextEntry::make('value')
                                             ->label('')
                                             ->alignEnd(),
-                                        Infolists\Components\TextEntry::make('status')
+                                        TextEntry::make('status')
                                             ->label('')
                                             ->formatStateUsing(fn (?string $state) => match ($state) {
                                                 'healthy' => 'Healthy',
@@ -531,7 +539,7 @@ class ViewServer extends ViewRecord
                                     ->columns(3)
                                     ->columnSpanFull(),
 
-                                Infolists\Components\TextEntry::make('last_updated')
+                                TextEntry::make('last_updated')
                                     ->label('')
                                     ->state(fn (Server $record) => $record->latestMetric()?->created_at?->diffForHumans() ?? '')
                                     ->color('gray')
@@ -541,44 +549,44 @@ class ViewServer extends ViewRecord
                     ]),
 
                 // Server Details - collapsed at bottom
-                Infolists\Components\Section::make('Server Details')
+                Section::make('Server Details')
                     ->icon('heroicon-o-server')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()
                     ->schema([
-                        Infolists\Components\TextEntry::make('hostname')
+                        TextEntry::make('hostname')
                             ->copyable()
                             ->placeholder('—'),
-                        Infolists\Components\TextEntry::make('ip_address')
+                        TextEntry::make('ip_address')
                             ->label('Internal IP')
                             ->copyable()
                             ->placeholder('—'),
-                        Infolists\Components\TextEntry::make('external_ip')
+                        TextEntry::make('external_ip')
                             ->label('External IP')
                             ->copyable()
                             ->placeholder('—'),
-                        Infolists\Components\TextEntry::make('os')
+                        TextEntry::make('os')
                             ->label('Operating System')
                             ->placeholder('—'),
-                        Infolists\Components\IconEntry::make('is_active')
+                        IconEntry::make('is_active')
                             ->boolean()
                             ->label('Monitoring Active'),
-                        Infolists\Components\TextEntry::make('created_at')
+                        TextEntry::make('created_at')
                             ->label('Added')
                             ->dateTime('j M Y, g:i a'),
                     ])
                     ->columns(3),
 
                 // Reinstall Agent - collapsed at bottom
-                Infolists\Components\Section::make('Reinstall Agent')
+                Section::make('Reinstall Agent')
                     ->icon('heroicon-o-arrow-path')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()
                     ->description('Use this command if you need to reinstall the monitoring agent.')
                     ->schema([
-                        Infolists\Components\TextEntry::make('install_command_reconnect')
+                        TextEntry::make('install_command_reconnect')
                             ->label('')
                             ->state(fn (Server $record) => new HtmlString(
                                 '<div style="background-color: #1f2937; color: #4ade80; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; overflow-x: auto;">'.

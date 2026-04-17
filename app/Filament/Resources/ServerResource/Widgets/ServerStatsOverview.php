@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ServerStatsOverview extends BaseWidget
 {
-    protected static ?string $pollingInterval = '10s';
+    protected ?string $pollingInterval = '10s';
 
     protected int|string|array $columnSpan = 'full';
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Tables\Columns\TextColumn;
 use App\Models\Anomaly;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -29,23 +30,23 @@ class ActiveAnomalies extends BaseWidget
                     ->limit(10)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('monitor.status')
+                TextColumn::make('monitor.status')
                     ->badge()
                     ->searchable()
                     ->label(''),
-                Tables\Columns\TextColumn::make('monitor.type')
+                TextColumn::make('monitor.type')
                     ->searchable()
                     ->label(''),
-                Tables\Columns\TextColumn::make('monitor.name')
+                TextColumn::make('monitor.name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('monitor.address')
+                TextColumn::make('monitor.address')
                     ->label('Address')
                     ->searchable()
                     ->description(fn ($record) => $record->monitor->port),
-                Tables\Columns\TextColumn::make('started_at')
+                TextColumn::make('started_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('duration')
+                TextColumn::make('duration')
                     ->label('Duration')
                     ->state(function ($record) {
                         return $record->started_at->diffForHumans();

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Exception;
 use App\Http\Controllers\Controller;
 use App\Models\DiskMetric;
 use App\Models\NetworkMetric;
@@ -85,7 +88,7 @@ class ServerMonitoringController extends Controller
                 'swap_used' => $validated['swap_used'] ?? null,
                 'swap_usage_percent' => $validated['swap_usage_percent'] ?? null,
                 'collected_at' => isset($validated['collected_at']) ?
-                    \Carbon\Carbon::parse($validated['collected_at']) : now(),
+                    Carbon::parse($validated['collected_at']) : now(),
             ]);
 
             // Create disk metric records
@@ -150,7 +153,7 @@ class ServerMonitoringController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'error' => 'Server not found',
             ], 404);
@@ -167,7 +170,7 @@ class ServerMonitoringController extends Controller
                 'details' => $e->errors(),
             ], 422);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to process server monitoring data', [
                 'server_id' => $server,
                 'error' => $e->getMessage(),
@@ -204,12 +207,12 @@ class ServerMonitoringController extends Controller
                 'last_seen_at' => $serverModel->last_seen_at?->toISOString(),
             ]);
 
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'error' => 'Server not found',
             ], 404);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to get server config', [
                 'server_id' => $server,
                 'error' => $e->getMessage(),
@@ -287,7 +290,7 @@ class ServerMonitoringController extends Controller
                 'cutoff_date' => $cutoffDate->toISOString(),
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to cleanup server metrics', [
                 'error' => $e->getMessage(),
             ]);

@@ -2,12 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Schemas\Schema;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
@@ -18,11 +18,11 @@ class DeleteAccount extends Page implements HasForms
     use InteractsWithActions;
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-trash';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-trash';
 
     protected static bool $shouldRegisterNavigation = false;
 
-    protected static string $view = 'filament.pages.delete-account';
+    protected string $view = 'filament.pages.delete-account';
 
     public ?array $data = [];
 
@@ -33,10 +33,10 @@ class DeleteAccount extends Page implements HasForms
         $this->form->fill();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('current_password')
                     ->label('Current Password')
                     ->password()

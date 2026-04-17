@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\TestResource\RelationManagers;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
 use App\Enums\Tests\TestStatus;
 use App\Models\TestRun;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -15,7 +18,7 @@ class RunsRelationManager extends RelationManager
 
     protected static ?string $title = 'Test runs';
 
-    protected static ?string $icon = 'heroicon-o-play';
+    protected static string | \BackedEnum | null $icon = 'heroicon-o-play';
 
     public function table(Table $table): Table
     {
@@ -23,10 +26,10 @@ class RunsRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->defaultSort('created_at', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->badge()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('steps_summary')
+                TextColumn::make('steps_summary')
                     ->label('Steps')
                     ->state(function (TestRun $record): string {
                         $total = $record->runSteps->count();
@@ -44,27 +47,27 @@ class RunsRelationManager extends RelationManager
                         return "{$success}/{$total} passed";
                     })
                     ->color(fn (TestRun $record) => $record->runSteps->where('status', TestStatus::FAILURE)->count() > 0 ? 'danger' : 'success'),
-                Tables\Columns\TextColumn::make('duration_ms')
+                TextColumn::make('duration_ms')
                     ->label('Duration')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 1000, 2) . 's' : '-')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('started_at')
+                TextColumn::make('started_at')
                     ->label('Started')
                     ->since()
                     ->tooltip(fn (TestRun $record) => $record->started_at?->format('j F Y, g:i:s a'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('finished_at')
+                TextColumn::make('finished_at')
                     ->label('Finished')
                     ->since()
                     ->tooltip(fn (TestRun $record) => $record->finished_at?->format('j F Y, g:i:s a'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options(TestStatus::options()),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view_steps')
+            ->recordActions([
+                Action::make('view_steps')
                     ->label('View steps')
                     ->icon('heroicon-o-list-bullet')
                     ->modalHeading(fn (TestRun $record) => 'Run #' . substr($record->id, -8) . ' - Steps')

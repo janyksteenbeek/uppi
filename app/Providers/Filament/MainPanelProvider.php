@@ -2,6 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Auth\Pages\Login;
+use Filament\Auth\Pages\Register;
+use Filament\Auth\Pages\EmailVerification\EmailVerificationPrompt;
+use Filament\Auth\Pages\PasswordReset\RequestPasswordReset;
 use App\Filament\Resources\PersonalAccessTokenResource;
 use App\Filament\Widgets\ActiveAnomalies;
 use App\Filament\Widgets\AnomaliesPerMonitor;
@@ -89,7 +93,7 @@ class MainPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SIMPLE_PAGE_START,
                 fn () => view('auth-banner'),
-                scopes: [\Filament\Pages\Auth\Login::class, \Filament\Pages\Auth\Register::class, \Filament\Pages\Auth\EmailVerification\EmailVerificationPrompt::class, \Filament\Pages\Auth\PasswordReset\RequestPasswordReset::class]
+                scopes: [Login::class, Register::class, EmailVerificationPrompt::class, RequestPasswordReset::class]
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,
@@ -119,13 +123,13 @@ class MainPanelProvider extends PanelProvider
                         SocialiteProvider::make('github')
                             ->label('GitHub')
                             ->icon('fab-github')
-                            ->color(Color::hex('#24292e'))
+                            ->color(Color::generateV3Palette('#24292e'))
                             ->outlined(true)
                             ->stateless(false),
                         SocialiteProvider::make('gitlab')
                             ->label('GitLab')
                             ->icon('fab-gitlab')
-                            ->color(Color::hex('#FCA326'))
+                            ->color(Color::generateV3Palette('#FCA326'))
                             ->outlined(true)
                             ->stateless(false),
 

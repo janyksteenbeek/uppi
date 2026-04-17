@@ -2,13 +2,33 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\ViewEntry;
+use App\Models\Check;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use App\Enums\Monitors\MonitorType;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Carbon\Carbon;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\AnomalyResource\Pages\ManageAnomalies;
+use App\Filament\Resources\AnomalyResource\Pages\ViewAnomaly;
 use App\Enums\Alerts\AlertTriggerType;
 use App\Filament\Resources\AnomalyResource\Pages;
 use App\Models\Anomaly;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Infolists;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
@@ -21,84 +41,84 @@ class AnomalyResource extends Resource
 {
     protected static ?string $model = Anomaly::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clock';
 
     protected static ?string $navigationLabel = 'History';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
     protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'id';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('monitor_id')
+        return $schema
+            ->components([
+                Select::make('monitor_id')
                     ->relationship('monitor', 'name')
                     ->required()
                     ->searchable(),
-                Forms\Components\DateTimePicker::make('started_at')
+                DateTimePicker::make('started_at')
                     ->required(),
-                Forms\Components\DateTimePicker::make('ended_at'),
+                DateTimePicker::make('ended_at'),
             ]);
     }
 
-    public static function infolist(Infolist $infolist): Infolist
+    public static function infolist(Schema $schema): Schema
     {
-        return $infolist
-            ->schema([
-                Infolists\Components\Section::make('Overview')
+        return $schema
+            ->components([
+                Section::make('Overview')
                     ->icon('heroicon-o-information-circle')
                     ->schema([
-                        Infolists\Components\Grid::make(4)
+                        Grid::make(4)
                             ->schema([
-                                Infolists\Components\TextEntry::make('status')
+                                TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
                                     ->state(fn ($record) => $record->ended_at ? 'Resolved' : 'Ongoing')
                                     ->color(fn ($record) => $record->ended_at ? 'success' : 'danger'),
-                                Infolists\Components\TextEntry::make('duration')
+                                TextEntry::make('duration')
                                     ->label('Duration')
                                     ->state(function ($record) {
                                         $end = $record->ended_at ?? now();
                                         return $record->started_at->diffForHumans($end, true);
                                     })
                                     ->icon('heroicon-o-clock'),
-                                Infolists\Components\TextEntry::make('checks_count')
+                                TextEntry::make('checks_count')
                                     ->label('Checks')
                                     ->state(fn ($record) => $record->checks()->count())
                                     ->icon('heroicon-o-signal'),
-                                Infolists\Components\TextEntry::make('alerts_count')
+                                TextEntry::make('alerts_count')
                                     ->label('Alerts sent')
                                     ->state(fn ($record) => $record->triggers()->count())
                                     ->icon('heroicon-o-bell'),
                             ]),
                     ]),
 
-                Infolists\Components\Section::make('Monitor')
+                Section::make('Monitor')
                     ->icon('heroicon-o-server')
                     ->collapsible()
                     ->schema([
-                        Infolists\Components\Grid::make(3)
+                        Grid::make(3)
                             ->schema([
-                                Infolists\Components\TextEntry::make('monitor.name')
+                                TextEntry::make('monitor.name')
                                     ->label('Name')
                                     ->weight(FontWeight::Bold)
                                     ->url(fn ($record) => $record->monitor ? MonitorResource::getUrl('edit', ['record' => $record->monitor]) : null),
-                                Infolists\Components\TextEntry::make('monitor.type')
+                                TextEntry::make('monitor.type')
                                     ->label('Type')
                                     ->badge(),
-                                Infolists\Components\TextEntry::make('monitor.address')
+                                TextEntry::make('monitor.address')
                                     ->label('Address')
                                     ->icon('heroicon-o-globe-alt'),
-                                Infolists\Components\TextEntry::make('monitor.interval')
+                                TextEntry::make('monitor.interval')
                                     ->label('Check interval')
                                     ->suffix(' seconds'),
-                                Infolists\Components\TextEntry::make('monitor.consecutive_threshold')
+                                TextEntry::make('monitor.consecutive_threshold')
                                     ->label('Threshold'),
-                                Infolists\Components\TextEntry::make('monitor.status')
+                                TextEntry::make('monitor.status')
                                     ->label('Current status')
                                     ->badge()
                                     ->color(fn ($state) => match ($state?->value) {
@@ -109,18 +129,18 @@ class AnomalyResource extends Resource
                             ]),
                     ]),
 
-                Infolists\Components\Section::make('Timeline')
+                Section::make('Timeline')
                     ->icon('heroicon-o-calendar')
                     ->collapsible()
                     ->schema([
-                        Infolists\Components\Grid::make(2)
+                        Grid::make(2)
                             ->schema([
-                                Infolists\Components\TextEntry::make('started_at')
+                                TextEntry::make('started_at')
                                     ->label('Started')
                                     ->dateTime('M j, Y g:i:s A')
                                     ->icon('heroicon-o-arrow-right-circle')
                                     ->iconColor('danger'),
-                                Infolists\Components\TextEntry::make('ended_at')
+                                TextEntry::make('ended_at')
                                     ->label('Resolved')
                                     ->dateTime('M j, Y g:i:s A')
                                     ->placeholder('Still ongoing')
@@ -129,30 +149,30 @@ class AnomalyResource extends Resource
                             ]),
                     ]),
 
-                Infolists\Components\Section::make('Alert notifications')
+                Section::make('Alert notifications')
                     ->icon('heroicon-o-bell-alert')
                     ->collapsible()
                     ->collapsed()
                     ->visible(fn ($record) => $record->triggers()->count() > 0)
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('triggers')
+                        RepeatableEntry::make('triggers')
                             ->hiddenLabel()
                             ->schema([
-                                Infolists\Components\Grid::make(4)
+                                Grid::make(4)
                                     ->schema([
-                                        Infolists\Components\TextEntry::make('type')
+                                        TextEntry::make('type')
                                             ->label('Type')
                                             ->badge()
                                             ->color(fn (AlertTriggerType $state) => match ($state) {
                                                 AlertTriggerType::DOWN => 'danger',
                                                 AlertTriggerType::RECOVERY => 'success',
                                             }),
-                                        Infolists\Components\TextEntry::make('alert.name')
+                                        TextEntry::make('alert.name')
                                             ->label('Alert'),
-                                        Infolists\Components\TextEntry::make('triggered_at')
+                                        TextEntry::make('triggered_at')
                                             ->label('Sent at')
                                             ->dateTime('M j, Y g:i:s A'),
-                                        Infolists\Components\TextEntry::make('channels_notified')
+                                        TextEntry::make('channels_notified')
                                             ->label('Channels')
                                             ->badge()
                                             ->separator(', ')
@@ -162,13 +182,13 @@ class AnomalyResource extends Resource
                             ->contained(false),
                     ]),
 
-                Infolists\Components\Section::make('Recent checks')
+                Section::make('Recent checks')
                     ->icon('heroicon-o-list-bullet')
                     ->collapsible()
                     ->collapsed()
                     ->description('Last 20 checks during this anomaly')
                     ->schema([
-                        Infolists\Components\ViewEntry::make('checks_timeline')
+                        ViewEntry::make('checks_timeline')
                             ->view('filament.infolists.entries.checks-timeline'),
                     ]),
             ]);
@@ -181,7 +201,7 @@ class AnomalyResource extends Resource
                 ->with('monitor')
                 ->withCount(['checks', 'triggers'])
                 ->addSelect([
-                    'first_error' => \App\Models\Check::select('output')
+                    'first_error' => Check::select('output')
                         ->whereColumn('anomaly_id', 'anomalies.id')
                         ->whereNotNull('output')
                         ->orderBy('checked_at')
@@ -189,7 +209,7 @@ class AnomalyResource extends Resource
                 ])
             )
             ->columns([
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->label('')
                     ->badge()
                     ->state(fn ($record) => $record->ended_at ? 'Resolved' : 'Ongoing')
@@ -198,22 +218,22 @@ class AnomalyResource extends Resource
                         ? 'Resolved ' . $record->ended_at->diffForHumans()
                         : 'Ongoing for ' . $record->started_at->diffForHumans(now(), true)
                     ),
-                Tables\Columns\TextColumn::make('monitor.type')
+                TextColumn::make('monitor.type')
                     ->label('Type')
                     ->badge()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('monitor.name')
+                TextColumn::make('monitor.name')
                     ->label('Monitor')
                     ->sortable()
                     ->searchable()
                     ->weight('bold')
                     ->description(fn ($record) => $record->monitor?->address),
-                Tables\Columns\TextColumn::make('started_at')
+                TextColumn::make('started_at')
                     ->label('Started')
                     ->dateTime('M j, g:i A')
                     ->sortable()
                     ->description(fn ($record) => $record->started_at->diffForHumans()),
-                Tables\Columns\TextColumn::make('duration')
+                TextColumn::make('duration')
                     ->label('Duration')
                     ->state(function ($record) {
                         $end = $record->ended_at ?? now();
@@ -228,17 +248,17 @@ class AnomalyResource extends Resource
                         if ($minutes > 15) return 'warning';
                         return 'gray';
                     }),
-                Tables\Columns\TextColumn::make('checks_count')
+                TextColumn::make('checks_count')
                     ->label('Checks')
                     ->sortable()
                     ->icon('heroicon-o-signal')
                     ->color('gray'),
-                Tables\Columns\TextColumn::make('triggers_count')
+                TextColumn::make('triggers_count')
                     ->label('Alerts')
                     ->sortable()
                     ->icon('heroicon-o-bell')
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
-                Tables\Columns\TextColumn::make('first_error')
+                TextColumn::make('first_error')
                     ->label('Error')
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->first_error)
@@ -247,19 +267,19 @@ class AnomalyResource extends Resource
             ])
             ->defaultSort('started_at', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('monitor_id')
+                SelectFilter::make('monitor_id')
                     ->label('Monitor')
                     ->options(fn () => auth()->user()->monitors()->pluck('name', 'id'))
                     ->searchable()
                     ->preload(),
-                Tables\Filters\SelectFilter::make('monitor_type')
+                SelectFilter::make('monitor_type')
                     ->label('Type')
-                    ->options(\App\Enums\Monitors\MonitorType::class)
+                    ->options(MonitorType::class)
                     ->query(fn ($query, array $data) => $data['value']
                         ? $query->whereHas('monitor', fn ($q) => $q->where('type', $data['value']))
                         : $query
                     ),
-                Tables\Filters\TernaryFilter::make('status')
+                TernaryFilter::make('status')
                     ->label('Status')
                     ->placeholder('All')
                     ->trueLabel('Resolved')
@@ -268,11 +288,11 @@ class AnomalyResource extends Resource
                         true: fn ($query) => $query->whereNotNull('ended_at'),
                         false: fn ($query) => $query->whereNull('ended_at'),
                     ),
-                Tables\Filters\Filter::make('started_at')
-                    ->form([
-                        Forms\Components\DatePicker::make('started_from')
+                Filter::make('started_at')
+                    ->schema([
+                        DatePicker::make('started_from')
                             ->label('Started from'),
-                        Forms\Components\DatePicker::make('started_until')
+                        DatePicker::make('started_until')
                             ->label('Started until'),
                     ])
                     ->query(function ($query, array $data) {
@@ -283,16 +303,16 @@ class AnomalyResource extends Resource
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['started_from'] ?? null) {
-                            $indicators['started_from'] = 'From ' . \Carbon\Carbon::parse($data['started_from'])->format('M j, Y');
+                            $indicators['started_from'] = 'From ' . Carbon::parse($data['started_from'])->format('M j, Y');
                         }
                         if ($data['started_until'] ?? null) {
-                            $indicators['started_until'] = 'Until ' . \Carbon\Carbon::parse($data['started_until'])->format('M j, Y');
+                            $indicators['started_until'] = 'Until ' . Carbon::parse($data['started_until'])->format('M j, Y');
                         }
                         return $indicators;
                     }),
-                Tables\Filters\Filter::make('duration')
-                    ->form([
-                        Forms\Components\Select::make('duration')
+                Filter::make('duration')
+                    ->schema([
+                        Select::make('duration')
                             ->label('Duration')
                             ->options([
                                 '5' => 'More than 5 minutes',
@@ -325,29 +345,29 @@ class AnomalyResource extends Resource
                         ];
                         return 'Duration: ' . ($labels[$data['duration']] ?? $data['duration']);
                     }),
-                Tables\Filters\Filter::make('has_alerts')
+                Filter::make('has_alerts')
                     ->label('With alerts')
                     ->toggle()
                     ->query(fn (Builder $query) => $query->whereHas('triggers')),
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->filtersFormColumns(3)
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->label('Details'),
-                Tables\Actions\Action::make('go_to_monitor')
+                Action::make('go_to_monitor')
                     ->label('Monitor')
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->color('gray')
                     ->url(fn ($record) => $record->monitor ? MonitorResource::getUrl('edit', ['record' => $record->monitor]) : null)
                     ->openUrlInNewTab(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('export')
+                Action::make('export')
                     ->label('Export')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
@@ -412,8 +432,8 @@ class AnomalyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageAnomalies::route('/'),
-            'view' => Pages\ViewAnomaly::route('/{record}'),
+            'index' => ManageAnomalies::route('/'),
+            'view' => ViewAnomaly::route('/{record}'),
         ];
     }
 

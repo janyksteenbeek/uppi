@@ -2,6 +2,8 @@
 
 namespace App\CacheTasks;
 
+use App\Jobs\RefreshCacheTaskJob;
+use RuntimeException;
 use Illuminate\Support\Facades\Cache;
 
 abstract class CacheTask
@@ -21,7 +23,7 @@ abstract class CacheTask
      */
     public static function refreshForUser(string $userId): void
     {
-        dispatch(new \App\Jobs\RefreshCacheTaskJob(static::class, $userId))->onQueue('cache');
+        dispatch(new RefreshCacheTaskJob(static::class, $userId))->onQueue('cache');
     }
 
     public function forUser(string $userId): static
@@ -41,7 +43,7 @@ abstract class CacheTask
     protected function getCacheKey(): string
     {
         if ($this->userId === null) {
-            throw new \RuntimeException('Cache task must be scoped to a user');
+            throw new RuntimeException('Cache task must be scoped to a user');
         }
 
         return "user_{$this->userId}_{$this->key()}";

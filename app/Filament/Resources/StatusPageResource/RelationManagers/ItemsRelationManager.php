@@ -2,8 +2,19 @@
 
 namespace App\Filament\Resources\StatusPageResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,22 +25,22 @@ class ItemsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('monitor_id')
+        return $schema
+            ->components([
+                Select::make('monitor_id')
                     ->relationship('monitor', 'name', function ($query) {
                         return $query->where('user_id', auth()->id());
                     })
                     ->required(),
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Toggle::make('is_enabled')
+                Toggle::make('is_enabled')
                     ->required()
                     ->default(true),
-                Forms\Components\Toggle::make('is_showing_favicon')
+                Toggle::make('is_showing_favicon')
                     ->required()
                     ->default(true),
             ]);
@@ -39,31 +50,31 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('monitor.name')
+                TextColumn::make('monitor.name')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_enabled')
+                IconColumn::make('is_enabled')
                     ->boolean()
                     ->sortable(),
             ])
             ->defaultSort('order')
             ->reorderable('order')
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_enabled'),
+                TernaryFilter::make('is_enabled'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

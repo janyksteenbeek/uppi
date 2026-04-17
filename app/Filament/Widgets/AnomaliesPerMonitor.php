@@ -11,7 +11,7 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class AnomaliesPerMonitor extends ChartWidget
 {
-    protected static ?string $heading = 'Anomalies';
+    protected ?string $heading = 'Anomalies';
 
     protected int|string|array $columnSpan = [
         'md' => 3,

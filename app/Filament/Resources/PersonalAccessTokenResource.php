@@ -2,8 +2,15 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\PersonalAccessTokenResource\Pages\ManagePersonalAccessTokens;
 use App\Filament\Resources\PersonalAccessTokenResource\Pages;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -22,12 +29,12 @@ class PersonalAccessTokenResource extends Resource
 
     protected static ?string $navigationLabel = 'Connections';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 //
             ]);
     }
@@ -41,30 +48,30 @@ class PersonalAccessTokenResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name'),
-                Tables\Columns\TextColumn::make('created_at'),
-                Tables\Columns\TextColumn::make('expires_at')
+                TextColumn::make('name'),
+                TextColumn::make('created_at'),
+                TextColumn::make('expires_at')
                     ->dateTime()
                     ->since()
                     ->badge()
                     ->color(fn ($state) => $state->isPast() ? 'danger' : (now()->diffInHours($state) <= 1 ? 'warning' : 'success')),
             ])
             ->filters([
-                Tables\Filters\Filter::make('expired')
+                Filter::make('expired')
                     ->query(fn (Builder $query) => $query->where('expires_at', '>', now()))
                     ->label('Not expired')
                     ->default(true),
             ])
-            ->actions([
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('create_token')
+                Action::make('create_token')
                     ->icon('heroicon-o-plus')
                     ->label('Register new mobile device')
                     ->action(function () {
@@ -99,7 +106,7 @@ class PersonalAccessTokenResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManagePersonalAccessTokens::route('/'),
+            'index' => ManagePersonalAccessTokens::route('/'),
         ];
     }
 

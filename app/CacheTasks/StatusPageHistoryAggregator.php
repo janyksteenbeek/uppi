@@ -2,6 +2,8 @@
 
 namespace App\CacheTasks;
 
+use App\Jobs\RefreshCacheTaskJob;
+use RuntimeException;
 use App\Models\Check;
 use App\Models\StatusPage;
 use App\Models\StatusPageItem;
@@ -32,7 +34,7 @@ class StatusPageHistoryAggregator extends CacheTask
             ->select('id')
             ->get()
             ->each(function (StatusPage $page) use ($userId) {
-                dispatch(new \App\Jobs\RefreshCacheTaskJob(static::class, $userId, [$page->id]))
+                dispatch(new RefreshCacheTaskJob(static::class, $userId, [$page->id]))
                     ->onQueue('cache');
             });
     }
@@ -40,7 +42,7 @@ class StatusPageHistoryAggregator extends CacheTask
     public function execute(): Collection
     {
         if ($this->userId === null) {
-            throw new \RuntimeException('Cache task must be scoped to a user');
+            throw new RuntimeException('Cache task must be scoped to a user');
         }
 
         $today = now()->startOfDay();

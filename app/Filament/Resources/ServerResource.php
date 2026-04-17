@@ -2,11 +2,26 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Actions;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\CreateAction;
+use App\Filament\Resources\ServerResource\Pages\ListServers;
+use App\Filament\Resources\ServerResource\Pages\CreateServer;
+use App\Filament\Resources\ServerResource\Pages\EditServer;
+use App\Filament\Resources\ServerResource\Pages\ViewServer;
 use App\Filament\Resources\ServerResource\Pages;
 use App\Models\Server;
 use Filament\Forms;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,9 +34,9 @@ class ServerResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $navigationIcon = 'heroicon-o-server';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-server';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -48,51 +63,51 @@ class ServerResource extends Resource
         return parent::getEloquentQuery();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Server Information')
+        return $schema
+            ->components([
+                Section::make('Server Information')
                     ->description(fn (string $operation) => $operation === 'create'
                         ? 'Give your server a name. After creation, you\'ll get an install command to run on your server.'
                         : null)
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->required()
                             ->maxLength(255)
                             ->placeholder('e.g., Production Web Server, Database Server')
                             ->helperText('A friendly name to identify this server'),
-                        Forms\Components\TextInput::make('hostname')
+                        TextInput::make('hostname')
                             ->maxLength(255)
                             ->disabled()
                             ->dehydrated(false)
                             ->visible(fn (string $operation) => $operation === 'edit')
                             ->helperText('Reported by the monitoring agent'),
-                        Forms\Components\TextInput::make('ip_address')
+                        TextInput::make('ip_address')
                             ->label('IP Address')
                             ->maxLength(45)
                             ->disabled()
                             ->dehydrated(false)
                             ->visible(fn (string $operation) => $operation === 'edit')
                             ->helperText('Reported by the monitoring agent'),
-                        Forms\Components\TextInput::make('os')
+                        TextInput::make('os')
                             ->label('Operating System')
                             ->maxLength(255)
                             ->disabled()
                             ->dehydrated(false)
                             ->visible(fn (string $operation) => $operation === 'edit')
                             ->helperText('Reported by the monitoring agent'),
-                        Forms\Components\Toggle::make('is_active')
+                        Toggle::make('is_active')
                             ->required()
                             ->default(true)
                             ->visible(fn (string $operation) => $operation === 'edit')
                             ->helperText('Enable or disable monitoring for this server'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Authentication')
+                Section::make('Authentication')
                     ->visible(fn (string $operation) => $operation === 'edit')
                     ->schema([
-                        Forms\Components\TextInput::make('secret')
+                        TextInput::make('secret')
                             ->label('Secret Key')
                             ->password()
                             ->revealable()
@@ -102,7 +117,7 @@ class ServerResource extends Resource
                             ->formatStateUsing(fn (?Server $record) => $record?->secret)
                             ->helperText('This secret is used for HMAC authentication.')
                             ->suffixAction(
-                                Forms\Components\Actions\Action::make('copy_secret')
+                                Action::make('copy_secret')
                                     ->label('Copy')
                                     ->icon('heroicon-o-clipboard')
                                     ->action(fn () => null)
@@ -114,7 +129,7 @@ class ServerResource extends Resource
                             ),
 
                         Actions::make([
-                            Forms\Components\Actions\Action::make('regenerate_secret')
+                            Action::make('regenerate_secret')
                                 ->label('Regenerate Secret')
                                 ->color('warning')
                                 ->icon('heroicon-o-arrow-path')
@@ -131,7 +146,7 @@ class ServerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('status_display')
+                TextColumn::make('status_display')
                     ->label('Status')
                     ->badge()
                     ->getStateUsing(function (Server $record) {
@@ -157,30 +172,30 @@ class ServerResource extends Resource
                         default => null,
                     }),
 
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable()
                     ->description(fn (Server $record) => $record->hostname),
 
-                Tables\Columns\TextColumn::make('ip_address')
+                TextColumn::make('ip_address')
                     ->label('IP Address')
                     ->searchable()
                     ->placeholder('—')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('os')
+                TextColumn::make('os')
                     ->label('OS')
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('last_seen_at')
+                TextColumn::make('last_seen_at')
                     ->label('Last Seen')
                     ->since()
                     ->placeholder('Never')
                     ->tooltip(fn (Server $record) => $record->last_seen_at?->format('j F Y, g:i a'))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Created')
                     ->since()
                     ->sortable()
@@ -188,35 +203,35 @@ class ServerResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\Filter::make('waiting')
+                Filter::make('waiting')
                     ->query(fn (Builder $query): Builder => $query->whereNull('last_seen_at'))
                     ->label('Waiting for Agent'),
 
-                Tables\Filters\Filter::make('online')
+                Filter::make('online')
                     ->query(fn (Builder $query): Builder => $query->where('last_seen_at', '>=', now()->subMinutes(5)))
                     ->label('Online'),
 
-                Tables\Filters\Filter::make('offline')
+                Filter::make('offline')
                     ->query(fn (Builder $query): Builder => $query
                         ->whereNotNull('last_seen_at')
                         ->where('last_seen_at', '<', now()->subMinutes(5)))
                     ->label('Offline'),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\DeleteAction::make()
+            ->recordActions([
+                ViewAction::make(),
+                DeleteAction::make()
                     ->visible(fn (Server $record) => $record->last_seen_at === null),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->emptyStateHeading('Start monitoring your servers')
             ->emptyStateDescription('Add your first server to monitor CPU, memory, disk space and network usage.')
             ->emptyStateIcon('heroicon-o-server')
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Add server')
                     ->icon('heroicon-o-plus'),
             ])
@@ -233,10 +248,10 @@ class ServerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListServers::route('/'),
-            'create' => Pages\CreateServer::route('/create'),
-            'edit' => Pages\EditServer::route('/{record}/edit'),
-            'view' => Pages\ViewServer::route('/{record}'),
+            'index' => ListServers::route('/'),
+            'create' => CreateServer::route('/create'),
+            'edit' => EditServer::route('/{record}/edit'),
+            'view' => ViewServer::route('/{record}'),
         ];
     }
 }

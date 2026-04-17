@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Cache;
+use Exception;
 use App\Models\StatusPageItem;
 
 class IconController extends Controller
@@ -18,10 +20,10 @@ class IconController extends Controller
         }
 
         try {
-            $favicon = \Cache::remember('favicon-'.$domain, now()->addMinutes(5), function () use ($domain) {
+            $favicon = Cache::remember('favicon-'.$domain, now()->addMinutes(5), function () use ($domain) {
                 return file_get_contents('https://icons.duckduckgo.com/ip3/'.$domain.'.ico');
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return redirect('/globe.svg');
         }
 

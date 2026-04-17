@@ -9,11 +9,11 @@ use Illuminate\Support\Carbon;
 
 class ServerMetricsChart extends ChartWidget
 {
-    protected static ?string $heading = 'CPU & Memory';
+    protected ?string $heading = 'CPU & Memory';
 
-    protected static ?string $maxHeight = '200px';
+    protected ?string $maxHeight = '200px';
 
-    protected static ?string $pollingInterval = '30s';
+    protected ?string $pollingInterval = '30s';
 
     protected int|string|array $columnSpan = [
         'default' => 2,

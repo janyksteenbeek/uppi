@@ -9,11 +9,11 @@ use Illuminate\Support\Carbon;
 
 class ServerLoadChart extends ChartWidget
 {
-    protected static ?string $heading = 'Load Average';
+    protected ?string $heading = 'Load Average';
 
-    protected static ?string $maxHeight = '200px';
+    protected ?string $maxHeight = '200px';
 
-    protected static ?string $pollingInterval = '30s';
+    protected ?string $pollingInterval = '30s';
 
     protected int|string|array $columnSpan = [
         'default' => 2,

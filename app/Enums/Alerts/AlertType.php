@@ -2,6 +2,7 @@
 
 namespace App\Enums\Alerts;
 
+use InvalidArgumentException;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 use NotificationChannels\Bird\BirdChannel;
@@ -43,7 +44,7 @@ enum AlertType: string implements HasIcon, HasLabel
             self::PUSHOVER => PushoverChannel::class,
             self::TELEGRAM => TelegramChannel::class,
             self::EXPO => ExpoChannel::class,
-            default => throw new \InvalidArgumentException('Invalid alert type'),
+            default => throw new InvalidArgumentException('Invalid alert type'),
         };
     }
 

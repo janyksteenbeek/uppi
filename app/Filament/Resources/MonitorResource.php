@@ -2,6 +2,34 @@
 
 namespace App\Filament\Resources;
 
+use Str;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Components\Select;
+use App\Models\Test;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Group;
+use URL;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Filament\Actions\EditAction;
+use Filament\Actions\CreateAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\MonitorResource\Pages\ListMonitors;
+use App\Filament\Resources\MonitorResource\Pages\CreateMonitor;
+use App\Filament\Resources\MonitorResource\Pages\EditMonitor;
 use App\Enums\Monitors\MonitorType;
 use App\Enums\Monitors\ServerMetricType;
 use App\Filament\Resources\MonitorResource\Pages;
@@ -10,9 +38,6 @@ use App\Filament\Resources\MonitorResource\RelationManagers\AnomaliesRelationMan
 use App\Models\Monitor;
 use App\Models\Server;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -25,9 +50,9 @@ class MonitorResource extends Resource
 {
     protected static ?string $model = Monitor::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-heart';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-heart';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
     protected static ?int $navigationSort = 1;
 
@@ -43,7 +68,7 @@ class MonitorResource extends Resource
             return null;
         }
 
-        return $count.' failing '.\Str::plural('monitor', $count);
+        return $count.' failing '.Str::plural('monitor', $count);
     }
 
     public static function getEloquentQuery(): Builder
@@ -51,15 +76,15 @@ class MonitorResource extends Resource
         return parent::getEloquentQuery()->where('user_id', Auth::id());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Basic Information')
+        return $schema
+            ->components([
+                Section::make('Basic Information')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->required(),
-                        Forms\Components\ToggleButtons::make('type')
+                        ToggleButtons::make('type')
                             ->inline()
                             ->grouped()
                             ->enum(MonitorType::class)
@@ -74,8 +99,8 @@ class MonitorResource extends Resource
                             ->options(MonitorType::options())
                             ->required()
                             ->live(),
-                        Forms\Components\Select::make('address')
-                            ->options(fn () => \App\Models\Test::where('user_id', auth()->id())->pluck('name', 'id'))
+                        Select::make('address')
+                            ->options(fn () => Test::where('user_id', auth()->id())->pluck('name', 'id'))
                             ->required()
                             ->searchable()
                             ->preload()
@@ -83,16 +108,16 @@ class MonitorResource extends Resource
                             ->helperText('Select the test to run for this monitor')
                             ->visible(fn (Get $get) => $get('type') === MonitorType::TEST->value)
                             ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
+                                TextInput::make('name')
                                     ->required()
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('entrypoint_url')
+                                TextInput::make('entrypoint_url')
                                     ->required()
                                     ->url()
                                     ->label('Entrypoint URL'),
                             ])
                             ->createOptionUsing(function (array $data): string {
-                                $test = \App\Models\Test::create([
+                                $test = Test::create([
                                     'user_id' => auth()->id(),
                                     'name' => $data['name'],
                                     'entrypoint_url' => $data['entrypoint_url'],
@@ -100,7 +125,7 @@ class MonitorResource extends Resource
 
                                 return $test->id;
                             }),
-                        Forms\Components\TextInput::make('address')
+                        TextInput::make('address')
                             ->required()
                             ->visible(fn (Get $get) => ! in_array($get('type'), [MonitorType::TEST->value, MonitorType::SERVER->value]))
                             ->live()
@@ -109,17 +134,17 @@ class MonitorResource extends Resource
                             ->label(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'Maximum age of check-in' : 'Address')
                             ->helperText(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'The maximum age of the check-in minutes. If the latest check-in is older than this, the monitor will be marked as down.' : 'The address of the server to check. If the server is not reachable, the monitor will be marked as down.')
                             ->suffix(fn (Get $get) => $get('type') === MonitorType::PULSE->value ? 'minutes' : null),
-                        Forms\Components\TextInput::make('port')
+                        TextInput::make('port')
                             ->numeric()
                             ->requiredIf('type', MonitorType::TCP->value)
                             ->hidden(fn (Get $get) => $get('type') !== MonitorType::TCP->value)
                             ->live(),
-                        Forms\Components\Section::make('pulse_info')
+                        Section::make('pulse_info')
                             ->heading('Check-in')
                             ->visible(fn (Get $get, ?Monitor $record) => $get('type') === MonitorType::PULSE->value)
                             ->schema([
-                                Forms\Components\Group::make([
-                                    Forms\Components\TextInput::make('pulse_url')
+                                Group::make([
+                                    TextInput::make('pulse_url')
                                         ->label('Pulse Check-in URL')
                                         ->disabled()
                                         ->readOnly()
@@ -127,9 +152,9 @@ class MonitorResource extends Resource
                                         ->dehydrated(false)
                                         ->placeholder('URL will be generated after saving')
                                         ->helperText('This URL should be added to your cron job to check in with the server. The check-in will be marked as down if the endpoint doesn\'t get called within the interval.')
-                                        ->formatStateUsing(fn (?Monitor $record) => $record ? \URL::signedRoute('pulse.checkin', ['monitor' => $record->id]) : null)
+                                        ->formatStateUsing(fn (?Monitor $record) => $record ? URL::signedRoute('pulse.checkin', ['monitor' => $record->id]) : null)
                                         ->suffixAction(
-                                            Forms\Components\Actions\Action::make('copy_url')
+                                            Action::make('copy_url')
                                                 ->label('Copy URL')
                                                 ->icon('heroicon-o-clipboard')
                                                 ->action(fn () => null)
@@ -144,7 +169,7 @@ class MonitorResource extends Resource
                                     ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
                                     ->columnSpanFull()
                                     ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value),
-                                Forms\Components\TextInput::make('curl_example')
+                                TextInput::make('curl_example')
                                     ->dehydrated(false)
                                     ->label('cURL Command')
                                     ->readOnly()
@@ -155,7 +180,7 @@ class MonitorResource extends Resource
                                             $token = $get('address');
                                             $tokenParam = $token ? $token : 'YOUR_TOKEN';
 
-                                            return 'curl -X POST '.\URL::signedRoute('pulse.checkin', ['monitor' => $record]);
+                                            return 'curl -X POST '.URL::signedRoute('pulse.checkin', ['monitor' => $record]);
                                         }
 
                                         return 'The example commands will be available after creating the monitor';
@@ -164,7 +189,7 @@ class MonitorResource extends Resource
                                     ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
                                     ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value)
                                     ->suffixAction(
-                                        Forms\Components\Actions\Action::make('copy_curl')
+                                        Action::make('copy_curl')
                                             ->label('Copy CURL')
                                             ->icon('heroicon-o-clipboard')
                                             ->action(fn () => Notification::make()
@@ -178,7 +203,7 @@ class MonitorResource extends Resource
                                                 'x-on:click' => 'navigator.clipboard.writeText($el.dataset.copy); $tooltip("CURL copied")',
                                             ])
                                     ),
-                                Forms\Components\TextInput::make('wget_example')
+                                TextInput::make('wget_example')
                                     ->dehydrated(false)
                                     ->label('wget Command')
                                     ->readOnly()
@@ -186,7 +211,7 @@ class MonitorResource extends Resource
                                     ->formatStateUsing(function (?Monitor $record, Get $get) {
                                         // If we're looking at an existing record with a token
                                         if ($record && $record->type === MonitorType::PULSE) {
-                                            return 'wget -O /dev/null -q '.\URL::signedRoute('pulse.checkin', ['monitor' => $record]);
+                                            return 'wget -O /dev/null -q '.URL::signedRoute('pulse.checkin', ['monitor' => $record]);
                                         } else {
                                             return 'Generate a token first to see example commands';
                                         }
@@ -195,7 +220,7 @@ class MonitorResource extends Resource
                                     ->visible(fn (Get $get) => $get('type') === MonitorType::PULSE->value)
                                     ->hidden(fn (Get $get) => $get('type') !== MonitorType::PULSE->value)
                                     ->suffixAction(
-                                        Forms\Components\Actions\Action::make('copy_wget')
+                                        Action::make('copy_wget')
                                             ->label('Copy wget')
                                             ->icon('heroicon-o-clipboard')
                                             ->action(fn () => Notification::make()
@@ -212,11 +237,11 @@ class MonitorResource extends Resource
                             ])->columns(2),
 
                         // Server monitoring section
-                        Forms\Components\Section::make('server_monitoring')
+                        Section::make('server_monitoring')
                             ->heading('Server Monitoring')
                             ->visible(fn (Get $get) => $get('type') === MonitorType::SERVER->value)
                             ->schema([
-                                Forms\Components\Select::make('address')
+                                Select::make('address')
                                     ->label('Server')
                                     ->options(fn () => Server::where('user_id', auth()->id())->pluck('name', 'id'))
                                     ->required()
@@ -225,7 +250,7 @@ class MonitorResource extends Resource
                                     ->live()
                                     ->afterStateUpdated(fn (Set $set) => $set('disk_mount_point', null))
                                     ->helperText('Select the server to monitor'),
-                                Forms\Components\Select::make('metric_type')
+                                Select::make('metric_type')
                                     ->label('Metric')
                                     ->options(ServerMetricType::options())
                                     ->required()
@@ -240,7 +265,7 @@ class MonitorResource extends Resource
                                         $set('disk_mount_point', null);
                                     })
                                     ->helperText('Select the metric to monitor'),
-                                Forms\Components\Select::make('disk_mount_point')
+                                Select::make('disk_mount_point')
                                     ->label('Disk')
                                     ->options(function (Get $get) {
                                         $serverId = $get('address');
@@ -266,9 +291,9 @@ class MonitorResource extends Resource
                                     ->required(fn (Get $get) => $get('metric_type') === ServerMetricType::DiskUsage->value)
                                     ->searchable()
                                     ->helperText('Select the disk partition to monitor'),
-                                Forms\Components\Grid::make(2)
+                                Grid::make(2)
                                     ->schema([
-                                        Forms\Components\Select::make('threshold_operator')
+                                        Select::make('threshold_operator')
                                             ->label('Condition')
                                             ->options([
                                                 '>' => 'Greater than (>)',
@@ -279,7 +304,7 @@ class MonitorResource extends Resource
                                             ->default('>')
                                             ->required()
                                             ->helperText('Alert when value is...'),
-                                        Forms\Components\TextInput::make('threshold')
+                                        TextInput::make('threshold')
                                             ->label('Threshold')
                                             ->numeric()
                                             ->required()
@@ -289,53 +314,53 @@ class MonitorResource extends Resource
                                     ]),
                             ])->columns(2),
 
-                        Forms\Components\Toggle::make('is_enabled')
+                        Toggle::make('is_enabled')
                             ->required()
                             ->default(true)
                             ->columnSpanFull(),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Monitor Settings')
+                Section::make('Monitor Settings')
                     ->schema([
-                        Forms\Components\TextInput::make('interval')
+                        TextInput::make('interval')
                             ->required()
                             ->numeric()
                             ->default(5)
                             ->step(1)
                             ->minValue(1)
                             ->helperText('Check interval in minutes'),
-                        Forms\Components\TextInput::make('consecutive_threshold')
+                        TextInput::make('consecutive_threshold')
                             ->required()
                             ->numeric()
                             ->default(state: 2)
                             ->step(1)
                             ->minValue(1)
                             ->helperText('Number of failed checks in a row needed before registering an anomaly and sending an alert'),
-                        Forms\Components\TextInput::make('user_agent')
+                        TextInput::make('user_agent')
                             ->placeholder(config('app.name'))
                             ->hidden(fn (Get $get) => $get('type') !== MonitorType::HTTP->value)
                             ->maxLength(255)
                             ->helperText('Custom User-Agent string for HTTP requests')
                             ->live(),
-                        Forms\Components\Select::make('alerts')
+                        Select::make('alerts')
                             ->helperText('Alerts to send when the monitor is down')
                             ->multiple()
                             ->relationship('alerts', 'name', modifyQueryUsing: fn (Builder $query) => $query->where('user_id', auth()->id()))
                             ->preload(),
-                        Forms\Components\Toggle::make('auto_create_update')
+                        Toggle::make('auto_create_update')
                             ->label('Post update when anomaly is detected')
                             ->helperText('Automatically create an update once an anomaly is detected (threshold reached) on the status pages where this monitor is being shown.')
                             ->default(true)
                             ->hintAction(
-                                Forms\Components\Actions\Action::make('customize_text')
+                                Action::make('customize_text')
                                     ->modalHeading('Customize update text')
                                     ->modalFooter(fn () => new HtmlString('<div class="text-sm text-gray-500">Use the following variables in your update text: <code>:monitor_name</code>, <code>:monitor_address</code>, <code>:monitor_type</code></div>'))
-                                    ->form([
-                                        Forms\Components\TextInput::make('update_values.title')
+                                    ->schema([
+                                        TextInput::make('update_values.title')
                                             ->label('Update title')
                                             ->helperText('The title of the update that will be posted when an anomaly is detected.')
                                             ->default(':monitor_name is experiencing issues'),
-                                        Forms\Components\MarkdownEditor::make('update_values.content')
+                                        MarkdownEditor::make('update_values.content')
                                             ->label('Update content')
                                             ->helperText('The content of the update that will be posted when an anomaly is detected.')
                                             ->default("Our automated monitoring & alerting system has detected that :monitor_name is experiencing issues. Because of these issues, we've created this update to keep you informed.\n\nOur team has been notified and is investigating. We apologize for the inconvenience."),
@@ -352,7 +377,7 @@ class MonitorResource extends Resource
                                             ],
                                         ];
                                     })
-                                    ->action(function (?Monitor $record, array $data, Forms\Set $set) {
+                                    ->action(function (?Monitor $record, array $data, Set $set) {
                                         if ($record) {
                                             $record->update([
                                                 'update_values' => [
@@ -378,48 +403,48 @@ class MonitorResource extends Resource
         return $table
             ->columns([
 
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->badge(),
-                Tables\Columns\TextColumn::make('address')
+                TextColumn::make('address')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('expects')
+                TextColumn::make('expects')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->searchable()
                     ->description(fn ($record) => ! $record->is_enabled ? 'Inactive' : $record->interval.' min, '.$record->consecutive_threshold.'x'),
-                Tables\Columns\IconColumn::make('is_enabled')
+                IconColumn::make('is_enabled')
                     ->boolean()
                     ->label('Enabled')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('alerts.name')
+                TextColumn::make('alerts.name')
                     ->size('xs')
                     ->label('Alerts')
                     ->wrap()
                     ->wrap(),
-                Tables\Columns\TextColumn::make('last_checked_at')
+                TextColumn::make('last_checked_at')
                     ->since()
                     ->tooltip(fn (Monitor $record) => $record->last_checked_at?->format('j F Y, g:i a'))
                     ->description(fn (Monitor $record) => ($record->last_checkin_at ? 'Checked in '.$record->last_checkin_at?->diffForHumans() : null))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options([
                         'ok' => 'OK',
                         'fail' => 'Failed',
                         'pending' => 'Pending',
                     ]),
-                Tables\Filters\Filter::make('last_checked_at')
-                    ->form([
-                        Forms\Components\DatePicker::make('from'),
-                        Forms\Components\DatePicker::make('until'),
+                Filter::make('last_checked_at')
+                    ->schema([
+                        DatePicker::make('from'),
+                        DatePicker::make('until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -433,40 +458,40 @@ class MonitorResource extends Resource
                             );
                     }),
             ])
-            ->actions([
-                Tables\Actions\Action::make('toggle_enabled')
+            ->recordActions([
+                Action::make('toggle_enabled')
                     ->label(null)
                     ->iconButton()
                     ->tooltip(fn (Monitor $record) => $record->is_enabled ? 'Disable' : 'Enable')
                     ->action(fn (Monitor $record) => $record->update(['is_enabled' => ! $record->is_enabled]))
                     ->icon('heroicon-o-power')
                     ->color(fn (Monitor $record) => $record->is_enabled ? 'success' : 'gray'),
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->emptyStateHeading('Start monitoring your website')
             ->emptyStateDescription('Set up your first monitor to check the status of your website, API or other service.')
             ->emptyStateIcon('heroicon-o-heart')
             ->emptyStateActions([
-                \Filament\Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Create a monitor')
                     ->icon('heroicon-o-plus'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('enable')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('enable')
                         ->label('Enable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => true]))
                         ->deselectRecordsAfterCompletion()
                         ->icon('heroicon-o-check'),
-                    Tables\Actions\BulkAction::make('disable')
+                    BulkAction::make('disable')
                         ->label('Disable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => false]))
                         ->deselectRecordsAfterCompletion()
                         ->icon('heroicon-o-x-mark'),
-                    Tables\Actions\BulkAction::make('set_alerts')
+                    BulkAction::make('set_alerts')
                         ->label('Set Alerts')
-                        ->form([
-                            Forms\Components\Select::make('alerts')
+                        ->schema([
+                            Select::make('alerts')
                                 ->translateLabel()
                                 ->options(fn ($record) => auth()->user()->alerts->pluck('name', 'id'))
                                 ->multiple()
@@ -479,7 +504,7 @@ class MonitorResource extends Resource
                             });
                         })
                         ->icon('heroicon-o-bell'),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    DeleteBulkAction::make(),
 
                 ]),
             ]);
@@ -496,9 +521,9 @@ class MonitorResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListMonitors::route('/'),
-            'create' => Pages\CreateMonitor::route('/create'),
-            'edit' => Pages\EditMonitor::route('/{record}/edit'),
+            'index' => ListMonitors::route('/'),
+            'create' => CreateMonitor::route('/create'),
+            'edit' => EditMonitor::route('/{record}/edit'),
         ];
     }
 }

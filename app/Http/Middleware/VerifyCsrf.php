@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Str;
 
 // @see https://github.com/livewire/livewire/discussions/7729
-class VerifyCsrf extends \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken
+class VerifyCsrf extends ValidateCsrfToken
 {
     protected array $exceptComponents = [
         'status-page.overall-status',

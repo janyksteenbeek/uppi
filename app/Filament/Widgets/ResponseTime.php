@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\CacheTasks\ResponseTimeAggregator;
 use App\Models\Check;
 use App\Models\Monitor;
 use Filament\Widgets\ChartWidget;
@@ -13,7 +14,7 @@ use Livewire\Attributes\Lazy;
 #[Lazy]
 class ResponseTime extends ChartWidget
 {
-    protected static ?string $heading = 'Performance';
+    protected ?string $heading = 'Performance';
 
     protected int|string|array $columnSpan = [
         'md' => 3,
@@ -75,7 +76,7 @@ class ResponseTime extends ChartWidget
 
     protected function getAggregatedData(int $interval): Collection
     {
-        return (new \App\CacheTasks\ResponseTimeAggregator($interval))
+        return (new ResponseTimeAggregator($interval))
             ->forUser(auth()->id())
             ->get();
     }

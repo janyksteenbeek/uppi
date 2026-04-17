@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ServerResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\ServerResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -24,7 +25,7 @@ class EditServer extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

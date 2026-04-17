@@ -2,11 +2,24 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\FileUpload;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\StatusPageResource\Pages\ListStatusPages;
+use App\Filament\Resources\StatusPageResource\Pages\CreateStatusPage;
+use App\Filament\Resources\StatusPageResource\Pages\EditStatusPage;
 use App\Filament\Resources\StatusPageResource\Pages;
 use App\Filament\Resources\StatusPageResource\RelationManagers\ItemsRelationManager;
 use App\Models\StatusPage;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\IconPosition;
 use Filament\Tables;
@@ -17,9 +30,9 @@ class StatusPageResource extends Resource
 {
     protected static ?string $model = StatusPage::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-eye';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-eye';
 
-    protected static ?string $navigationGroup = 'Status Pages';
+    protected static string | \UnitEnum | null $navigationGroup = 'Status Pages';
 
     protected static ?int $navigationSort = 1;
 
@@ -28,36 +41,36 @@ class StatusPageResource extends Resource
         return parent::getEloquentQuery()->where('user_id', auth()->id());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Basic Information')
+        return $schema
+            ->components([
+                Section::make('Basic Information')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('slug')
+                        TextInput::make('slug')
                             ->prefix(url('s/'))
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true),
-                        Forms\Components\Toggle::make('is_enabled')
+                        Toggle::make('is_enabled')
                             ->required()
                             ->default(true)
                             ->helperText('Enable or disable this status page'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Appearance')
+                Section::make('Appearance')
                     ->schema([
-                        Forms\Components\FileUpload::make('logo_url')
+                        FileUpload::make('logo_url')
                             ->image()
                             ->label('Logo')
                             ->disk('public')
                             ->directory('status-page-logos')
                             ->maxSize(1024)
                             ->helperText('Upload a logo for your status page (max 1MB)'),
-                        Forms\Components\TextInput::make('website_url')
+                        TextInput::make('website_url')
                             ->url()
                             ->maxLength(255)
                             ->helperText('Link to your main website'),
@@ -69,10 +82,10 @@ class StatusPageResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('slug')
+                TextColumn::make('slug')
                     ->label('URL')
                     ->prefix(url('s').'/')
                     ->copyable()
@@ -82,25 +95,25 @@ class StatusPageResource extends Resource
                     ->tooltip('Click to copy')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_enabled')
+                IconColumn::make('is_enabled')
                     ->boolean()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('items_count')
+                TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('is_enabled')
+                TernaryFilter::make('is_enabled')
                     ->label('Status')
                     ->placeholder('All Status Pages')
                     ->trueLabel('Enabled Pages')
@@ -110,13 +123,13 @@ class StatusPageResource extends Resource
             ->emptyStateDescription('Set up a status page to keep your users informed. Share your public link with your users, or embed the widget on your website.')
             ->emptyStateIcon('heroicon-o-eye')
             ->emptyStateActions([
-                \Filament\Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Create status page')
                     ->icon('heroicon-o-plus'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('embed')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('embed')
                     ->label('Embed')
                     ->modalHeading('Embed Status Page')
                     ->modalDescription('Copy and paste this code into your website to embed the status page.')
@@ -127,14 +140,14 @@ class StatusPageResource extends Resource
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
                     ->icon('heroicon-o-window'),
-                Tables\Actions\Action::make('open_page')
+                Action::make('open_page')
                     ->label('Open page')
                     ->url(fn ($record) => route('status-page.show', $record->slug))
                     ->openUrlInNewTab()
                     ->icon('heroicon-o-link'),
 
             ])
-            ->bulkActions([
+            ->toolbarActions([
 
             ]);
     }
@@ -149,9 +162,9 @@ class StatusPageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListStatusPages::route('/'),
-            'create' => Pages\CreateStatusPage::route('/create'),
-            'edit' => Pages\EditStatusPage::route('/{record}/edit'),
+            'index' => ListStatusPages::route('/'),
+            'create' => CreateStatusPage::route('/create'),
+            'edit' => EditStatusPage::route('/{record}/edit'),
         ];
     }
 

@@ -2,11 +2,22 @@
 
 namespace App\Filament\Admin\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Admin\Resources\CheckResource\Pages\ListChecks;
+use App\Filament\Admin\Resources\CheckResource\Pages\CreateCheck;
+use App\Filament\Admin\Resources\CheckResource\Pages\EditCheck;
 use App\Filament\Admin\Resources\CheckResource\Pages;
 use App\Models\Check;
 use App\Traits\WithoutUserScopes;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,30 +28,30 @@ class CheckResource extends Resource
 
     protected static ?string $model = Check::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-check-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-circle';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('monitor_id')
+        return $schema
+            ->components([
+                Select::make('monitor_id')
                     ->relationship('monitor', 'name')
                     ->required(),
-                Forms\Components\TextInput::make('status')
+                TextInput::make('status')
                     ->required()
                     ->maxLength(255)
                     ->default('unknown'),
-                Forms\Components\TextInput::make('response_time')
+                TextInput::make('response_time')
                     ->numeric()
                     ->default(null),
-                Forms\Components\TextInput::make('response_code')
+                TextInput::make('response_code')
                     ->numeric()
                     ->default(null),
-                Forms\Components\Textarea::make('output')
+                Textarea::make('output')
                     ->columnSpanFull(),
-                Forms\Components\DateTimePicker::make('checked_at')
+                DateTimePicker::make('checked_at')
                     ->required(),
-                Forms\Components\Select::make('anomaly_id')
+                Select::make('anomaly_id')
                     ->relationship('anomaly', 'id'),
             ]);
     }
@@ -49,42 +60,42 @@ class CheckResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('monitor.name')
+                TextColumn::make('monitor.name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('response_time')
+                TextColumn::make('response_time')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('response_code')
+                TextColumn::make('response_code')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('checked_at')
+                TextColumn::make('checked_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('anomaly.id')
+                TextColumn::make('anomaly.id')
                     ->searchable(),
             ])
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -99,9 +110,9 @@ class CheckResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListChecks::route('/'),
-            'create' => Pages\CreateCheck::route('/create'),
-            'edit' => Pages\EditCheck::route('/{record}/edit'),
+            'index' => ListChecks::route('/'),
+            'create' => CreateCheck::route('/create'),
+            'edit' => EditCheck::route('/{record}/edit'),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\CacheTasks;
 
+use RuntimeException;
 use App\Models\Check;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -27,7 +28,7 @@ class ResponseTimeAggregator extends CacheTask
     private function findBestInterval(): int
     {
         if ($this->userId === null) {
-            throw new \RuntimeException('Cache task must be scoped to a user');
+            throw new RuntimeException('Cache task must be scoped to a user');
         }
 
         $intervals = [12, 6, 3, 1];
@@ -53,7 +54,7 @@ class ResponseTimeAggregator extends CacheTask
     public function execute(): Collection
     {
         if ($this->userId === null) {
-            throw new \RuntimeException('Cache task must be scoped to a user');
+            throw new RuntimeException('Cache task must be scoped to a user');
         }
 
         $interval = $this->interval ?? $this->findBestInterval();

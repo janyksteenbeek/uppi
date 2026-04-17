@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Illuminate\Support\Collection;
 use App\Models\Server;
 use App\Models\ServerMetric;
 use Carbon\Carbon;
@@ -159,7 +160,7 @@ class CleanupServerMetricsCommand extends Command
     /**
      * Select metrics to keep, evenly distributed across the hour.
      */
-    private function selectMetricsToKeep($hourMetrics, int $count): \Illuminate\Support\Collection
+    private function selectMetricsToKeep($hourMetrics, int $count): Collection
     {
         $sorted = $hourMetrics->sortBy('collected_at')->values();
         $total = $sorted->count();

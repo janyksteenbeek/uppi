@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
 use App\Enums\Tests\TestStatus;
 use App\Filament\Resources\TestResource;
 use App\Models\TestRun;
@@ -39,7 +41,7 @@ class RecentTestRuns extends BaseWidget
                     ->limit(10)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('status')
+                TextColumn::make('status')
                     ->badge()
                     ->color(fn (TestStatus $state): string => match ($state) {
                         TestStatus::SUCCESS => 'success',
@@ -48,11 +50,11 @@ class RecentTestRuns extends BaseWidget
                         TestStatus::PENDING => 'gray',
                     })
                     ->label(''),
-                Tables\Columns\TextColumn::make('test.name')
+                TextColumn::make('test.name')
                     ->label('Test')
                     ->searchable()
                     ->url(fn ($record) => $record->test ? TestResource::getUrl('edit', ['record' => $record->test]) : null),
-                Tables\Columns\TextColumn::make('steps_progress')
+                TextColumn::make('steps_progress')
                     ->label('Steps')
                     ->state(function ($record) {
                         $success = $record->runSteps->where('status', TestStatus::SUCCESS)->count();
@@ -61,17 +63,17 @@ class RecentTestRuns extends BaseWidget
                         return "{$success}/{$total}";
                     })
                     ->color(fn ($record) => $record->status === TestStatus::SUCCESS ? 'success' : ($record->status === TestStatus::FAILURE ? 'danger' : 'gray')),
-                Tables\Columns\TextColumn::make('duration_ms')
+                TextColumn::make('duration_ms')
                     ->label('Duration')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 1000, 2) . 's' : '-'),
-                Tables\Columns\TextColumn::make('started_at')
+                TextColumn::make('started_at')
                     ->label('Started')
                     ->since()
                     ->tooltip(fn ($record) => $record->started_at?->format('M j, Y g:i:s a'))
                     ->sortable(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view')
+            ->recordActions([
+                Action::make('view')
                     ->label('Details')
                     ->icon('heroicon-o-eye')
                     ->color('gray')

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MonitorResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Enums\Monitors\MonitorType;
 use App\Filament\Resources\MonitorResource;
 use App\Models\Server;
@@ -16,7 +17,7 @@ class EditMonitor extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 

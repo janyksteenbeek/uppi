@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TestResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\TestResource;
 use App\Filament\Resources\TestResource\Widgets\FeatureNotEnabledWidget;
 use Filament\Actions;
@@ -15,7 +16,7 @@ class ListTests extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 

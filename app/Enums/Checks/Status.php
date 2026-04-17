@@ -2,9 +2,10 @@
 
 namespace App\Enums\Checks;
 
+use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasColor;
 
-enum Status: string implements \Filament\Support\Contracts\HasIcon, HasColor
+enum Status: string implements HasIcon, HasColor
 {
     case OK = 'ok';
     case FAIL = 'fail';

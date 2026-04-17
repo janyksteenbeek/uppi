@@ -2,11 +2,22 @@
 
 namespace App\Filament\Admin\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Admin\Resources\StatusPageResource\Pages\ListStatusPages;
+use App\Filament\Admin\Resources\StatusPageResource\Pages\CreateStatusPage;
+use App\Filament\Admin\Resources\StatusPageResource\Pages\EditStatusPage;
 use App\Filament\Admin\Resources\StatusPageResource\Pages;
 use App\Models\StatusPage;
 use App\Traits\WithoutUserScopes;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,27 +28,27 @@ class StatusPageResource extends Resource
 
     protected static ?string $model = StatusPage::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('user_id')
+        return $schema
+            ->components([
+                Select::make('user_id')
                     ->relationship('user', 'name')
                     ->required(),
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('slug')
+                TextInput::make('slug')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Toggle::make('is_enabled')
+                Toggle::make('is_enabled')
                     ->required(),
-                Forms\Components\TextInput::make('logo_url')
+                TextInput::make('logo_url')
                     ->maxLength(255)
                     ->default(null),
-                Forms\Components\TextInput::make('website_url')
+                TextInput::make('website_url')
                     ->maxLength(255)
                     ->default(null),
             ]);
@@ -47,26 +58,26 @@ class StatusPageResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('user.name')
+                TextColumn::make('user.name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('slug')
+                TextColumn::make('slug')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_enabled')
+                IconColumn::make('is_enabled')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('logo_url')
+                TextColumn::make('logo_url')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('website_url')
+                TextColumn::make('website_url')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -74,12 +85,12 @@ class StatusPageResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -94,9 +105,9 @@ class StatusPageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListStatusPages::route('/'),
-            'create' => Pages\CreateStatusPage::route('/create'),
-            'edit' => Pages\EditStatusPage::route('/{record}/edit'),
+            'index' => ListStatusPages::route('/'),
+            'create' => CreateStatusPage::route('/create'),
+            'edit' => EditStatusPage::route('/{record}/edit'),
         ];
     }
 }

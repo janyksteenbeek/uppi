@@ -2,15 +2,30 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Hidden;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\AlertResource\Pages\ManageAlerts;
 use App\Enums\Alerts\AlertType;
 use App\Filament\Resources\AlertResource\Pages;
 use App\Models\Alert;
 use Filament\Forms;
-use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -21,11 +36,11 @@ final class AlertResource extends Resource
 {
     protected static ?string $model = Alert::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-bell-alert';
 
     protected static ?string $navigationLabel = 'Alerts';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
     protected static ?int $navigationSort = 3;
 
@@ -34,11 +49,11 @@ final class AlertResource extends Resource
         return auth()->user()->id.':'.md5(date('Y-m-d').auth()->user()->id);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\ToggleButtons::make('type')
+        return $schema
+            ->components([
+                ToggleButtons::make('type')
                     ->options(AlertType::class)
                     ->required()
                     ->inline()
@@ -46,11 +61,11 @@ final class AlertResource extends Resource
                     ->live()
                     ->columnSpanFull(),
 
-                Forms\Components\Section::make([
-                    Forms\Components\Hidden::make('uppi_app_info')
+                Section::make([
+                    Hidden::make('uppi_app_info')
                         ->dehydrated(false)
                         ->required(fn (Get $get) => $get('type') === AlertType::EXPO->value),
-                    Forms\Components\View::make('filament.forms.components.uppi-app-info')
+                    View::make('filament.forms.components.uppi-app-info')
                         ->viewData([
                             'personal_access_tokens_url' => PersonalAccessTokenResource::getUrl(),
                         ]),
@@ -58,13 +73,13 @@ final class AlertResource extends Resource
                     ->columnSpanFull()
                     ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EXPO),
 
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->columnSpanFull()
                     ->live()
                     ->visible(fn (Get $get, $context) => $context === 'edit' || ($context === 'create' && AlertType::tryFrom($get('type')) !== AlertType::EXPO)),
 
-                Forms\Components\TextInput::make('destination')
+                TextInput::make('destination')
                     ->helperText(function (Get $get) {
                         return match (AlertType::tryFrom($get('type'))) {
                             AlertType::EMAIL => 'The email address to send the alert to.',
@@ -85,14 +100,14 @@ final class AlertResource extends Resource
                     ->email(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EMAIL)
                     ->required(),
 
-                Forms\Components\Toggle::make('is_enabled')
+                Toggle::make('is_enabled')
                     ->required()
                     ->default(true)
                     ->hidden(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::EXPO)
                     ->columnSpanFull(),
 
-                Forms\Components\Section::make([
-                    Forms\Components\TextInput::make('config.slack_token')
+                Section::make([
+                    TextInput::make('config.slack_token')
                         ->label('Slack Bot OAuth Token')
                         ->required(),
                 ])
@@ -100,17 +115,17 @@ final class AlertResource extends Resource
                     ->live()
                     ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::SLACK),
 
-                Forms\Components\Section::make([
-                    Forms\Components\TextInput::make('config.bird_api_key')
+                Section::make([
+                    TextInput::make('config.bird_api_key')
                         ->required()
                         ->password()
                         ->label('API Key')
                         ->helperText('The API key for the Bird API.'),
-                    Forms\Components\TextInput::make('config.bird_workspace_id')
+                    TextInput::make('config.bird_workspace_id')
                         ->label('Workspace ID')
                         ->helperText('The ID of the workspace that will be used to send the alert from.')
                         ->required(),
-                    Forms\Components\TextInput::make('config.bird_channel_id')
+                    TextInput::make('config.bird_channel_id')
                         ->label('Channel ID')
                         ->helperText('The ID of the channel that will be used to send the alert to.')
                         ->required(),
@@ -119,14 +134,14 @@ final class AlertResource extends Resource
                     ->live()
                     ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::BIRD),
 
-                Forms\Components\Section::make([
-                    Forms\Components\TextInput::make('config.pushover_api_token')
+                Section::make([
+                    TextInput::make('config.pushover_api_token')
                         ->required()
                         ->password()
                         ->label('Application API Token')
                         ->helperText('The Application API Token for the PushOver API.')
                         ->hintAction(
-                            \Filament\Forms\Components\Actions\Action::make('generate')
+                            Action::make('generate')
                                 ->label('Create a new application')
                                 ->icon('heroicon-m-arrow-top-right-on-square')
                                 ->url('https://pushover.net/apps/build')
@@ -137,8 +152,8 @@ final class AlertResource extends Resource
                     ->live()
                     ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::PUSHOVER),
 
-                Forms\Components\Section::make([
-                    Forms\Components\Section::make([
+                Section::make([
+                    Section::make([
 
                         Placeholder::make('telegram_bot_token')
                             ->label('Registering with our Telegram bot')
@@ -147,7 +162,7 @@ final class AlertResource extends Resource
                             ->columnSpanFull(),
 
                         Actions::make([
-                            Forms\Components\Actions\Action::make('register')
+                            Action::make('register')
                                 ->label('@uppialertbot on Telegram')
                                 ->outlined()
                                 ->icon('heroicon-o-arrow-top-right-on-square')
@@ -155,7 +170,7 @@ final class AlertResource extends Resource
                                 ->openUrlInNewTab(),
                         ]),
 
-                        Forms\Components\TextInput::make('config.telegram_bot_token')
+                        TextInput::make('config.telegram_bot_token')
                             ->dehydrated(false)
                             ->required()
                             ->label('Paste the following command in a chat with @uppialertbot')
@@ -163,7 +178,7 @@ final class AlertResource extends Resource
                             ->helperText('After sending the command, please click the button below'),
 
                         Actions::make([
-                            Forms\Components\Actions\Action::make('get_chat_id')
+                            Action::make('get_chat_id')
                                 ->label('I have registered with the bot on Telegram. Attach my chat ID to this alert')
                                 ->icon('heroicon-o-check')
                                 ->action(function (Set $set) {
@@ -198,13 +213,13 @@ final class AlertResource extends Resource
                 ])
                     ->visible(fn (Get $get) => AlertType::tryFrom($get('type')) === AlertType::TELEGRAM),
 
-                Forms\Components\Section::make([
-                    Forms\Components\TextInput::make('config.bird_api_key')
+                Section::make([
+                    TextInput::make('config.bird_api_key')
                         ->required()
                         ->password()
                         ->label('API Key')
                         ->helperText('The API key for the MessageBird API.'),
-                    Forms\Components\TextInput::make('config.bird_originator')
+                    TextInput::make('config.bird_originator')
                         ->label('Originator')
                         ->helperText('The originator of the message. This is the name that will be displayed on the recipient\'s phone.')
                         ->required(),
@@ -219,12 +234,12 @@ final class AlertResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->description(fn ($record) => ! $record->is_enabled ? 'Inactive' : null),
-                Tables\Columns\TextColumn::make('type')
+                TextColumn::make('type')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('destination')
+                TextColumn::make('destination')
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         if (in_array($record->type, [AlertType::PUSHOVER, AlertType::EXPO])) {
@@ -233,11 +248,11 @@ final class AlertResource extends Resource
 
                         return $state;
                     }),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -249,27 +264,27 @@ final class AlertResource extends Resource
             ->emptyStateDescription('Set up alerts to different destinations to notify you when something is wrong.')
             ->emptyStateIcon('heroicon-o-bell-alert')
             ->emptyStateActions([
-                \Filament\Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Create alert')
                     ->icon('heroicon-o-plus'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('enable')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('enable')
                         ->label('Enable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => true]))
                         ->deselectRecordsAfterCompletion()
                         ->icon('heroicon-o-check'),
-                    Tables\Actions\BulkAction::make('disable')
+                    BulkAction::make('disable')
                         ->label('Disable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => false]))
                         ->deselectRecordsAfterCompletion()
                         ->icon('heroicon-o-x-mark'),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -277,7 +292,7 @@ final class AlertResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageAlerts::route('/'),
+            'index' => ManageAlerts::route('/'),
         ];
     }
 }

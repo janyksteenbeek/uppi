@@ -2,6 +2,28 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Str;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
+use App\Jobs\Checks\TestCheckJob;
+use Filament\Notifications\Notification;
+use Filament\Actions\EditAction;
+use Filament\Actions\CreateAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\TestResource\RelationManagers\RunsRelationManager;
+use App\Filament\Resources\TestResource\Widgets\FeatureNotEnabledWidget;
+use App\Filament\Resources\TestResource\Pages\ListTests;
+use App\Filament\Resources\TestResource\Pages\CreateTest;
+use App\Filament\Resources\TestResource\Pages\EditTest;
 use App\Enums\Tests\TestFlowBlockType;
 use App\Enums\Tests\TestStatus;
 use App\Filament\Resources\TestResource\Pages;
@@ -9,8 +31,6 @@ use App\Filament\Resources\TestResource\RelationManagers;
 use App\Filament\Resources\TestResource\Widgets;
 use App\Models\Test;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -21,9 +41,9 @@ class TestResource extends Resource
 {
     protected static ?string $model = Test::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-beaker';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-beaker';
 
-    protected static ?string $navigationGroup = 'Monitoring';
+    protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
     protected static ?int $navigationSort = 2;
 
@@ -32,40 +52,40 @@ class TestResource extends Resource
         return parent::getEloquentQuery()->where('user_id', Auth::id());
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Basic information')
+        return $schema
+            ->components([
+                Section::make('Basic information')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        TextInput::make('name')
                             ->required()
                             ->maxLength(255)
                             ->helperText('A descriptive name for this test'),
-                        Forms\Components\TextInput::make('entrypoint_url')
+                        TextInput::make('entrypoint_url')
                             ->required()
                             ->url()
                             ->label('Entrypoint URL')
                             ->helperText('The starting URL for the test flow'),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Test flow')
+                Section::make('Test flow')
                     ->description('Build your test flow by adding steps. The test starts by visiting the entrypoint URL, then executes each step in order.')
                     ->schema([
-                        Forms\Components\Repeater::make('steps')
+                        Repeater::make('steps')
                             ->relationship()
                             ->orderColumn('sort_order')
                             ->label('')
                             ->collapsed()
                             ->schema([
-                                Forms\Components\Select::make('type')
+                                Select::make('type')
                                     ->options(TestFlowBlockType::options())
                                     ->required()
                                     ->live()
-                                    ->afterStateUpdated(fn (Forms\Set $set) => $set('value', null))
+                                    ->afterStateUpdated(fn (Set $set) => $set('value', null))
                                     ->helperText(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getDescription())
                                     ->columnSpanFull(),
-                                Forms\Components\TextInput::make('value')
+                                TextInput::make('value')
                                     ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getValueLabel() ?? 'Value')
                                     ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
                                     ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresValue() ?? false)
@@ -87,7 +107,7 @@ class TestResource extends Resource
                                         default => null,
                                     })
                                     ->columnSpan(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ? 1 : 2),
-                                Forms\Components\TextInput::make('selector')
+                                TextInput::make('selector')
                                     ->label(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->getSelectorLabel() ?? 'Selector')
                                     ->required(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
                                     ->visible(fn (Get $get) => TestFlowBlockType::tryFrom($get('type'))?->requiresSelector() ?? false)
@@ -106,7 +126,7 @@ class TestResource extends Resource
                                         default => null,
                                     })
                                     ->columnSpan(1),
-                                Forms\Components\TextInput::make('delay_ms')
+                                TextInput::make('delay_ms')
                                     ->label('Wait after')
                                     ->numeric()
                                     ->minValue(0)
@@ -125,9 +145,9 @@ class TestResource extends Resource
                                 $label = TestFlowBlockType::tryFrom($state['type'] ?? '')?->getLabel() ?? 'Step';
 
                                 if (isset($state['value']) && $state['value']) {
-                                    $label .= ': ' . \Str::limit($state['value'], 30);
+                                    $label .= ': ' . Str::limit($state['value'], 30);
                                 } elseif (isset($state['selector']) && $state['selector']) {
-                                    $label .= ': ' . \Str::limit($state['selector'], 30);
+                                    $label .= ': ' . Str::limit($state['selector'], 30);
                                 }
 
                                 if (isset($state['delay_ms']) && $state['delay_ms'] > 0) {
@@ -149,7 +169,7 @@ class TestResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('lastRun.status')
+                TextColumn::make('lastRun.status')
                     ->label('Status')
                     ->badge()
                     ->default('-')
@@ -159,44 +179,44 @@ class TestResource extends Resource
                             return null;
                         }
 
-                        $successCount = $lastRun->runSteps()->where('status', \App\Enums\Tests\TestStatus::SUCCESS)->count();
+                        $successCount = $lastRun->runSteps()->where('status', TestStatus::SUCCESS)->count();
                         $totalCount = $lastRun->runSteps()->count();
 
                         return "{$successCount}/{$totalCount} steps";
                     })
                     ->sortable(),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('entrypoint_url')
+                TextColumn::make('entrypoint_url')
                     ->label('URL')
                     ->searchable()
                     ->limit(40)
                     ->tooltip(fn (Test $record) => $record->entrypoint_url),
-                Tables\Columns\TextColumn::make('steps_count')
+                TextColumn::make('steps_count')
                     ->label('Steps')
                     ->counts('steps')
                     ->suffix(' steps'),
-                Tables\Columns\TextColumn::make('monitors_count')
+                TextColumn::make('monitors_count')
                     ->label('Monitors')
                     ->counts('monitors')
                     ->suffix(' monitors'),
-                Tables\Columns\TextColumn::make('last_run_at')
+                TextColumn::make('last_run_at')
                     ->label('Last run')
                     ->since()
                     ->tooltip(fn (Test $record) => $record->last_run_at?->format('j F Y, g:i a'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('lastRun.duration_ms')
+                TextColumn::make('lastRun.duration_ms')
                     ->label('Duration')
                     ->formatStateUsing(fn ($state) => $state ? number_format($state / 1000, 2) . 's' : '-')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('last_run_status')
+                SelectFilter::make('last_run_status')
                     ->label('Status')
                     ->options(TestStatus::options())
                     ->query(function (Builder $query, array $data): Builder {
@@ -207,8 +227,8 @@ class TestResource extends Resource
                         return $query->whereHas('lastRun', fn (Builder $q) => $q->where('status', $data['value']));
                     }),
             ])
-            ->actions([
-                Tables\Actions\Action::make('run')
+            ->recordActions([
+                Action::make('run')
                     ->label('Run now')
                     ->icon('heroicon-o-play')
                     ->color('info')
@@ -221,27 +241,27 @@ class TestResource extends Resource
 
 
                         // Dispatch the test job
-                        \App\Jobs\Checks\TestCheckJob::dispatch($monitor);
+                        TestCheckJob::dispatch($monitor);
 
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Test queued')
                             ->body('The test has been queued to run. Results will appear shortly.')
                             ->success()
                             ->send();
                     }),
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->emptyStateHeading('Create your first test')
             ->emptyStateDescription('Set up automated browser tests to verify your website or application is working correctly. Then use them in monitors.')
             ->emptyStateIcon('heroicon-o-beaker')
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Create a test')
                     ->icon('heroicon-o-plus'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -249,23 +269,23 @@ class TestResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\RunsRelationManager::class,
+            RunsRelationManager::class,
         ];
     }
 
     public static function getWidgets(): array
     {
         return [
-            Widgets\FeatureNotEnabledWidget::class,
+            FeatureNotEnabledWidget::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTests::route('/'),
-            'create' => Pages\CreateTest::route('/create'),
-            'edit' => Pages\EditTest::route('/{record}/edit'),
+            'index' => ListTests::route('/'),
+            'create' => CreateTest::route('/create'),
+            'edit' => EditTest::route('/{record}/edit'),
         ];
     }
 }

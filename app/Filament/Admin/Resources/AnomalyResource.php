@@ -2,11 +2,20 @@
 
 namespace App\Filament\Admin\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Admin\Resources\AnomalyResource\Pages\ListAnomalies;
+use App\Filament\Admin\Resources\AnomalyResource\Pages\CreateAnomaly;
+use App\Filament\Admin\Resources\AnomalyResource\Pages\EditAnomaly;
 use App\Filament\Admin\Resources\AnomalyResource\Pages;
 use App\Models\Anomaly;
 use App\Traits\WithoutUserScopes;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,18 +26,18 @@ class AnomalyResource extends Resource
 
     protected static ?string $model = Anomaly::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-exclamation-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-exclamation-circle';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('monitor_id')
+        return $schema
+            ->components([
+                Select::make('monitor_id')
                     ->relationship('monitor', 'name')
                     ->required(),
-                Forms\Components\DateTimePicker::make('started_at')
+                DateTimePicker::make('started_at')
                     ->required(),
-                Forms\Components\DateTimePicker::make('ended_at'),
+                DateTimePicker::make('ended_at'),
             ]);
     }
 
@@ -36,22 +45,22 @@ class AnomalyResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('ID')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('monitor.name')
+                TextColumn::make('monitor.name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('started_at')
+                TextColumn::make('started_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('ended_at')
+                TextColumn::make('ended_at')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -59,12 +68,12 @@ class AnomalyResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -79,9 +88,9 @@ class AnomalyResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAnomalies::route('/'),
-            'create' => Pages\CreateAnomaly::route('/create'),
-            'edit' => Pages\EditAnomaly::route('/{record}/edit'),
+            'index' => ListAnomalies::route('/'),
+            'create' => CreateAnomaly::route('/create'),
+            'edit' => EditAnomaly::route('/{record}/edit'),
         ];
     }
 }
