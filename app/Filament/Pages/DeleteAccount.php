@@ -18,7 +18,7 @@ class DeleteAccount extends Page implements HasForms
     use InteractsWithActions;
     use InteractsWithForms;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-trash';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-trash';
 
     protected static bool $shouldRegisterNavigation = false;
 

@@ -18,7 +18,7 @@ class RunsRelationManager extends RelationManager
 
     protected static ?string $title = 'Test runs';
 
-    protected static string | \BackedEnum | null $icon = 'heroicon-o-play';
+    protected static string | \BackedEnum | null $icon = 'phosphor-play';
 
     public function table(Table $table): Table
     {
@@ -69,7 +69,7 @@ class RunsRelationManager extends RelationManager
             ->recordActions([
                 Action::make('view_steps')
                     ->label('View steps')
-                    ->icon('heroicon-o-list-bullet')
+                    ->icon('phosphor-list-bullets')
                     ->modalHeading(fn (TestRun $record) => 'Run #' . substr($record->id, -8) . ' - Steps')
                     ->modalContent(fn (TestRun $record) => view('filament.modals.test-run-steps', [
                         'run' => $record->load('runSteps.testStep'),
@@ -80,6 +80,6 @@ class RunsRelationManager extends RelationManager
             ])
             ->emptyStateHeading('No test runs yet')
             ->emptyStateDescription('Runs will appear here after the monitor executes this test.')
-            ->emptyStateIcon('heroicon-o-play');
+            ->emptyStateIcon('phosphor-play');
     }
 }

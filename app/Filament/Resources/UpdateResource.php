@@ -41,7 +41,7 @@ class UpdateResource extends Resource
 {
     protected static ?string $model = Update::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-newspaper';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-newspaper';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Status Pages';
 
@@ -159,7 +159,7 @@ class UpdateResource extends Resource
 
                 Section::make('Impact')
                     ->collapsible()
-                    ->icon('heroicon-o-clock')
+                    ->icon('phosphor-clock')
                     ->schema([
                         DateTimePicker::make('from')
                             ->label('Start Date')
@@ -175,7 +175,7 @@ class UpdateResource extends Resource
 
                 Section::make('Metadata')
                     ->collapsible()
-                    ->icon('heroicon-o-cog')
+                    ->icon('phosphor-gear')
                     ->schema([
                         Select::make('status_pages')
                             ->multiple()
@@ -247,11 +247,11 @@ class UpdateResource extends Resource
             ])
             ->emptyStateHeading(heading: 'You haven\'t shared any updates yet')
             ->emptyStateDescription('Updates are a great way to keep your users informed about what\'s happening with your service. Announce maintenance, outages, and other important updates.')
-            ->emptyStateIcon('heroicon-o-newspaper')
+            ->emptyStateIcon('phosphor-newspaper')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Create update')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -259,12 +259,12 @@ class UpdateResource extends Resource
                         ->label('Publish')
                         ->action(fn ($records) => $records->each->update(['is_published' => true]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-check'),
+                        ->icon('phosphor-check'),
                     BulkAction::make('unpublish')
                         ->label('Unpublish')
                         ->action(fn ($records) => $records->each->update(['is_published' => false]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-x-mark'),
+                        ->icon('phosphor-x'),
                     DeleteBulkAction::make(),
                 ]),
             ]);

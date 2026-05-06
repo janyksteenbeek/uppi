@@ -26,10 +26,10 @@ enum UpdateType: string implements HasColor, HasIcon, HasLabel
     public function getIcon(): string
     {
         return match ($this) {
-            self::ANOMALY => 'heroicon-o-exclamation-triangle',
-            self::MAINTENANCE => 'heroicon-o-wrench',
-            self::SCHEDULED_MAINTENANCE => 'heroicon-o-clock',
-            self::UPDATE => 'heroicon-o-arrow-up',
+            self::ANOMALY => 'phosphor-warning',
+            self::MAINTENANCE => 'phosphor-wrench',
+            self::SCHEDULED_MAINTENANCE => 'phosphor-clock',
+            self::UPDATE => 'phosphor-arrow-up',
         };
     }
 

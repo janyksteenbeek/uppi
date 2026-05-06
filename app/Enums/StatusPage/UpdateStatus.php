@@ -48,14 +48,14 @@ enum UpdateStatus: string implements HasColor, HasIcon, HasLabel
     public function getIcon(): ?string
     {
         return match ($this) {
-            self::NEW => 'heroicon-o-exclamation-triangle',
-            self::UNDER_INVESTIGATION => 'heroicon-o-magnifying-glass',
-            self::IDENTIFIED => 'heroicon-o-sparkles',
-            self::WORK_IN_PROGRESS => 'heroicon-o-wrench',
-            self::RECOVERING => 'heroicon-o-wrench',
-            self::MONITORING => 'heroicon-o-check',
-            self::POST_INCIDENT => 'heroicon-o-arrow-up-circle',
-            self::COMPLETED => 'heroicon-o-check-circle',
+            self::NEW => 'phosphor-warning',
+            self::UNDER_INVESTIGATION => 'phosphor-magnifying-glass',
+            self::IDENTIFIED => 'phosphor-sparkle',
+            self::WORK_IN_PROGRESS => 'phosphor-wrench',
+            self::RECOVERING => 'phosphor-wrench',
+            self::MONITORING => 'phosphor-check',
+            self::POST_INCIDENT => 'phosphor-arrow-circle-up',
+            self::COMPLETED => 'phosphor-check-circle',
         };
     }
 }

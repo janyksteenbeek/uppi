@@ -3,7 +3,7 @@
         <div class="flex items-start gap-4">
             <div class="flex-shrink-0 rounded-full bg-warning-100 p-2 dark:bg-warning-900">
                 <x-filament::icon
-                    icon="heroicon-o-exclamation-triangle"
+                    icon="phosphor-warning"
                     class="h-6 w-6 text-warning-600 dark:text-warning-400"
                 />
             </div>

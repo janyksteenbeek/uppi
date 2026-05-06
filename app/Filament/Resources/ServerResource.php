@@ -34,7 +34,7 @@ class ServerResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-server';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-hard-drives';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
@@ -119,7 +119,7 @@ class ServerResource extends Resource
                             ->suffixAction(
                                 Action::make('copy_secret')
                                     ->label('Copy')
-                                    ->icon('heroicon-o-clipboard')
+                                    ->icon('phosphor-clipboard')
                                     ->action(fn () => null)
                                     ->extraAttributes(fn ($state) => [
                                         'x-data' => '',
@@ -132,7 +132,7 @@ class ServerResource extends Resource
                             Action::make('regenerate_secret')
                                 ->label('Regenerate Secret')
                                 ->color('warning')
-                                ->icon('heroicon-o-arrow-path')
+                                ->icon('phosphor-arrow-clockwise')
                                 ->requiresConfirmation()
                                 ->modalHeading('Regenerate Secret Key')
                                 ->modalDescription('Are you sure you want to regenerate the secret key? You will need to reinstall the monitoring agent on your server.')
@@ -166,9 +166,9 @@ class ServerResource extends Resource
                         default => 'gray',
                     })
                     ->icon(fn (string $state) => match ($state) {
-                        'Online' => 'heroicon-o-check-circle',
-                        'Offline' => 'heroicon-o-x-circle',
-                        'Waiting for agent' => 'heroicon-o-clock',
+                        'Online' => 'phosphor-check-circle',
+                        'Offline' => 'phosphor-x-circle',
+                        'Waiting for agent' => 'phosphor-clock',
                         default => null,
                     }),
 
@@ -229,11 +229,11 @@ class ServerResource extends Resource
             ])
             ->emptyStateHeading('Start monitoring your servers')
             ->emptyStateDescription('Add your first server to monitor CPU, memory, disk space and network usage.')
-            ->emptyStateIcon('heroicon-o-server')
+            ->emptyStateIcon('phosphor-hard-drives')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Add server')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->recordUrl(fn (Server $record) => ServerResource::getUrl('view', ['record' => $record]));
     }

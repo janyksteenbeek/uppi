@@ -18,7 +18,7 @@ class AnomaliesRelationManager extends RelationManager
 
     protected static ?string $title = 'Alert History';
 
-    protected static string | \BackedEnum | null $icon = 'heroicon-o-clock';
+    protected static string | \BackedEnum | null $icon = 'phosphor-clock';
 
     public function table(Table $table): Table
     {
@@ -72,12 +72,12 @@ class AnomaliesRelationManager extends RelationManager
                 TextColumn::make('checks_count')
                     ->label('Checks')
                     ->sortable()
-                    ->icon('heroicon-o-signal')
+                    ->icon('phosphor-cell-signal-high')
                     ->color('gray'),
                 TextColumn::make('triggers_count')
                     ->label('Alerts')
                     ->sortable()
-                    ->icon('heroicon-o-bell')
+                    ->icon('phosphor-bell')
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 TextColumn::make('first_error')
                     ->label('Error')
@@ -101,13 +101,13 @@ class AnomaliesRelationManager extends RelationManager
             ->recordActions([
                 Action::make('view')
                     ->label('Details')
-                    ->icon('heroicon-o-eye')
+                    ->icon('phosphor-eye')
                     ->url(fn ($record) => AnomalyResource::getUrl('view', ['record' => $record]))
                     ->openUrlInNewTab(),
             ])
             ->emptyStateHeading('No anomalies recorded')
             ->emptyStateDescription('When this monitor experiences downtime, anomalies will appear here.')
-            ->emptyStateIcon('heroicon-o-check-circle')
+            ->emptyStateIcon('phosphor-check-circle')
             ->striped()
             ->poll('30s');
     }

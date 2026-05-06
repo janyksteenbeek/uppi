@@ -38,7 +38,7 @@ class UserResource extends Resource
 
     protected static ?string $model = User::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-users';
 
     public static function form(Schema $schema): Schema
     {
@@ -103,15 +103,15 @@ class UserResource extends Resource
                     ->label('Verified')
                     ->boolean()
                     ->getStateUsing(fn (User $record) => $record->email_verified_at !== null)
-                    ->trueIcon('heroicon-o-check-badge')
-                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueIcon('phosphor-seal-check')
+                    ->falseIcon('phosphor-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger'),
                 IconColumn::make('is_admin')
                     ->label('Admin')
                     ->boolean()
-                    ->trueIcon('heroicon-o-shield-check')
-                    ->falseIcon('heroicon-o-user')
+                    ->trueIcon('phosphor-shield-check')
+                    ->falseIcon('phosphor-user')
                     ->trueColor('warning')
                     ->falseColor('gray'),
                 TextColumn::make('feature_flags')
@@ -144,7 +144,7 @@ class UserResource extends Resource
                     EditAction::make(),
                     Action::make('toggle_tests')
                         ->label(fn (User $user) => $user->hasFeature('run-tests') ? 'Disable tests' : 'Enable tests')
-                        ->icon('heroicon-o-beaker')
+                        ->icon('phosphor-flask')
                         ->color(fn (User $user) => $user->hasFeature('run-tests') ? 'danger' : 'success')
                         ->action(function (User $user) {
                             if ($user->hasFeature('run-tests')) {
@@ -165,7 +165,7 @@ class UserResource extends Resource
                         }),
                     Action::make('toggle_server_monitoring')
                         ->label(fn (User $user) => $user->hasFeature('server-monitoring') ? 'Disable server monitoring' : 'Enable server monitoring')
-                        ->icon('heroicon-o-server')
+                        ->icon('phosphor-hard-drives')
                         ->color(fn (User $user) => $user->hasFeature('server-monitoring') ? 'danger' : 'success')
                         ->action(function (User $user) {
                             if ($user->hasFeature('server-monitoring')) {
@@ -186,7 +186,7 @@ class UserResource extends Resource
                         }),
                     Action::make('verify_email')
                         ->label('Verify email')
-                        ->icon('heroicon-o-check-badge')
+                        ->icon('phosphor-seal-check')
                         ->color('success')
                         ->visible(fn (User $user) => $user->email_verified_at === null)
                         ->action(function (User $user) {
@@ -204,7 +204,7 @@ class UserResource extends Resource
                     DeleteBulkAction::make(),
                     BulkAction::make('enable_tests')
                         ->label('Enable tests feature')
-                        ->icon('heroicon-o-beaker')
+                        ->icon('phosphor-flask')
                         ->action(function ($records) {
                             $records->each(fn (User $user) => $user->enableFeature('run-tests'));
                             Notification::make()
@@ -215,7 +215,7 @@ class UserResource extends Resource
                         }),
                     BulkAction::make('disable_tests')
                         ->label('Disable tests feature')
-                        ->icon('heroicon-o-beaker')
+                        ->icon('phosphor-flask')
                         ->color('danger')
                         ->action(function ($records) {
                             $records->each(fn (User $user) => $user->disableFeature('run-tests'));
@@ -227,7 +227,7 @@ class UserResource extends Resource
                         }),
                     BulkAction::make('enable_server_monitoring')
                         ->label('Enable server monitoring')
-                        ->icon('heroicon-o-server')
+                        ->icon('phosphor-hard-drives')
                         ->action(function ($records) {
                             $records->each(fn (User $user) => $user->enableFeature('server-monitoring'));
                             Notification::make()
@@ -238,7 +238,7 @@ class UserResource extends Resource
                         }),
                     BulkAction::make('disable_server_monitoring')
                         ->label('Disable server monitoring')
-                        ->icon('heroicon-o-server')
+                        ->icon('phosphor-hard-drives')
                         ->color('danger')
                         ->action(function ($records) {
                             $records->each(fn (User $user) => $user->disableFeature('server-monitoring'));

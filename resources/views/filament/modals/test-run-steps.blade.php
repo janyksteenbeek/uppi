@@ -11,10 +11,10 @@
                         'failure' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
                     ];
                     $statusIcons = [
-                        'pending' => 'heroicon-o-clock',
-                        'running' => 'heroicon-o-arrow-path',
-                        'success' => 'heroicon-o-check-circle',
-                        'failure' => 'heroicon-o-x-circle',
+                        'pending' => 'phosphor-clock',
+                        'running' => 'phosphor-arrow-clockwise',
+                        'success' => 'phosphor-check-circle',
+                        'failure' => 'phosphor-x-circle',
                     ];
                 @endphp
                 <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium {{ $statusColors[$run->status->value] }}">
@@ -41,7 +41,7 @@
             {{-- Entrypoint --}}
             <div class="relative flex items-start gap-4 pl-10">
                 <div class="absolute left-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 ring-4 ring-white dark:ring-gray-900">
-                    <x-filament::icon icon="heroicon-s-globe-alt" class="h-3 w-3 text-white" />
+                    <x-filament::icon icon="phosphor-globe" class="h-3 w-3 text-white" />
                 </div>
                 <div class="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
                     <div class="flex items-center justify-between">
@@ -79,11 +79,11 @@
                 <div class="relative flex items-start gap-4 pl-10">
                     <div class="absolute left-2 flex h-5 w-5 items-center justify-center rounded-full {{ $dotColor }} ring-4 ring-white dark:ring-gray-900">
                         @if($isSuccess)
-                            <x-filament::icon icon="heroicon-s-check" class="h-3 w-3 text-white" />
+                            <x-filament::icon icon="phosphor-check" class="h-3 w-3 text-white" />
                         @elseif($isFailure)
-                            <x-filament::icon icon="heroicon-s-x-mark" class="h-3 w-3 text-white" />
+                            <x-filament::icon icon="phosphor-x" class="h-3 w-3 text-white" />
                         @elseif($isRunning)
-                            <x-filament::icon icon="heroicon-s-arrow-path" class="h-3 w-3 text-white animate-spin" />
+                            <x-filament::icon icon="phosphor-arrow-clockwise" class="h-3 w-3 text-white animate-spin" />
                         @else
                             <span class="h-2 w-2 rounded-full bg-white"></span>
                         @endif
@@ -123,7 +123,7 @@
                                 @endif
                                 @if($step->delay_ms)
                                     <span class="inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-900 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">
-                                        <x-filament::icon icon="heroicon-o-clock" class="h-3 w-3" />
+                                        <x-filament::icon icon="phosphor-clock" class="h-3 w-3" />
                                         {{ $step->delay_ms >= 1000 ? number_format($step->delay_ms / 1000, 1) . 's' : $step->delay_ms . 'ms' }} wait
                                     </span>
                                 @endif

@@ -16,10 +16,10 @@ enum TestStatus: string implements HasIcon, HasColor, HasLabel
     public function getIcon(): string
     {
         return match ($this) {
-            self::PENDING => 'heroicon-o-clock',
-            self::RUNNING => 'heroicon-o-arrow-path',
-            self::SUCCESS => 'heroicon-o-check-circle',
-            self::FAILURE => 'heroicon-o-x-circle',
+            self::PENDING => 'phosphor-clock',
+            self::RUNNING => 'phosphor-arrow-clockwise',
+            self::SUCCESS => 'phosphor-check-circle',
+            self::FAILURE => 'phosphor-x-circle',
         };
     }
 

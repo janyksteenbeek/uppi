@@ -28,7 +28,7 @@ class CheckResource extends Resource
 
     protected static ?string $model = Check::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-check-circle';
 
     public static function form(Schema $schema): Schema
     {

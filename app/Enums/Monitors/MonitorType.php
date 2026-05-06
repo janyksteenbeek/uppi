@@ -53,12 +53,12 @@ enum MonitorType: string implements HasIcon, HasLabel
     public function getIcon(): string
     {
         return match ($this) {
-            self::HTTP => 'heroicon-o-globe-alt',
-            self::TCP => 'heroicon-o-server-stack',
-            self::DUMMY => 'heroicon-o-question-mark-circle',
-            self::PULSE => 'heroicon-o-clock',
-            self::TEST => 'heroicon-o-beaker',
-            self::SERVER => 'heroicon-o-cpu-chip',
+            self::HTTP => 'phosphor-globe',
+            self::TCP => 'phosphor-database',
+            self::DUMMY => 'phosphor-question',
+            self::PULSE => 'phosphor-clock',
+            self::TEST => 'phosphor-flask',
+            self::SERVER => 'phosphor-cpu',
         };
     }
 

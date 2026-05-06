@@ -1,8 +1,15 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\ErrorTrackingServiceProvider;
+use App\Providers\Filament\AdminPanelProvider;
+use App\Providers\Filament\MainPanelProvider;
+use App\Providers\HorizonServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
-    App\Providers\Filament\MainPanelProvider::class,
-    App\Providers\HorizonServiceProvider::class,
+    AppServiceProvider::class,
+    ErrorTrackingServiceProvider::class,
+    AdminPanelProvider::class,
+    MainPanelProvider::class,
+    HorizonServiceProvider::class,
 ];

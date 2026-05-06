@@ -28,7 +28,7 @@ class StatusPageResource extends Resource
 
     protected static ?string $model = StatusPage::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-stack';
 
     public static function form(Schema $schema): Schema
     {

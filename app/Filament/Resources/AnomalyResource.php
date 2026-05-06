@@ -41,7 +41,7 @@ class AnomalyResource extends Resource
 {
     protected static ?string $model = Anomaly::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clock';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-clock';
 
     protected static ?string $navigationLabel = 'History';
 
@@ -70,7 +70,7 @@ class AnomalyResource extends Resource
         return $schema
             ->components([
                 Section::make('Overview')
-                    ->icon('heroicon-o-information-circle')
+                    ->icon('phosphor-info')
                     ->schema([
                         Grid::make(4)
                             ->schema([
@@ -85,20 +85,20 @@ class AnomalyResource extends Resource
                                         $end = $record->ended_at ?? now();
                                         return $record->started_at->diffForHumans($end, true);
                                     })
-                                    ->icon('heroicon-o-clock'),
+                                    ->icon('phosphor-clock'),
                                 TextEntry::make('checks_count')
                                     ->label('Checks')
                                     ->state(fn ($record) => $record->checks()->count())
-                                    ->icon('heroicon-o-signal'),
+                                    ->icon('phosphor-cell-signal-high'),
                                 TextEntry::make('alerts_count')
                                     ->label('Alerts sent')
                                     ->state(fn ($record) => $record->triggers()->count())
-                                    ->icon('heroicon-o-bell'),
+                                    ->icon('phosphor-bell'),
                             ]),
                     ]),
 
                 Section::make('Monitor')
-                    ->icon('heroicon-o-server')
+                    ->icon('phosphor-hard-drives')
                     ->collapsible()
                     ->schema([
                         Grid::make(3)
@@ -112,7 +112,7 @@ class AnomalyResource extends Resource
                                     ->badge(),
                                 TextEntry::make('monitor.address')
                                     ->label('Address')
-                                    ->icon('heroicon-o-globe-alt'),
+                                    ->icon('phosphor-globe'),
                                 TextEntry::make('monitor.interval')
                                     ->label('Check interval')
                                     ->suffix(' seconds'),
@@ -130,7 +130,7 @@ class AnomalyResource extends Resource
                     ]),
 
                 Section::make('Timeline')
-                    ->icon('heroicon-o-calendar')
+                    ->icon('phosphor-calendar')
                     ->collapsible()
                     ->schema([
                         Grid::make(2)
@@ -138,19 +138,19 @@ class AnomalyResource extends Resource
                                 TextEntry::make('started_at')
                                     ->label('Started')
                                     ->dateTime('M j, Y g:i:s A')
-                                    ->icon('heroicon-o-arrow-right-circle')
+                                    ->icon('phosphor-arrow-circle-right')
                                     ->iconColor('danger'),
                                 TextEntry::make('ended_at')
                                     ->label('Resolved')
                                     ->dateTime('M j, Y g:i:s A')
                                     ->placeholder('Still ongoing')
-                                    ->icon('heroicon-o-check-circle')
+                                    ->icon('phosphor-check-circle')
                                     ->iconColor('success'),
                             ]),
                     ]),
 
                 Section::make('Alert notifications')
-                    ->icon('heroicon-o-bell-alert')
+                    ->icon('phosphor-bell-ringing')
                     ->collapsible()
                     ->collapsed()
                     ->visible(fn ($record) => $record->triggers()->count() > 0)
@@ -183,7 +183,7 @@ class AnomalyResource extends Resource
                     ]),
 
                 Section::make('Recent checks')
-                    ->icon('heroicon-o-list-bullet')
+                    ->icon('phosphor-list-bullets')
                     ->collapsible()
                     ->collapsed()
                     ->description('Last 20 checks during this anomaly')
@@ -251,12 +251,12 @@ class AnomalyResource extends Resource
                 TextColumn::make('checks_count')
                     ->label('Checks')
                     ->sortable()
-                    ->icon('heroicon-o-signal')
+                    ->icon('phosphor-cell-signal-high')
                     ->color('gray'),
                 TextColumn::make('triggers_count')
                     ->label('Alerts')
                     ->sortable()
-                    ->icon('heroicon-o-bell')
+                    ->icon('phosphor-bell')
                     ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
                 TextColumn::make('first_error')
                     ->label('Error')
@@ -356,7 +356,7 @@ class AnomalyResource extends Resource
                     ->label('Details'),
                 Action::make('go_to_monitor')
                     ->label('Monitor')
-                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->icon('phosphor-arrow-square-out')
                     ->color('gray')
                     ->url(fn ($record) => $record->monitor ? MonitorResource::getUrl('edit', ['record' => $record->monitor]) : null)
                     ->openUrlInNewTab(),
@@ -369,7 +369,7 @@ class AnomalyResource extends Resource
             ->headerActions([
                 Action::make('export')
                     ->label('Export')
-                    ->icon('heroicon-o-arrow-down-tray')
+                    ->icon('phosphor-download-simple')
                     ->color('gray')
                     ->action(function ($livewire): StreamedResponse {
                         $query = $livewire->getFilteredTableQuery();

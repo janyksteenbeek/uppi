@@ -30,7 +30,7 @@ class StatusPageResource extends Resource
 {
     protected static ?string $model = StatusPage::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-eye';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-eye';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Status Pages';
 
@@ -91,7 +91,7 @@ class StatusPageResource extends Resource
                     ->copyable()
                     ->copyableState(fn ($record) => url('s/'.$record->slug))
                     ->iconPosition(IconPosition::After)
-                    ->icon('heroicon-o-link')
+                    ->icon('phosphor-link')
                     ->tooltip('Click to copy')
                     ->searchable()
                     ->sortable(),
@@ -121,11 +121,11 @@ class StatusPageResource extends Resource
             ])
             ->emptyStateHeading(heading: 'Create your first public status page')
             ->emptyStateDescription('Set up a status page to keep your users informed. Share your public link with your users, or embed the widget on your website.')
-            ->emptyStateIcon('heroicon-o-eye')
+            ->emptyStateIcon('phosphor-eye')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Create status page')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -139,12 +139,12 @@ class StatusPageResource extends Resource
                     ->modalWidth('2xl')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
-                    ->icon('heroicon-o-window'),
+                    ->icon('phosphor-browser'),
                 Action::make('open_page')
                     ->label('Open page')
                     ->url(fn ($record) => route('status-page.show', $record->slug))
                     ->openUrlInNewTab()
-                    ->icon('heroicon-o-link'),
+                    ->icon('phosphor-link'),
 
             ])
             ->toolbarActions([

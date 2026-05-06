@@ -41,7 +41,7 @@ class TestResource extends Resource
 {
     protected static ?string $model = Test::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-beaker';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-flask';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
@@ -230,7 +230,7 @@ class TestResource extends Resource
             ->recordActions([
                 Action::make('run')
                     ->label('Run now')
-                    ->icon('heroicon-o-play')
+                    ->icon('phosphor-play')
                     ->color('info')
                     ->requiresConfirmation()
                     ->modalHeading('Run test now')
@@ -253,11 +253,11 @@ class TestResource extends Resource
             ])
             ->emptyStateHeading('Create your first test')
             ->emptyStateDescription('Set up automated browser tests to verify your website or application is working correctly. Then use them in monitors.')
-            ->emptyStateIcon('heroicon-o-beaker')
+            ->emptyStateIcon('phosphor-flask')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Create a test')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

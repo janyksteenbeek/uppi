@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Alerts\AlertType;
+use App\Models\ErrorTracking\IssueAnomalyRule;
 use App\Observers\UserIdObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,6 +62,11 @@ class Alert extends Model
     public function anomalies(): HasMany
     {
         return $this->hasMany(Anomaly::class);
+    }
+
+    public function issueAnomalyRules(): BelongsToMany
+    {
+        return $this->belongsToMany(IssueAnomalyRule::class, 'alert_issue_anomaly_rule', 'alert_id', 'issue_anomaly_rule_id');
     }
 
     public function routeNotificationForMail(): ?string

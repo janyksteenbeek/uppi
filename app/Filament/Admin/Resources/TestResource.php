@@ -37,7 +37,7 @@ class TestResource extends Resource
 
     protected static ?string $model = Test::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-beaker';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-flask';
 
     public static function form(Schema $schema): Schema
     {
@@ -131,7 +131,7 @@ class TestResource extends Resource
                     ->sortable(),
                 IconColumn::make('user.feature_flags')
                     ->label('Feature')
-                    ->icon(fn ($state) => in_array('run-tests', $state ?? []) ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
+                    ->icon(fn ($state) => in_array('run-tests', $state ?? []) ? 'phosphor-check-circle' : 'phosphor-x-circle')
                     ->color(fn ($state) => in_array('run-tests', $state ?? []) ? 'success' : 'danger')
                     ->tooltip(fn ($state) => in_array('run-tests', $state ?? []) ? 'User has tests enabled' : 'User does not have tests enabled'),
                 TextColumn::make('lastRun.status')

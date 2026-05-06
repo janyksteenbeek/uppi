@@ -119,7 +119,7 @@ class ViewServer extends ViewRecord
                 // Onboarding section - shown when no data received yet
                 Section::make('Install the monitoring agent')
                     ->description('Run this command on your server to start sending metrics to Uppi.')
-                    ->icon('heroicon-o-command-line')
+                    ->icon('phosphor-terminal')
                     ->iconColor('primary')
                     ->visible(fn () => ! $hasReceivedData)
                     ->schema([
@@ -165,12 +165,12 @@ class ViewServer extends ViewRecord
                     ->schema([
                         // Storage Card
                         Section::make('Storage')
-                            ->icon('heroicon-o-circle-stack')
+                            ->icon('phosphor-stack')
                             ->columnSpan(1)
                             ->headerActions([
                                 Action::make('toggle_disks')
                                     ->label(fn () => $this->showAllDisks ? 'Show less' : 'Show more')
-                                    ->icon(fn () => $this->showAllDisks ? 'heroicon-o-chevron-up' : 'heroicon-o-chevron-down')
+                                    ->icon(fn () => $this->showAllDisks ? 'phosphor-caret-up' : 'phosphor-caret-down')
                                     ->color('gray')
                                     ->action(function (): void {
                                         $this->showAllDisks = ! $this->showAllDisks;
@@ -297,13 +297,13 @@ class ViewServer extends ViewRecord
 
                         // Network Card
                         Section::make('Network')
-                            ->icon('heroicon-o-signal')
+                            ->icon('phosphor-cell-signal-high')
                             ->columnSpan(1)
                             ->visible(fn () => $server->latestMetric()?->networkMetrics?->isNotEmpty())
                             ->headerActions([
                                 Action::make('toggle_inactive')
                                     ->label(fn () => $this->showInactiveInterfaces ? 'Hide Inactive' : 'Show Inactive')
-                                    ->icon(fn () => $this->showInactiveInterfaces ? 'heroicon-o-eye-slash' : 'heroicon-o-eye')
+                                    ->icon(fn () => $this->showInactiveInterfaces ? 'phosphor-eye-slash' : 'phosphor-eye')
                                     ->color('gray')
                                     ->action(function (): void {
                                         $this->showInactiveInterfaces = ! $this->showInactiveInterfaces;
@@ -422,7 +422,7 @@ class ViewServer extends ViewRecord
 
                         // Health Check Card
                         Section::make('Health Check')
-                            ->icon('heroicon-o-heart')
+                            ->icon('phosphor-heartbeat')
                             ->columnSpan(1)
                             ->schema([
                                 RepeatableEntry::make('health_indicators')
@@ -550,7 +550,7 @@ class ViewServer extends ViewRecord
 
                 // Server Details - collapsed at bottom
                 Section::make('Server Details')
-                    ->icon('heroicon-o-server')
+                    ->icon('phosphor-hard-drives')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()
@@ -580,7 +580,7 @@ class ViewServer extends ViewRecord
 
                 // Reinstall Agent - collapsed at bottom
                 Section::make('Reinstall Agent')
-                    ->icon('heroicon-o-arrow-path')
+                    ->icon('phosphor-arrow-clockwise')
                     ->visible(fn () => $hasReceivedData)
                     ->collapsible()
                     ->collapsed()

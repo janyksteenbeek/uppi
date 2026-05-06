@@ -1,23 +1,110 @@
 @php
+    use Illuminate\Support\Facades\Cache;
+    use Illuminate\Support\Number;
+
     $dashboardUrl = \App\Filament\Pages\Dashboard::getUrl();
+
+    // ─── Real stats (cached 1h) — counts from start of yesterday for "today" feel ───
+    $statsTtl = now()->addHour();
+    $checksSinceYesterday = Cache::remember(
+        'marketing.checks_since_yesterday',
+        $statsTtl,
+        fn () => \App\Models\Check::where('created_at', '>=', now()->subDay()->startOfDay())->count()
+    );
+    $totalChecks = Cache::remember(
+        'marketing.total_checks',
+        $statsTtl,
+        fn () => \App\Models\Check::count()
+    );
+    $totalMonitors = Cache::remember(
+        'marketing.total_monitors',
+        $statsTtl,
+        fn () => \App\Models\Monitor::count()
+    );
+    $totalAlerts = Cache::remember(
+        'marketing.total_alerts',
+        $statsTtl,
+        fn () => \App\Models\Alert::count()
+    );
+    $abbr = fn (int $n) => Number::abbreviate($n, maxPrecision: 1);
+
+    // ─── Hero response-time graph (precomputed so the curve is stable) ───
+    $graphW = 1336; $graphH = 200; $graphN = 120;
+    $baseline = $graphH * 0.55;
+    $graphPts = [];
+    for ($i = 0; $i < $graphN; $i++) {
+        $x = $i / ($graphN - 1) * $graphW;
+        $seed = sin($i * 0.3) * 14 + sin($i * 0.7) * 6 + cos($i * 0.15) * 9;
+        $spike = match ($i) { 78 => -42, 79 => -30, default => 0 };
+        $y = $baseline - 16 + $seed + $spike;
+        $graphPts[] = [$x, $y];
+    }
+    // exception markers along bottom rail (linked to the response curve)
+    $excMarkers = [
+        ['idx' =>   8, 'count' =>  4, 'sev' => 'warn'],
+        ['idx' =>  22, 'count' =>  9, 'sev' => 'err'],
+        ['idx' =>  35, 'count' =>  2, 'sev' => 'err'],
+        ['idx' =>  52, 'count' => 14, 'sev' => 'err'],
+        ['idx' =>  64, 'count' =>  3, 'sev' => 'warn'],
+        ['idx' =>  78, 'count' => 38, 'sev' => 'err'],
+        ['idx' =>  92, 'count' =>  6, 'sev' => 'err'],
+        ['idx' => 104, 'count' =>  2, 'sev' => 'warn'],
+        ['idx' => 113, 'count' => 11, 'sev' => 'err'],
+    ];
+    $excRailY = $graphH - 14;
+    $graphPath = '';
+    foreach ($graphPts as $idx => $p) {
+        $graphPath .= ($idx === 0 ? 'M' : 'L') . number_format($p[0], 1, '.', '') . ',' . number_format($p[1], 1, '.', '') . ' ';
+    }
+    $graphPath = trim($graphPath);
+    $graphFill = $graphPath . " L{$graphW},{$graphH} L0,{$graphH} Z";
+    $spikePt = $graphPts[78];
+    $cursorPt = $graphPts[40];
+
+    // ─── Sparklines for the server card ───
+    $sparkline = function (string $trend) {
+        $points = [];
+        for ($i = 0; $i < 30; $i++) {
+            $noise = sin($i * 0.6) * 4 + cos($i * 1.2) * 2;
+            $drift = $trend === 'up' ? -$i * 0.3 : $i * 0.2;
+            $points[] = [$i * 4, 20 + $noise + $drift];
+        }
+        $path = '';
+        foreach ($points as $idx => $p) {
+            $path .= ($idx === 0 ? 'M' : 'L') . number_format($p[0], 1, '.', '') . ',' . number_format($p[1], 1, '.', '') . ' ';
+        }
+        return trim($path);
+    };
+
+    $tickerItems = [
+        ['n' => 'api.acme.io',          't' => '142ms',     's' => 'OK'],
+        ['n' => 'checkout.shop.dev',    't' => '89ms',      's' => 'OK'],
+        ['n' => 'docs.platform.io',     't' => '210ms',     's' => 'OK'],
+        ['n' => 'auth.uppi.dev',        't' => '76ms',      's' => 'OK'],
+        ['n' => 'cdn.assets.co',        't' => 'timeout',   's' => 'FAIL'],
+        ['n' => 'webhook.relay.io',     't' => '54ms',      's' => 'OK'],
+        ['n' => 'db-east-1.internal',   't' => '12ms',      's' => 'OK'],
+        ['n' => 'status.uptime.org',    't' => '188ms',     's' => 'OK'],
+        ['n' => 'media.bucket.s3',      't' => '301ms',     's' => 'OK'],
+        ['n' => 'jobs.cron.run',        't' => '4ms',       's' => 'OK'],
+    ];
 @endphp
-    <!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Uppi</title>
+    <title>Uppi — quiet, until something breaks.</title>
 
     <meta name="description"
-          content="Open-source uptime monitoring for websites and APIs. Monitor your website every minute and get notified when it goes down.">
-    <meta name="keywords" content="uptime monitoring, website monitoring, api monitoring, open-source">
+          content="Open-source uptime monitoring for websites and APIs. Uppi watches every minute and tells you the moment things drift. HTTP, TCP, cron, browser flows and servers on one calm dashboard.">
+    <meta name="keywords" content="uptime monitoring, website monitoring, api monitoring, cron monitoring, browser tests, server monitoring, open-source">
     <meta name="author" content="Janyk Steenbeek">
 
-    <meta property="og:title" content="Uppi">
+    <meta property="og:title" content="Uppi — quiet, until something breaks.">
     <meta property="og:description"
-          content="Open-source uptime monitoring for websites and APIs. Monitor your website every minute and get notified when it goes down.">
+          content="Open-source uptime monitoring. HTTP, TCP, cron heartbeats, server metrics and browser flows on one calm dashboard.">
     <meta property="og:image" content="{{ asset('static/iPad.png') }}">
     <meta property="og:url" content="{{ url('/') }}">
     <meta property="og:type" content="website">
@@ -25,1040 +112,1440 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@janyksteenbeek">
     <meta name="twitter:creator" content="@janyksteenbeek">
-    <meta name="twitter:title" content="Uppi">
+    <meta name="twitter:title" content="Uppi — quiet, until something breaks.">
     <meta name="twitter:description"
-          content="Open-source uptime monitoring for websites and services. Monitor your website every minute and get notified when it goes down.">
+          content="Open-source uptime monitoring. HTTP, TCP, cron heartbeats, server metrics and browser flows on one calm dashboard.">
     <meta name="twitter:image" content="{{ asset('static/iPad.png') }}">
 
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}"/>
 
-    <link href="https://fonts.bunny.net/css?family=manrope:400,500,600,700&display=swap" rel="stylesheet"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <script defer src="https://statisfyer.nl/script.js" data-website-id="5e2d6b2a-67a0-4965-ace2-8677b879fbdf"></script>
-    <script defer src="https://unpkg.com/@alpinejs/intersect@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    @vite('resources/css/app.css')
-    @vite('resources/js/app.js')
+    <style>
+        :root {
+            --red: #E5392E;
+            --red-soft: #FFE9E6;
+            --ink: #0E0E10;
+            --ink-2: #3A3A40;
+            --muted: #8A8A93;
+            --line: #E8E6E1;
+            --bg: #F6F4EF;
+            --paper: #FBFAF7;
+            --green: #1F8A5B;
+            --display: 'Newsreader', ui-serif, Georgia, serif;
+            --body: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            --mono: 'Geist Mono', ui-monospace, 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--body);
+            font-feature-settings: 'ss01', 'cv11';
+            letter-spacing: -0.01em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        a { color: inherit; }
+        img, svg { display: block; max-width: 100%; }
+        .pulse-mono { font-family: var(--mono); letter-spacing: 0; }
+        .pulse-display { font-family: var(--display); letter-spacing: -0.03em; font-weight: 400; }
+        [x-cloak] { display: none !important; }
+
+        .pulse-shell { max-width: 1440px; margin: 0 auto; position: relative; overflow: hidden; }
+
+        /* ===== NAV ===== */
+        .pulse-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 48px;
+            border-bottom: 1px solid var(--line);
+            background: var(--bg);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .pulse-logo { display: inline-flex; align-items: center; text-decoration: none; color: var(--ink); }
+        .pulse-logo img { height: 22px; width: auto; display: block; }
+        .pulse-nav-links { display: flex; gap: 32px; font-size: 14px; color: var(--ink-2); }
+        .pulse-nav-links a { text-decoration: none; transition: color .15s; }
+        .pulse-nav-links a:hover { color: var(--ink); }
+        .pulse-nav-cta { display: flex; align-items: center; gap: 12px; }
+        .pulse-nav-mobile { display: none; }
+
+        .pulse-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border-radius: 999px;
+            border: 1px solid var(--line); background: var(--paper);
+            font-size: 13px; color: var(--ink-2);
+        }
+        .pulse-eu {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px 6px 8px; border-radius: 999px;
+            border: 1px solid var(--line); background: var(--paper);
+            font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500;
+        }
+        .pulse-eu-flag { width: 16px; height: 16px; flex-shrink: 0; }
+        .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); position: relative; flex-shrink: 0; }
+        .pulse-dot::after {
+            content: ''; position: absolute; inset: -4px; border-radius: 50%;
+            border: 1.5px solid var(--green); opacity: 0.4;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        @keyframes pulse-ring { 0% { transform: scale(0.6); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+
+        .pulse-btn {
+            font-size: 14px; padding: 10px 18px; border-radius: 999px;
+            background: var(--ink); color: white; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-weight: 500;
+            text-decoration: none; transition: background .15s;
+        }
+        .pulse-btn:hover { background: var(--red); }
+        .pulse-btn-ghost {
+            background: transparent; color: var(--ink); border: 1px solid var(--line);
+            padding: 9px 17px;
+        }
+        .pulse-btn-ghost:hover { background: transparent; border-color: var(--ink); color: var(--ink); }
+
+        .pulse-icon-btn { background: transparent; border: none; padding: 8px; cursor: pointer; color: var(--ink); }
+
+        /* ===== HERO ===== */
+        .pulse-hero { padding: 72px 48px 32px; position: relative; }
+        .pulse-eyebrow {
+            display: inline-flex; align-items: center; gap: 10px;
+            font-family: var(--mono); font-size: 12px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 28px;
+        }
+        .pulse-eyebrow-tick { width: 16px; height: 1px; background: var(--ink); }
+        .pulse-h1 {
+            font-family: var(--display); font-weight: 400;
+            font-size: clamp(48px, 8vw, 96px); line-height: 0.95; letter-spacing: -0.04em;
+            margin: 0; max-width: 1100px;
+        }
+        .pulse-h1 em { font-style: italic; color: var(--red); font-weight: 300; }
+        .pulse-lede {
+            font-size: 19px; line-height: 1.5; color: var(--ink-2);
+            max-width: 540px; margin: 36px 0 0;
+        }
+        .pulse-cta-row { display: flex; align-items: center; gap: 16px; margin-top: 36px; flex-wrap: wrap; }
+        .pulse-meta-row {
+            display: flex; align-items: center; gap: 28px; margin-top: 28px; flex-wrap: wrap;
+            font-size: 13px; color: var(--ink-2);
+        }
+        .pulse-meta-item { display: inline-flex; align-items: center; gap: 8px; }
+        .pulse-meta-item svg { width: 14px; height: 14px; color: var(--muted); flex-shrink: 0; }
+        .pulse-meta-item b { color: var(--ink); font-weight: 500; }
+
+        /* ===== HERO INSTRUMENT ===== */
+        .pulse-instrument {
+            margin-top: 64px; background: var(--paper);
+            border: 1px solid var(--line); border-radius: 18px;
+            position: relative; overflow: hidden;
+        }
+        .pulse-inst-meter {
+            display: grid; grid-template-columns: 1fr 1fr auto;
+            align-items: stretch;
+            border-bottom: 1px solid var(--line);
+        }
+        .pulse-inst-vital {
+            padding: 22px 28px;
+            border-right: 1px solid var(--line);
+            display: flex; flex-direction: column; gap: 6px;
+            position: relative;
+        }
+        .pulse-inst-vital::before {
+            content: ''; position: absolute; left: 0; top: 22px; bottom: 22px; width: 2px;
+        }
+        .pulse-inst-vital.up::before { background: var(--green); }
+        .pulse-inst-vital.err::before { background: var(--red); }
+        .pulse-inst-vital-lbl {
+            font-family: var(--mono); font-size: 10px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.14em;
+        }
+        .pulse-inst-vital-val {
+            font-family: var(--display); font-size: 40px; letter-spacing: -0.03em;
+            font-weight: 400; line-height: 1; display: flex; align-items: baseline; gap: 10px;
+        }
+        .pulse-inst-vital-val small {
+            font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0;
+        }
+        .pulse-inst-vital.up .pulse-inst-vital-val { color: var(--ink); }
+        .pulse-inst-vital.err .pulse-inst-vital-val { color: var(--red); }
+        .pulse-inst-vital-sub {
+            font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+            margin-top: 2px;
+        }
+        .pulse-inst-status {
+            padding: 0 28px; display: flex; align-items: center; gap: 10px;
+            font-family: var(--mono); font-size: 11px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.12em;
+        }
+
+        .pulse-inst-body { padding: 24px 28px 28px; }
+        .pulse-inst-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 18px;
+            margin-bottom: 8px; flex-wrap: wrap;
+        }
+        .pulse-inst-title {
+            font-family: var(--mono); font-size: 11px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.14em;
+        }
+        .pulse-inst-legend {
+            display: flex; gap: 20px; font-size: 11px; color: var(--ink-2);
+            font-family: var(--mono); flex-wrap: wrap;
+        }
+        .pulse-inst-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .pulse-inst-legend i { display: inline-block; width: 10px; height: 2px; border-radius: 2px; }
+
+        .pulse-graph { width: 100%; height: 220px; display: block; overflow: visible; }
+
+        .pulse-inst-issues { margin-top: 18px; border-top: 1px solid var(--line); }
+        .pulse-issue {
+            display: grid; grid-template-columns: 14px 1fr auto auto;
+            gap: 16px; align-items: center;
+            padding: 14px 4px; border-bottom: 1px solid var(--line);
+            font-family: var(--mono); font-size: 12px;
+        }
+        .pulse-issue:last-child { border-bottom: none; }
+        .pulse-issue .sev { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+        .pulse-issue .sev.warn { background: #f59e0b; }
+        .pulse-issue .label { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pulse-issue .label b { font-weight: 500; color: var(--red); margin-right: 6px; }
+        .pulse-issue .label .where { color: var(--muted); margin-left: 8px; font-size: 11px; }
+        .pulse-issue .ts { color: var(--muted); font-size: 11px; min-width: 64px; text-align: right; }
+        .pulse-issue .ct {
+            font-family: var(--display); font-size: 16px; color: var(--ink);
+            letter-spacing: -0.01em; min-width: 48px; text-align: right;
+        }
+
+
+        /* ===== TICKER ===== */
+        .pulse-ticker {
+            margin-top: 32px; padding: 14px 20px; background: var(--ink); color: #d4d4d4;
+            border-radius: 12px; font-family: var(--mono); font-size: 12px;
+            display: flex; gap: 32px; overflow: hidden; position: relative;
+            -webkit-mask: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
+                    mask: linear-gradient(90deg, transparent, black 4%, black 96%, transparent);
+        }
+        .pulse-ticker-track { display: flex; gap: 32px; animation: ticker 40s linear infinite; white-space: nowrap; }
+        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .pulse-ticker-item { display: inline-flex; align-items: center; gap: 8px; }
+        .pulse-ticker-ok { color: #4ade80; }
+        .pulse-ticker-fail { color: #ff6b6b; }
+
+        /* ===== SECTIONS ===== */
+        .pulse-section { padding: 96px 48px; border-top: 1px solid var(--line); }
+        .pulse-section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 64px; flex-wrap: wrap; }
+        .pulse-section-eyebrow {
+            font-family: var(--mono); font-size: 12px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;
+        }
+        .pulse-section-title {
+            font-family: var(--display); font-weight: 400;
+            font-size: clamp(36px, 5vw, 56px); line-height: 1.0; letter-spacing: -0.03em;
+            max-width: 720px; margin: 0;
+        }
+        .pulse-section-title em { font-style: italic; color: var(--red); }
+        .pulse-section-sub { max-width: 340px; font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+
+        /* ===== COVERAGE GRID (whole-stack) ===== */
+        .pulse-cov {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+            background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+        }
+        .pulse-cov-cell {
+            background: var(--paper); padding: 32px; min-height: 220px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .pulse-cov-cell.feat { background: var(--ink); color: white; }
+        .pulse-cov-num { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+        .pulse-cov-cell.feat .pulse-cov-num { color: #a1a1aa; }
+        .pulse-cov-name { font-family: var(--display); font-size: 24px; letter-spacing: -0.02em; font-weight: 400; margin: 0; }
+        .pulse-cov-cell.feat .pulse-cov-name em { font-style: italic; color: var(--red); }
+        .pulse-cov-desc { font-size: 14px; color: var(--ink-2); line-height: 1.55; margin: 0; max-width: 320px; }
+        .pulse-cov-cell.feat .pulse-cov-desc { color: #d4d4d8; }
+        .pulse-cov-foot { margin-top: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .pulse-cov-foot b { color: var(--ink); font-weight: 500; }
+        .pulse-cov-cell.feat .pulse-cov-foot { color: #a1a1aa; }
+        .pulse-cov-cell.feat .pulse-cov-foot b { color: white; }
+
+        /* ===== MONITOR TYPES (legacy, retained for fallback) ===== */
+        .pulse-types {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+            background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+        }
+        .pulse-type { background: var(--paper); padding: 36px; min-height: 320px; display: flex; flex-direction: column; }
+        .pulse-type-num { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em; }
+        .pulse-type-icon { margin-top: 32px; margin-bottom: 28px; }
+        .pulse-type-name {
+            font-family: var(--display); font-size: 28px; letter-spacing: -0.02em;
+            margin-bottom: 8px; font-weight: 400;
+        }
+        .pulse-type-desc { font-size: 14px; color: var(--ink-2); line-height: 1.5; margin-bottom: 20px; }
+        .pulse-type-list { list-style: none; padding: 0; margin: auto 0 0; line-height: 1.9; }
+        .pulse-type-list li {
+            padding-left: 18px; position: relative;
+            font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+        }
+        .pulse-type-list li::before { content: '+'; position: absolute; left: 0; color: var(--red); }
+
+        /* ===== SERVERS (light, normal block) ===== */
+        .pulse-servers-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: start; }
+        .pulse-server-card {
+            background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 28px;
+        }
+        .pulse-server-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 16px;
+            margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .pulse-server-name {
+            font-family: var(--mono); font-size: 11px; color: var(--muted);
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .pulse-server-state {
+            font-family: var(--display); font-size: 24px; margin-top: 4px; letter-spacing: -0.02em; color: var(--ink);
+        }
+        .pulse-server-tag {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+            background: rgba(31,138,91,0.12); color: var(--green);
+            font-size: 12px; font-family: var(--mono);
+        }
+        .pulse-server-tag .d { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+        .pulse-server-metrics {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+            background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+        }
+        .pulse-metric { background: var(--paper); padding: 20px; }
+        .pulse-metric-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .pulse-metric-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+        .pulse-metric-value { font-family: var(--display); font-size: 24px; letter-spacing: -0.02em; color: var(--ink); }
+        .pulse-metric-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .pulse-install {
+            margin-top: 20px; padding: 14px 16px; background: var(--ink); border-radius: 8px;
+            font-family: var(--mono); font-size: 12px; color: #d4d4d8; overflow-x: auto;
+        }
+        .pulse-install .pr { color: #71717a; }
+
+        .pulse-server-bullets { display: grid; gap: 20px; }
+        .pulse-bullet { padding-left: 24px; border-left: 1px solid var(--line); position: relative; }
+        .pulse-bullet::before { content: ''; position: absolute; left: -1px; top: 0; width: 1px; height: 32px; background: var(--red); }
+        .pulse-bullet h4 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 400; letter-spacing: -0.02em; color: var(--ink); }
+        .pulse-bullet p { margin: 8px 0 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+
+        /* ===== INCIDENT RESPONSE (dark) ===== */
+        .pulse-incident { background: var(--ink); color: white; border-top: none; }
+        .pulse-incident .pulse-section-eyebrow { color: #a1a1aa; }
+        .pulse-incident .pulse-section-title { color: white; }
+        .pulse-incident .pulse-section-sub { color: #a1a1aa; }
+        .pulse-incident-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; align-items: start; }
+        .pulse-incident-card {
+            background: #1a1a1d; border: 1px solid #2a2a2e; border-radius: 16px; overflow: hidden;
+        }
+        .pulse-incident-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 16px;
+            padding: 18px 24px; border-bottom: 1px solid #2a2a2e; flex-wrap: wrap;
+        }
+        .pulse-incident-id {
+            font-family: var(--mono); font-size: 11px; color: #71717a;
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .pulse-incident-title {
+            font-family: var(--display); font-size: 22px; margin-top: 4px; letter-spacing: -0.02em; color: white;
+        }
+        .pulse-incident-tag {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+            background: rgba(31,138,91,0.15); color: #4ade80;
+            font-size: 12px; font-family: var(--mono);
+        }
+        .pulse-incident-tag .d { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+        .pulse-incident-row {
+            display: grid; grid-template-columns: 84px 64px 1fr; gap: 16px; align-items: center;
+            padding: 14px 24px; border-bottom: 1px solid #232326;
+            font-family: var(--mono); font-size: 12px;
+        }
+        .pulse-incident-row:last-child { border-bottom: none; }
+        .pulse-incident-row .t { color: #71717a; }
+        .pulse-incident-row .tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.06em; text-align: center; }
+        .pulse-incident-row .tag.detect { background: rgba(229,57,46,0.18); color: #ff8a82; }
+        .pulse-incident-row .tag.neutral { background: rgba(255,255,255,0.08); color: #a1a1aa; }
+        .pulse-incident-row .tag.ok { background: rgba(31,138,91,0.18); color: #4ade80; }
+        .pulse-incident-row .body { color: #e4e4e7; }
+        .pulse-incident-row .body b { font-weight: 500; }
+        .pulse-incident-row .body .det { color: #71717a; margin-left: 10px; }
+        .pulse-incident .pulse-bullet { border-left-color: #2a2a2e; }
+        .pulse-incident .pulse-bullet h4 { color: white; }
+        .pulse-incident .pulse-bullet p { color: #a1a1aa; }
+
+        /* ===== ALERTS ===== */
+        .pulse-alerts { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
+        .pulse-alerts-channels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .pulse-channel {
+            background: var(--paper); border: 1px solid var(--line); border-radius: 14px;
+            padding: 20px; display: flex; flex-direction: column; gap: 12px;
+            transition: transform .2s, border-color .2s;
+        }
+        .pulse-channel:hover { border-color: var(--ink); transform: translateY(-2px); }
+        .pulse-channel-name { font-size: 14px; font-weight: 500; }
+        .pulse-channel-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+        .pulse-channel-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; background: var(--bg); font-family: var(--mono); font-size: 14px; }
+        .pulse-channel-icon svg { width: 18px; height: 18px; display: block; }
+
+        .pulse-alert-demo {
+            background: var(--ink); color: white; border-radius: 16px;
+            padding: 24px; font-family: var(--mono); font-size: 12px; line-height: 1.7;
+        }
+        .pulse-alert-head {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #2a2a2e;
+        }
+        .pulse-alert-head .lab { color: #71717a; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+        .pulse-alert-line { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #2a2a2e; align-items: center; }
+        .pulse-alert-line:last-child { border-bottom: none; }
+        .pulse-alert-time { color: #71717a; min-width: 60px; flex-shrink: 0; }
+        .pulse-alert-tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+        .pulse-alert-tag.fail { background: rgba(229,57,46,0.15); color: #ff8a82; }
+        .pulse-alert-tag.ok { background: rgba(31,138,91,0.15); color: #4ade80; }
+        .pulse-alert-tag.send { background: rgba(255,255,255,0.08); color: #a1a1aa; }
+        .pulse-alert-line .body { color: #e4e4e7; }
+
+        /* ===== BROWSER TESTS ===== */
+        .pulse-tests { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+        .pulse-test-window {
+            background: var(--paper); border: 1px solid var(--line); border-radius: 16px;
+            overflow: hidden; box-shadow: 0 24px 60px -30px rgba(0,0,0,0.15);
+        }
+        .pulse-test-bar { background: var(--bg); padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+        .pulse-test-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: #d4d4d4; }
+        .pulse-test-url {
+            margin-left: 8px; padding: 4px 12px; background: white; border: 1px solid var(--line);
+            border-radius: 6px; font-family: var(--mono); font-size: 11px;
+            color: var(--muted); flex: 1;
+        }
+        .pulse-test-steps { padding: 20px; }
+        .pulse-test-step {
+            display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center;
+            padding: 12px 0; border-bottom: 1px dashed var(--line); font-size: 13px;
+        }
+        .pulse-test-step:last-child { border-bottom: none; }
+        .pulse-test-step-num {
+            width: 22px; height: 22px; border-radius: 50%; background: var(--bg);
+            display: grid; place-items: center; font-family: var(--mono); font-size: 10px;
+            color: var(--ink-2);
+        }
+        .pulse-test-step-label { color: var(--ink); font-weight: 500; }
+        .pulse-test-step-detail { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 8px; }
+        .pulse-test-step-time { font-family: var(--mono); font-size: 11px; color: var(--green); }
+        .pulse-test-step.active .pulse-test-step-num { background: var(--red); color: white; }
+        .pulse-test-step.pending .pulse-test-step-num { background: transparent; border: 1px dashed var(--line); }
+        .pulse-test-step.pending .pulse-test-step-time { color: var(--muted); }
+        .pulse-tests-bullets { display: grid; gap: 24px; }
+        .pulse-tests-bullets .pulse-bullet { border-left-color: var(--line); }
+        .pulse-tests-bullets .pulse-bullet h4 { font-size: 20px; color: var(--ink); }
+        .pulse-tests-bullets .pulse-bullet p { color: var(--ink-2); }
+
+        /* ===== TEST USES (chips below the test window) ===== */
+        .pulse-test-uses {
+            display: flex; gap: 8px; padding: 14px 20px; flex-wrap: wrap;
+            border-top: 1px solid var(--line); background: var(--bg);
+        }
+        .pulse-test-uses .lab {
+            font-family: var(--mono); font-size: 11px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.1em; align-self: center; margin-right: 4px;
+        }
+        .pulse-test-uses .chip {
+            font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+            background: var(--paper); border: 1px solid var(--line); border-radius: 6px;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .pulse-test-uses .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+        /* ===== ERRORS card (Sentry-style) ===== */
+        .pulse-err-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
+        .pulse-err-card {
+            background: var(--ink); color: white; border-radius: 16px; overflow: hidden;
+            font-family: var(--body);
+        }
+        .pulse-err-head {
+            padding: 24px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start;
+            border-bottom: 1px solid #2a2a2e;
+        }
+        .pulse-err-tag {
+            display: inline-flex; align-items: center;
+            font-family: var(--mono); font-size: 11px; color: #ff8a82;
+            letter-spacing: 0.1em; text-transform: uppercase;
+        }
+        .pulse-err-title {
+            font-family: var(--display); font-size: 22px; line-height: 1.4;
+            font-weight: 400; letter-spacing: -0.01em; margin: 8px 0 4px; color: white;
+        }
+        .pulse-err-title b { font-weight: 500; }
+        .pulse-err-msg { font-family: var(--mono); font-size: 12px; color: #a1a1aa; margin: 0; }
+        .pulse-err-spark { text-align: right; }
+        .pulse-err-spark svg { display: block; margin-left: auto; }
+        .pulse-err-spark-num { font-family: var(--display); font-size: 26px; letter-spacing: -0.02em; line-height: 1; margin-top: 4px; }
+        .pulse-err-spark-lbl { font-family: var(--mono); font-size: 10px; color: #71717a; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+        .pulse-err-meta {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid #2a2a2e;
+        }
+        .pulse-err-meta-cell { padding: 16px 24px; border-right: 1px solid #2a2a2e; }
+        .pulse-err-meta-cell:last-child { border-right: none; }
+        .pulse-err-meta-lbl { font-family: var(--mono); font-size: 10px; color: #71717a; text-transform: uppercase; letter-spacing: 0.1em; }
+        .pulse-err-meta-val { font-family: var(--mono); font-size: 13px; color: white; margin-top: 4px; }
+        .pulse-err-meta-val.red { color: #ff8a82; }
+
+        .pulse-err-stack {
+            padding: 16px 0;
+            font-family: var(--mono); font-size: 12px; line-height: 1.7;
+            background: #0e0e10; border-bottom: 1px solid #2a2a2e;
+            overflow-x: auto;
+        }
+        .pulse-err-stack-line { display: grid; grid-template-columns: 48px 1fr; gap: 16px; padding: 2px 24px 2px 0; color: #d4d4d8; white-space: nowrap; }
+        .pulse-err-stack-line .ln { color: #525258; text-align: right; user-select: none; }
+        .pulse-err-stack-line.frame { background: rgba(229,57,46,0.12); }
+        .pulse-err-stack-line.frame b { color: #ff8a82; font-weight: 500; }
+        .pulse-err-stack-line b { color: #ff8a82; font-weight: 400; }
+        .pulse-err-stack-line .kw { color: #a1a1aa; }
+        .pulse-err-stack-line .kw2 { color: #ffffff; }
+        .pulse-err-stack-line .fn { color: #93c5fd; }
+        .pulse-err-stack-line .cm { color: #71717a; font-style: italic; }
+
+        .pulse-err-bread { padding: 18px 24px; }
+        .pulse-err-bread h5 {
+            font-family: var(--mono); font-size: 11px; color: #71717a;
+            text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 12px; font-weight: 500;
+        }
+        .pulse-err-bread-row {
+            display: grid; grid-template-columns: 64px 56px 1fr; gap: 12px; align-items: center;
+            padding: 6px 0; font-family: var(--mono); font-size: 12px; color: #d4d4d8;
+        }
+        .pulse-err-bread-row .t { color: #71717a; }
+        .pulse-err-bread-row .tag { text-align: center; padding: 2px 6px; border-radius: 4px; font-size: 10px; letter-spacing: 0.04em; }
+        .pulse-err-bread-row .tag.nav,
+        .pulse-err-bread-row .tag.click { background: rgba(255,255,255,0.08); color: #d4d4d8; }
+        .pulse-err-bread-row .tag.http { background: rgba(31,138,91,0.16); color: #4ade80; }
+        .pulse-err-bread-row .tag.err { background: rgba(229,57,46,0.18); color: #ff8a82; }
+        .pulse-err-bread-row.err { color: #ff8a82; }
+
+        /* ===== STATS ===== */
+        .pulse-stats-bar {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+        }
+        .pulse-stat-cell { padding: 48px; border-right: 1px solid var(--line); }
+        .pulse-stat-cell:last-child { border-right: none; }
+        .pulse-stat-cell-num {
+            font-family: var(--display); font-size: clamp(56px, 7vw, 80px); line-height: 1;
+            letter-spacing: -0.04em; font-weight: 400; white-space: nowrap;
+        }
+        .pulse-stat-cell-label {
+            font-family: var(--mono); font-size: 12px;
+            color: var(--muted); margin-top: 12px; letter-spacing: 0.05em;
+        }
+
+        /* ===== PRICING ===== */
+        .pulse-pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+        .pulse-plan {
+            background: var(--paper); border: 1px solid var(--line); border-radius: 20px;
+            padding: 40px; display: flex; flex-direction: column;
+        }
+        .pulse-plan.featured { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+        .pulse-plan-name {
+            font-family: var(--mono); font-size: 12px;
+            text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;
+            color: var(--muted);
+        }
+        .pulse-plan.featured .pulse-plan-name { color: #a1a1aa; }
+        .pulse-plan-price {
+            font-family: var(--display); font-size: clamp(56px, 6.5vw, 72px); letter-spacing: -0.04em;
+            line-height: 1; font-weight: 400; display: flex; align-items: baseline; gap: 8px;
+        }
+        .pulse-plan-price small { font-size: 16px; color: var(--muted); font-weight: 400; font-family: var(--body); letter-spacing: 0; }
+        .pulse-plan.featured .pulse-plan-price small { color: #a1a1aa; }
+        .pulse-plan-tag { font-size: 14px; margin: 16px 0 0; color: var(--ink-2); max-width: 360px; line-height: 1.5; }
+        .pulse-plan.featured .pulse-plan-tag { color: #d4d4d4; }
+        .pulse-plan-features { list-style: none; padding: 0; margin: 32px 0; flex: 1; }
+        .pulse-plan-features li {
+            font-size: 14px; padding: 10px 0; border-top: 1px solid var(--line);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .pulse-plan.featured .pulse-plan-features li { border-color: #2a2a2e; }
+        .pulse-plan-features li::before {
+            content: ''; width: 14px; height: 14px; border-radius: 50%;
+            border: 1px solid var(--ink); flex-shrink: 0;
+            background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7.5l2 2 5-5' stroke='%230E0E10' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>") center no-repeat;
+        }
+        .pulse-plan.featured .pulse-plan-features li::before {
+            border-color: var(--paper);
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7.5l2 2 5-5' stroke='%23FBFAF7' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+        }
+        .pulse-plan-cta {
+            padding: 14px 20px; border-radius: 999px; text-align: center;
+            font-size: 14px; font-weight: 500; cursor: pointer; border: none;
+            font-family: inherit; text-decoration: none;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            transition: opacity .15s, background .15s;
+        }
+        .pulse-plan-cta.dark { background: var(--ink); color: white; }
+        .pulse-plan-cta.dark:hover { background: var(--red); }
+        .pulse-plan-cta.light { background: var(--red); color: white; }
+        .pulse-plan-cta.light:hover { opacity: 0.9; }
+
+        /* ===== FOOTER ===== */
+        .pulse-foot { padding: 80px 48px 40px; border-top: 1px solid var(--line); background: var(--bg); }
+        .pulse-foot-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 24px;
+            padding-bottom: 32px; margin-bottom: 48px; border-bottom: 1px solid var(--line);
+            flex-wrap: wrap;
+        }
+        .pulse-foot-mark img { height: 28px; width: auto; display: block; }
+        .pulse-foot-status {
+            display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+        }
+        .pulse-foot-status .sep { color: var(--line); }
+        .pulse-foot-cols {
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px;
+        }
+        .pulse-foot-col h4 {
+            font-family: var(--mono); font-size: 11px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 16px; font-weight: 400;
+        }
+        .pulse-foot-col a { display: block; font-size: 14px; color: var(--ink); text-decoration: none; padding: 6px 0; transition: color .15s; }
+        .pulse-foot-col a:hover { color: var(--red); }
+        .pulse-foot-col p { font-size: 14px; color: var(--ink-2); line-height: 1.6; max-width: 320px; margin: 0; }
+        .pulse-foot-end {
+            margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line);
+            display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+            font-size: 12px; color: var(--muted); font-family: var(--mono);
+        }
+
+        /* ===== Mobile menu ===== */
+        .pulse-mobile-menu {
+            position: fixed; inset: 0; z-index: 100;
+            background: var(--bg); padding: 28px;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .pulse-mobile-menu-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .pulse-mobile-menu a { font-family: var(--display); font-size: 36px; color: var(--ink); text-decoration: none; padding: 12px 0; border-bottom: 1px solid var(--line); }
+        .pulse-mobile-menu a:last-of-type { border-bottom: none; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1080px) {
+            .pulse-section-head { flex-direction: column; align-items: flex-start; margin-bottom: 48px; }
+            .pulse-inst-meter { grid-template-columns: 1fr; }
+            .pulse-inst-vital { border-right: none; border-bottom: 1px solid var(--line); }
+            .pulse-inst-status { padding: 14px 28px; }
+            .pulse-types { grid-template-columns: 1fr; }
+            .pulse-cov { grid-template-columns: repeat(2, 1fr); }
+            .pulse-err-grid { grid-template-columns: 1fr; }
+            .pulse-err-meta { grid-template-columns: repeat(2, 1fr); }
+            .pulse-err-meta-cell:nth-child(2n) { border-right: none; }
+            .pulse-err-meta-cell:nth-child(-n+2) { border-bottom: 1px solid #2a2a2e; }
+            .pulse-servers-grid { grid-template-columns: 1fr; }
+            .pulse-alerts { grid-template-columns: 1fr; }
+            .pulse-tests { grid-template-columns: 1fr; }
+            .pulse-stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .pulse-stat-cell:nth-child(2n) { border-right: none; }
+            .pulse-stat-cell:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+            .pulse-pricing { grid-template-columns: 1fr; }
+            .pulse-foot-cols { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .pulse-nav { padding: 18px 24px; }
+            .pulse-nav-links, .pulse-nav-cta .pulse-pill, .pulse-nav-cta .pulse-btn-ghost { display: none; }
+            .pulse-nav-mobile { display: inline-flex; }
+            .pulse-hero { padding: 48px 24px 32px; }
+            .pulse-instrument { padding: 20px; }
+            .pulse-section { padding: 72px 24px; }
+            .pulse-stat-cell { padding: 32px 24px; }
+            .pulse-foot { padding: 64px 24px 32px; }
+            .pulse-foot-head { flex-direction: column; align-items: flex-start; gap: 16px; padding-bottom: 32px; margin-bottom: 32px; }
+            .pulse-foot-cols { grid-template-columns: 1fr; gap: 32px; }
+            .pulse-alerts-channels { grid-template-columns: repeat(2, 1fr); }
+            .pulse-server-metrics { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 520px) {
+            .pulse-alerts-channels { grid-template-columns: 1fr; }
+            .pulse-stats-bar { grid-template-columns: 1fr; }
+            .pulse-stat-cell { border-right: none; border-bottom: 1px solid var(--line); }
+            .pulse-stat-cell:last-child { border-bottom: none; }
+            .pulse-incident-grid { grid-template-columns: 1fr; }
+            .pulse-incident-row { grid-template-columns: 72px 1fr; gap: 12px; }
+            .pulse-incident-row .tag { grid-column: 1 / -1; justify-self: start; }
+            .pulse-cov { grid-template-columns: 1fr; }
+            .pulse-err-meta { grid-template-columns: 1fr; }
+            .pulse-err-meta-cell { border-right: none; border-bottom: 1px solid #2a2a2e; }
+            .pulse-err-meta-cell:last-child { border-bottom: none; }
+        }
+    </style>
 </head>
-<body>
-<div class="bg-white" x-data="{ open: false }">
-    <header class="absolute inset-x-0 top-0 z-50">
-        <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
-            <div class="flex lg:flex-1">
-                <a class="-m-1.5 p-1.5">
-                    <span class="sr-only">Uppi</span>
-                    <img class="h-8 w-auto" src="{{ asset('logo.svg') }}"
-                         alt="Uppi">
-                </a>
-            </div>
-            <div class="flex lg:hidden">
-                <button type="button"
-                        x-on:click="open = !open"
-                        class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
-                    <span class="sr-only">Open main menu</span>
-                    <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                         aria-hidden="true" data-slot="icon">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="hidden lg:flex lg:gap-x-12">
-                <a href="#features"
-                   class="text-sm/6 font-semibold text-gray-900">Features</a>
-                <a href="https://github.com/janyksteenbeek/uppi/blob/main/README.md"
-                   class="text-sm/6 font-semibold text-gray-900">Docs</a>
-                <a href="https://github.com/sponsors/janyksteenbeek" class="text-sm/6 font-semibold text-gray-900">Sponsor</a>
-                <a href="https://github.com/janyksteenbeek/uppi" class="text-sm/6 font-semibold text-gray-900">Contribute</a>
-                <a href="{{ $dashboardUrl }}" class="text-sm/6 font-semibold text-gray-900">Sign
-                    in</a>
-                <a href="https://apps.apple.com/app/uppi/id6739699410"
-                   class="text-sm/6 font-semibold text-gray-900 inline-flex items-center gap-0.5">
-                    <svg class="w-4 h-4 " viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                </a>
-                <a href="https://play.google.com/store/apps/details?id=dev.uppi.app"
-                   class="text-sm/6 font-semibold text-gray-900 inline-flex items-center gap-0.5 -ml-8">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-                    </svg>
-                </a>
-            </div>
-            <div class="hidden lg:flex lg:flex-1 lg:justify-end">
-                <a href="{{ $dashboardUrl }}"
-                   class="rounded-md bg-red-600 px-3 py-2.5 font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
-                    Create a free account
-                </a>
-            </div>
-        </nav>
-        <!-- Mobile menu, show/hide based on menu open state. -->
-        <div class="lg:hidden" role="dialog" aria-modal="true" x-show="open" x-cloak>
-            <!-- Background backdrop, show/hide based on slide-over state. -->
-            <div class="fixed inset-0 z-50"></div>
-            <div
-                class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-                <div class="flex items-center justify-between">
-                    <a href="#" class="-m-1.5 p-1.5">
-                        <span class="sr-only">Uppi</span>
-                        <img class="h-8 w-auto"
-                             src="{{ asset('logo.svg') }}" alt="Uppi">
-                    </a>
-                    <button type="button" class="-m-2.5 rounded-md p-2.5 text-gray-700" x-on:click="open = false">
-                        <span class="sr-only">Close menu</span>
-                        <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                             aria-hidden="true" data-slot="icon">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="mt-6 flow-root">
-                    <div class="-my-6 divide-y divide-gray-500/10">
-                        <div class="space-y-2 py-6">
-                            <a href="https://github.com/janyksteenbeek/uppi"
-                               class="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">Source</a>
-                            <a href="https://github.com/sponsors/janyksteenbeek"
-                               class="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">Sponsor</a>
-                        </div>
-                        <div class="py-6">
-                            <a href="{{ $dashboardUrl }}"
-                               class="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">Log
-                                in</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+<body x-data="{ open: false }">
+<div class="pulse-shell">
 
-    <div class="relative isolate pt-14">
-        <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-             aria-hidden="true">
-            <div
-                class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-red-500 to-red-600 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[79.1875rem]"
-                style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"></div>
+    {{-- NAV --}}
+    <nav class="pulse-nav">
+        <a href="/" class="pulse-logo" aria-label="Uppi">
+            <img src="{{ asset('logo.svg') }}" alt="Uppi">
+        </a>
+        <div class="pulse-nav-links">
+            <a href="#coverage">Monitors</a>
+            <a href="#tests">Tests</a>
+            <a href="#errors">Errors</a>
+            <a href="#response">Incidents</a>
+            <a href="#pricing">Pricing</a>
+            <a href="https://github.com/janyksteenbeek/uppi/blob/main/README.md">Docs</a>
         </div>
-        <div class="py-24 sm:py-32 lg:pb-40">
-            <div class="mx-auto max-w-7xl px-6 lg:px-8">
-                <div class="mx-auto max-w-3xl text-center">
-                    <h1 class="text-balance text-5xl font-semibold tracking-tight text-gray-900 sm:text-7xl">
-                        Be the <strong class="text-red-500">first</strong> to know when your website goes <strong
-                            class="glitch" data-text="down">down</strong>
-                    </h1>
-                    <p class="mt-8 text-pretty text-lg font-medium text-gray-600 sm:text-xl/8">
-                        Open-source uptime monitoring for websites and APIs. Monitor your website every minute and get
-                        notified when it goes down.
-                    </p>
-                    <div class="mt-10 flex items-center justify-center gap-x-6">
-                        <a href="{{ url(\App\Filament\Pages\Dashboard::getUrl()) }}"
-                           class="rounded-md bg-red-600 px-3.5 py-2.5 text-lg font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
-                            Start monitoring for free <span aria-hidden="true">→</span>
-                        </a>
-                        <a href="https://github.com/janyksteenbeek/uppi"
-                           class="text-sm/6 font-semibold text-gray-900 inline-flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" class="size-5" viewBox="0 0 50 50">
-                                <path
-                                    d="M17.791,46.836C18.502,46.53,19,45.823,19,45v-5.4c0-0.197,0.016-0.402,0.041-0.61C19.027,38.994,19.014,38.997,19,39 c0,0-3,0-3.6,0c-1.5,0-2.8-0.6-3.4-1.8c-0.7-1.3-1-3.5-2.8-4.7C8.9,32.3,9.1,32,9.7,32c0.6,0.1,1.9,0.9,2.7,2c0.9,1.1,1.8,2,3.4,2 c2.487,0,3.82-0.125,4.622-0.555C21.356,34.056,22.649,33,24,33v-0.025c-5.668-0.182-9.289-2.066-10.975-4.975 c-3.665,0.042-6.856,0.405-8.677,0.707c-0.058-0.327-0.108-0.656-0.151-0.987c1.797-0.296,4.843-0.647,8.345-0.714 c-0.112-0.276-0.209-0.559-0.291-0.849c-3.511-0.178-6.541-0.039-8.187,0.097c-0.02-0.332-0.047-0.663-0.051-0.999 c1.649-0.135,4.597-0.27,8.018-0.111c-0.079-0.5-0.13-1.011-0.13-1.543c0-1.7,0.6-3.5,1.7-5c-0.5-1.7-1.2-5.3,0.2-6.6 c2.7,0,4.6,1.3,5.5,2.1C21,13.4,22.9,13,25,13s4,0.4,5.6,1.1c0.9-0.8,2.8-2.1,5.5-2.1c1.5,1.4,0.7,5,0.2,6.6c1.1,1.5,1.7,3.2,1.6,5 c0,0.484-0.045,0.951-0.11,1.409c3.499-0.172,6.527-0.034,8.204,0.102c-0.002,0.337-0.033,0.666-0.051,0.999 c-1.671-0.138-4.775-0.28-8.359-0.089c-0.089,0.336-0.197,0.663-0.325,0.98c3.546,0.046,6.665,0.389,8.548,0.689 c-0.043,0.332-0.093,0.661-0.151,0.987c-1.912-0.306-5.171-0.664-8.879-0.682C35.112,30.873,31.557,32.75,26,32.969V33 c2.6,0,5,3.9,5,6.6V45c0,0.823,0.498,1.53,1.209,1.836C41.37,43.804,48,35.164,48,25C48,12.318,37.683,2,25,2S2,12.318,2,25 C2,35.164,8.63,43.804,17.791,46.836z"></path>
-                            </svg>
-
-                            janyksteenbeek/uppi
-                        </a>
-                    </div>
-
-
-                </div>
-                <div class="mt-16 flow-root sm:mt-24">
-                    <div
-                        class="-m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                        <img src="{{ asset('static/screenshot-dashboard.png') }}"
-                             alt="App screenshot" width="2432" height="1442"
-                             class="rounded-md shadow-2xl ring-1 ring-gray-900/10">
-                    </div>
-                </div>
-            </div>
+        <div class="pulse-nav-cta">
+            @php
+                $euStars = '';
+                for ($i = 0; $i < 12; $i++) {
+                    $a = ($i / 12) * M_PI * 2 - M_PI / 2;
+                    $sx = number_format(12 + cos($a) * 7, 2, '.', '');
+                    $sy = number_format(12 + sin($a) * 7, 2, '.', '');
+                    $euStars .= "<circle cx=\"{$sx}\" cy=\"{$sy}\" r=\"1.1\" fill=\"#FFCC00\"/>";
+                }
+            @endphp
+            <span class="pulse-eu">
+                <svg class="pulse-eu-flag" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="12" fill="#003399"/>
+                    {!! $euStars !!}
+                </svg>
+                EU hosted
+            </span>
+            <a class="pulse-btn pulse-btn-ghost" href="{{ $dashboardUrl }}">Sign in</a>
+            <a class="pulse-btn" href="{{ $dashboardUrl }}">Start free →</a>
+            <button type="button" class="pulse-icon-btn pulse-nav-mobile" x-on:click="open = true" aria-label="Open menu">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M3 7h18M3 12h18M3 17h18"/>
+                </svg>
+            </button>
         </div>
-        <div
-            class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
-            aria-hidden="true">
-            <div
-                class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-red-300 to-red-700 opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-                style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"></div>
+    </nav>
+
+    {{-- Mobile menu --}}
+    <div class="pulse-mobile-menu" x-show="open" x-cloak x-transition>
+        <div class="pulse-mobile-menu-head">
+            <span class="pulse-mono" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;">menu</span>
+            <button type="button" class="pulse-icon-btn" x-on:click="open = false" aria-label="Close menu">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
         </div>
+        <a href="#coverage" x-on:click="open = false">Monitors</a>
+        <a href="#tests" x-on:click="open = false">Tests</a>
+        <a href="#errors" x-on:click="open = false">Errors</a>
+        <a href="#servers" x-on:click="open = false">Servers</a>
+        <a href="#pricing" x-on:click="open = false">Pricing</a>
+        <a href="https://github.com/janyksteenbeek/uppi/blob/main/README.md">Docs</a>
+        <a href="https://github.com/janyksteenbeek/uppi">GitHub</a>
+        <a href="{{ $dashboardUrl }}">Sign in</a>
+        <a href="{{ $dashboardUrl }}" style="color:var(--red);">Start free →</a>
     </div>
-</div>
 
-{{-- Monitors Section --}}
-<div class="relative overflow-hidden bg-white py-24 sm:py-32" id="features"
-     x-data="{ shown: false }"
-     x-intersect.once.half="shown = true">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center"
-             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-             class="transition-all duration-700 ease-out">
-            <p class="text-base font-semibold text-red-600">Real-time monitoring</p>
-            <h2 class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                Monitor everything.<br>Miss nothing.
-            </h2>
-            <p class="mt-6 text-lg/8 text-gray-600">
-                HTTP, TCP, and cron-job monitoring with minute-by-minute precision. Get instant alerts when things go wrong.
+    {{-- HERO --}}
+    <section class="pulse-hero">
+        <div class="pulse-eyebrow">
+            <span class="pulse-eyebrow-tick"></span>
+            UPTIME · TESTS · ERRORS · CRON · OPEN SOURCE
+        </div>
+        <h1 class="pulse-h1">
+            It will break.<br>
+            You&rsquo;ll know <em>first.</em>
+        </h1>
+        <p class="pulse-lede">
+            Uptime, browser tests, and exception tracking — on one calm dashboard, hosted in the EU.
+        </p>
+        <div class="pulse-cta-row">
+            <a class="pulse-btn" href="{{ $dashboardUrl }}">Start monitoring — free <span style="opacity:.6;">→</span></a>
+            <a class="pulse-btn pulse-btn-ghost" href="https://github.com/janyksteenbeek/uppi">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                Star on GitHub
+            </a>
+        </div>
+        <div class="pulse-meta-row">
+            <span class="pulse-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12h4l3-9 4 18 3-9h4"/>
+                </svg>
+                <b>{{ Number::format($checksSinceYesterday) }}</b>&nbsp;checks since yesterday
+            </span>
+            <span class="pulse-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                </svg>
+                <b>1-minute</b>&nbsp;interval
+            </span>
+            <span class="pulse-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/>
+                </svg>
+                <b>EU hosted</b>,&nbsp;GDPR by default
+            </span>
+        </div>
+
+        {{-- INSTRUMENT --}}
+        <div class="pulse-instrument">
+            <div class="pulse-inst-meter">
+                <div class="pulse-inst-vital up">
+                    <span class="pulse-inst-vital-lbl">Uptime · 24h</span>
+                    <span class="pulse-inst-vital-val">99.984<small>%</small></span>
+                    <span class="pulse-inst-vital-sub">14 monitors · 187ms avg · 1 incident resolved</span>
+                </div>
+                <div class="pulse-inst-vital err">
+                    <span class="pulse-inst-vital-lbl">Exceptions · 24h</span>
+                    <span class="pulse-inst-vital-val">214<small>events</small></span>
+                    <span class="pulse-inst-vital-sub">4 issues · 38 users · release v2.4.1-rc3</span>
+                </div>
+                <div class="pulse-inst-status">
+                    <span class="pulse-dot"></span><span>live</span>
+                </div>
+            </div>
+            <div class="pulse-inst-body">
+            <div class="pulse-inst-head">
+                <span class="pulse-inst-title">Response time &amp; exceptions · last 24 hours</span>
+                <div class="pulse-inst-legend">
+                    <span><i style="background:var(--red);"></i> response time</span>
+                    <span><i style="background:#f59e0b;"></i> warnings</span>
+                    <span><i style="background:var(--red); height:6px; width:2px; border-radius:0;"></i> exceptions</span>
+                </div>
+            </div>
+            <svg class="pulse-graph" viewBox="0 0 {{ $graphW }} {{ $graphH }}" preserveAspectRatio="none" overflow="visible" aria-label="24-hour response time and exceptions">
+                <defs>
+                    <linearGradient id="pulseFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#E5392E" stop-opacity="0.10"/>
+                        <stop offset="100%" stop-color="#E5392E" stop-opacity="0"/>
+                    </linearGradient>
+                    <pattern id="pulseGrid" x="0" y="0" width="80" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M80 0H0V40" fill="none" stroke="#E8E6E1" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="{{ $graphW }}" height="{{ $graphH }}" fill="url(#pulseGrid)"/>
+                <line x1="0" y1="{{ $baseline }}" x2="{{ $graphW }}" y2="{{ $baseline }}" stroke="#E8E6E1" stroke-dasharray="4 4"/>
+                <text x="8" y="{{ $baseline - 6 }}" font-size="10" fill="#8A8A93" font-family="Geist Mono">200ms baseline</text>
+
+                <path id="pulse-fill" d="{{ $graphFill }}" fill="url(#pulseFill)"/>
+                <path id="pulse-line" d="{{ $graphPath }}" fill="none" stroke="#E5392E" stroke-width="1.5" stroke-linejoin="round"/>
+
+                {{-- exception rail label + ticks (static; tied to response curve) --}}
+                <text x="8" y="{{ $excRailY - 6 }}" font-size="9" fill="#8A8A93" font-family="Geist Mono" letter-spacing="1">EXCEPTIONS</text>
+                @foreach($excMarkers as $m)
+                    @php
+                        $tickX = $graphPts[$m['idx']][0];
+                        $tickH = min(10, 2 + log($m['count'] + 1, 2) * 2);
+                        $tickColor = $m['sev'] === 'warn' ? '#f59e0b' : '#E5392E';
+                    @endphp
+                    <line x1="{{ $tickX }}" y1="{{ $excRailY }}" x2="{{ $tickX }}" y2="{{ $excRailY + $tickH }}" stroke="{{ $tickColor }}" stroke-width="2" stroke-linecap="round"/>
+                @endforeach
+
+                {{-- big-spike annotation: links incident on curve to exception count below --}}
+                <g id="pulse-spike" transform="translate({{ $spikePt[0] }}, {{ $spikePt[1] }})">
+                    <line x1="0" y1="6" x2="0" y2="{{ $excRailY - $spikePt[1] - 4 }}" stroke="#E5392E" stroke-opacity="0.3" stroke-dasharray="2 3" stroke-width="1"/>
+                    <circle r="4" fill="#E5392E"/>
+                    <circle r="4" fill="none" stroke="#E5392E" opacity="0.4">
+                        <animate attributeName="r" from="4" to="14" dur="2s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <line x1="0" y1="0" x2="0" y2="-26" stroke="#3A3A40" stroke-width="1"/>
+                    <rect x="-90" y="-46" width="180" height="22" rx="4" fill="#0E0E10"/>
+                    <text x="0" y="-31" font-size="11" fill="white" text-anchor="middle" font-family="Geist Mono">14:02 · 38 exceptions · 4m32s</text>
+                </g>
+
+                {{-- live cursor --}}
+                <line id="pulse-cursor-line" x1="{{ $cursorPt[0] }}" y1="0" x2="{{ $cursorPt[0] }}" y2="{{ $graphH }}" stroke="#0E0E10" stroke-opacity="0.15" stroke-dasharray="2 3"/>
+                <circle id="pulse-cursor-outer" cx="{{ $cursorPt[0] }}" cy="{{ $cursorPt[1] }}" r="4" fill="#0E0E10"/>
+                <circle id="pulse-cursor-inner" cx="{{ $cursorPt[0] }}" cy="{{ $cursorPt[1] }}" r="3" fill="white"/>
+            </svg>
+
+            <script>
+                (function () {
+                    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                    var line = document.getElementById('pulse-line');
+                    var fill = document.getElementById('pulse-fill');
+                    var spike = document.getElementById('pulse-spike');
+                    var curLine = document.getElementById('pulse-cursor-line');
+                    var curOuter = document.getElementById('pulse-cursor-outer');
+                    var curInner = document.getElementById('pulse-cursor-inner');
+                    if (!line || !fill || !curLine) return;
+
+                    var W = {{ $graphW }}, H = {{ $graphH }}, N = {{ $graphN }}, baseline = {{ $baseline }};
+                    var t = 0;
+                    var paused = document.hidden;
+                    document.addEventListener('visibilitychange', function () { paused = document.hidden; });
+
+                    var railY = {{ $excRailY }};
+                    var spikeDrop = spike ? spike.querySelector('line[stroke-dasharray]') : null;
+                    function frame() {
+                        if (!paused) {
+                            t++;
+                            var d = '';
+                            var spikeX, spikeY;
+                            var cx, cy;
+                            for (var i = 0; i < N; i++) {
+                                var x = i / (N - 1) * W;
+                                var seed = Math.sin(i * 0.3) * 14 + Math.sin(i * 0.7) * 6 + Math.cos(i * 0.15) * 9;
+                                var wob = Math.sin(t * 0.02 + i * 0.3) * 2.5;
+                                var sp = i === 78 ? -42 : i === 79 ? -30 : 0;
+                                var y = baseline - 16 + seed + wob + sp;
+                                d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+                                if (i === 78) { spikeX = x; spikeY = y; }
+                                if (i === Math.floor((t * 0.5) % N)) { cx = x; cy = y; }
+                            }
+                            line.setAttribute('d', d);
+                            fill.setAttribute('d', d + 'L' + W + ',' + H + ' L0,' + H + ' Z');
+                            if (spike && spikeY !== undefined) {
+                                spike.setAttribute('transform', 'translate(' + spikeX.toFixed(1) + ',' + spikeY.toFixed(1) + ')');
+                                if (spikeDrop) spikeDrop.setAttribute('y2', (railY - spikeY - 4).toFixed(1));
+                            }
+                            if (cx !== undefined) {
+                                curLine.setAttribute('x1', cx.toFixed(1));
+                                curLine.setAttribute('x2', cx.toFixed(1));
+                                curOuter.setAttribute('cx', cx.toFixed(1));
+                                curOuter.setAttribute('cy', cy.toFixed(1));
+                                curInner.setAttribute('cx', cx.toFixed(1));
+                                curInner.setAttribute('cy', cy.toFixed(1));
+                            }
+                        }
+                        requestAnimationFrame(frame);
+                    }
+                    requestAnimationFrame(frame);
+                })();
+            </script>
+            <div class="pulse-inst-issues">
+                @foreach([
+                    ['sev'=>'err','type'=>'TypeError','msg'=>"Cannot read 'price' of undefined",'where'=>'checkout/cart.tsx:84','count'=>142,'when'=>'2s ago'],
+                    ['sev'=>'err','type'=>'ReferenceError','msg'=>'paymentSession is not defined','where'=>'api/stripe.ts:212','count'=>38,'when'=>'1m ago'],
+                    ['sev'=>'warn','type'=>'TimeoutWarn','msg'=>'/v1/inventory > 800ms budget','where'=>'lib/http.ts:47','count'=>21,'when'=>'4m ago'],
+                    ['sev'=>'err','type'=>'NetworkError','msg'=>'ECONNRESET on retry','where'=>'webhook-relay','count'=>13,'when'=>'12m ago'],
+                ] as $iss)
+                    <div class="pulse-issue">
+                        <span class="sev {{ $iss['sev'] === 'warn' ? 'warn' : '' }}"></span>
+                        <span class="label"><b>{{ $iss['type'] }}</b>{{ $iss['msg'] }}<span class="where">· {{ $iss['where'] }}</span></span>
+                        <span class="ts">{{ $iss['when'] }}</span>
+                        <span class="ct">{{ $iss['count'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+            </div>{{-- /inst-body --}}
+        </div>
+
+        {{-- TICKER --}}
+        <div class="pulse-ticker">
+            <div class="pulse-ticker-track">
+                @for($i = 0; $i < 2; $i++)
+                    @foreach($tickerItems as $it)
+                        <span class="pulse-ticker-item">
+                            <span class="{{ $it['s'] === 'OK' ? 'pulse-ticker-ok' : 'pulse-ticker-fail' }}">● {{ $it['s'] }}</span>
+                            <span style="color:#71717a;">{{ $it['n'] }}</span>
+                            <span>{{ $it['t'] }}</span>
+                        </span>
+                    @endforeach
+                @endfor
+            </div>
+        </div>
+    </section>
+
+    {{-- COVERAGE — full application surface --}}
+    <section class="pulse-section" id="coverage">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">01 · Coverage</div>
+                <h2 class="pulse-section-title">One platform. <em>The whole stack.</em></h2>
+            </div>
+            <p class="pulse-section-sub">
+                From the edge request to the running process to the line that threw — Uppi watches every layer your app actually has.
+            </p>
+        </div>
+        <div class="pulse-cov">
+            <div class="pulse-cov-cell">
+                <span class="pulse-cov-num">01 / Endpoint</span>
+                <h3 class="pulse-cov-name">HTTP / HTTPS</h3>
+                <p class="pulse-cov-desc">Status codes, response bodies, headers, redirects, TLS expiry.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>1-min</b> interval&nbsp;·&nbsp;global probes</div>
+            </div>
+            <div class="pulse-cov-cell">
+                <span class="pulse-cov-num">02 / Network</span>
+                <h3 class="pulse-cov-name">TCP &amp; ports</h3>
+                <p class="pulse-cov-desc">Postgres, Redis, mail relays, SSH — anything that holds a socket.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>any</b> port&nbsp;·&nbsp;reachability + latency</div>
+            </div>
+            <div class="pulse-cov-cell">
+                <span class="pulse-cov-num">03 / Jobs</span>
+                <h3 class="pulse-cov-name">Cron heartbeats</h3>
+                <p class="pulse-cov-desc">A unique URL per job. Notice the silence before the report is missing.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>grace</b> windows&nbsp;·&nbsp;dead-job alerts</div>
+            </div>
+            <div class="pulse-cov-cell">
+                <span class="pulse-cov-num">04 / Browser</span>
+                <h3 class="pulse-cov-name">Synthetic tests</h3>
+                <p class="pulse-cov-desc">Click together a real user flow. Replay it on schedule, headless.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>visual</b> step builder&nbsp;·&nbsp;screenshots on fail</div>
+            </div>
+            <div class="pulse-cov-cell">
+                <span class="pulse-cov-num">05 / Server</span>
+                <h3 class="pulse-cov-name">Host metrics</h3>
+                <p class="pulse-cov-desc">A small Go agent streams CPU, memory, disk, network — threshold alerts.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>one-line</b> install&nbsp;·&nbsp;open source</div>
+            </div>
+            <div class="pulse-cov-cell feat">
+                <span class="pulse-cov-num">06 / Runtime</span>
+                <h3 class="pulse-cov-name">Exception <em>tracking</em></h3>
+                <p class="pulse-cov-desc">Stack traces, breadcrumbs, release tags, user context. Group identical errors. Spot regressions the second they ship.</p>
+                <div class="pulse-cov-foot">●&nbsp; <b>SDK</b> in 6 langs&nbsp;·&nbsp;same alerts as the rest</div>
+            </div>
+        </div>
+    </section>
+
+    {{-- INCIDENT RESPONSE (dark) --}}
+    <section class="pulse-section pulse-incident" id="response">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">02 · Response</div>
+                <h2 class="pulse-section-title">From red to <em>resolved.</em></h2>
+            </div>
+            <p class="pulse-section-sub">
+                One incident model across every check. Routed, acknowledged, broadcast, closed — all on one timeline you can hand to a regulator.
             </p>
         </div>
 
-        {{-- Monitor Type Details --}}
-        <div class="mx-auto mt-16 max-w-5xl"
-             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'"
-             class="transition-all duration-700 delay-200 ease-out">
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {{-- HTTP Details --}}
-                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                    {{-- HTTP Animation - Request/Response --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
-                        <div class="flex items-center gap-6">
-                            {{-- Browser/Client --}}
-                            <div class="relative">
-                                <div class="w-10 h-8 rounded bg-gray-200 flex items-center justify-center">
-                                    {{-- Lucide: monitor --}}
-                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect width="20" height="14" x="2" y="3" rx="2"/>
-                                        <line x1="8" x2="16" y1="21" y2="21"/>
-                                        <line x1="12" x2="12" y1="17" y2="21"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            {{-- Request arrow --}}
-                            <div class="relative w-16">
-                                <div class="absolute top-1/2 -translate-y-1/2 w-full h-0.5 bg-gray-300"></div>
-                                <div class="absolute top-1/2 -translate-y-1/2 h-0.5 bg-green-500 animate-[httpRequest_2s_ease-in-out_infinite]" style="width: 0;"></div>
-                                <svg class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 text-gray-400" fill="currentColor" viewBox="0 0 8 8"><path d="M0 0 L8 4 L0 8 Z"/></svg>
-                            </div>
-                            {{-- Server --}}
-                            <div class="relative">
-                                <div class="w-10 h-10 rounded bg-gray-200 flex items-center justify-center">
-                                    {{-- Lucide: server --}}
-                                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect width="20" height="8" x="2" y="2" rx="2" ry="2"/>
-                                        <rect width="20" height="8" x="2" y="14" rx="2" ry="2"/>
-                                        <line x1="6" x2="6.01" y1="6" y2="6"/>
-                                        <line x1="6" x2="6.01" y1="18" y2="18"/>
-                                    </svg>
-                                </div>
-                                {{-- Status indicator --}}
-                                <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                            </div>
-                        </div>
-                        {{-- Status code badge --}}
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2">
-                            <span class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-mono text-green-600 animate-[fadeInOut_2s_ease-in-out_infinite]">200 OK</span>
-                        </div>
+        <div class="pulse-incident-grid">
+            <div class="pulse-incident-card">
+                <div class="pulse-incident-head">
+                    <div>
+                        <div class="pulse-incident-id">incident #2841 · checkout.shop.dev</div>
+                        <div class="pulse-incident-title">500 on POST /cart/checkout</div>
                     </div>
-                    <div class="flex items-center gap-3 text-gray-900">
-                        {{-- Lucide: globe --}}
-                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-                            <path d="M2 12h20"/>
-                        </svg>
-                        <span class="font-semibold">HTTP Monitor</span>
-                    </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
-                        <li class="flex items-center gap-2">
-                            {{-- Lucide: check --}}
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Status code validation
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Response body matching
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Custom headers & body
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Response time tracking
-                        </li>
-                    </ul>
+                    <span class="pulse-incident-tag"><span class="d"></span> resolved · 4m 32s</span>
                 </div>
+                @foreach([
+                    ['t'=>'14:02:11','tag'=>'DETECT','cls'=>'detect','label'=>'Monitor failed','det'=>'3 consecutive 500s · EU-west probe'],
+                    ['t'=>'14:02:11','tag'=>'ROUTE','cls'=>'neutral','label'=>'Paged on-call','det'=>'#ops-alerts · Maya R. (sms + push)'],
+                    ['t'=>'14:02:38','tag'=>'ACK','cls'=>'neutral','label'=>'Acknowledged','det'=>'Maya R. · "looking — db pool exhausted?"'],
+                    ['t'=>'14:03:02','tag'=>'PUBLIC','cls'=>'neutral','label'=>'Status page updated','det'=>'status.shop.dev · "Investigating checkout"'],
+                    ['t'=>'14:04:51','tag'=>'NOTE','cls'=>'neutral','label'=>'Linked deploy','det'=>'release v2.4.1-rc3 · 2 min before first failure'],
+                    ['t'=>'14:06:43','tag'=>'OK','cls'=>'ok','label'=>'Recovered','det'=>'rolled back · 12 consecutive 200s'],
+                    ['t'=>'14:07:15','tag'=>'CLOSE','cls'=>'ok','label'=>'Post-mortem drafted','det'=>'auto-attached: graphs · alerts · deploy diff'],
+                ] as $row)
+                    <div class="pulse-incident-row">
+                        <span class="t">{{ $row['t'] }}</span>
+                        <span class="tag {{ $row['cls'] }}">{{ $row['tag'] }}</span>
+                        <span class="body"><b>{{ $row['label'] }}</b><span class="det">· {{ $row['det'] }}</span></span>
+                    </div>
+                @endforeach
+            </div>
 
-                {{-- TCP Details --}}
-                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                    {{-- TCP Animation - Port connections --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
-                        <div class="flex items-center gap-2">
-                            {{-- Server with ports --}}
-                            <div class="relative">
-                                <div class="w-16 h-16 rounded-lg bg-gray-100 border border-gray-200 flex flex-col items-center justify-center gap-1 p-2">
-                                    {{-- Lucide: database --}}
-                                    <svg class="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                                        <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
-                                        <path d="M3 12A9 3 0 0 0 21 12"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            {{-- Port indicators --}}
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-300"></div>
-                                    <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75"></div>
-                                    </div>
-                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:443</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-300"></div>
-                                    <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.3s]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.3s;"></div>
-                                    </div>
-                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:3306</span>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <div class="w-8 h-0.5 bg-gray-300"></div>
-                                    <div class="relative">
-                                        <div class="w-2 h-2 rounded-full bg-green-500 animate-[tcpPulse_1.5s_ease-in-out_infinite_0.6s]"></div>
-                                        <div class="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping opacity-75" style="animation-delay: 0.6s;"></div>
-                                    </div>
-                                    <span class="text-[10px] text-gray-500 font-mono ml-1">:6379</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 text-gray-900">
-                        {{-- Lucide: network --}}
-                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="16" y="16" width="6" height="6" rx="1"/>
-                            <rect x="2" y="16" width="6" height="6" rx="1"/>
-                            <rect x="9" y="2" width="6" height="6" rx="1"/>
-                            <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
-                            <path d="M12 12V8"/>
-                        </svg>
-                        <span class="font-semibold">TCP Monitor</span>
-                    </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
-                        <li class="flex items-center gap-2">
-                            {{-- Lucide: check --}}
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Port availability check
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Database connections
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Mail server monitoring
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Any TCP service
-                        </li>
-                    </ul>
+            <div class="pulse-server-bullets">
+                <div class="pulse-bullet">
+                    <h4>One incident model</h4>
+                    <p>HTTP, cron, browser test, exception — all roll up into the same timeline. One ack, one resolve, one record.</p>
                 </div>
-
-                {{-- Cron Details --}}
-                <div class="rounded-2xl bg-white border border-gray-200 p-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                    {{-- Cron Animation - Clock with heartbeat --}}
-                    <div class="relative h-24 mb-4 flex items-center justify-center bg-gray-50 rounded-xl">
-                        <div class="flex items-center gap-4">
-                            {{-- Animated clock --}}
-                            <div class="relative w-14 h-14">
-                                <div class="absolute inset-0 rounded-full border-2 border-gray-300"></div>
-                                {{-- Clock face dots --}}
-                                <div class="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
-                                <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
-                                <div class="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
-                                <div class="absolute right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-gray-400"></div>
-                                {{-- Clock hands --}}
-                                <div class="absolute top-1/2 left-1/2 w-0.5 h-4 bg-gray-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockMinute_4s_linear_infinite]"></div>
-                                <div class="absolute top-1/2 left-1/2 w-0.5 h-3 bg-red-500 origin-bottom -translate-x-1/2 -translate-y-full animate-[clockSecond_2s_steps(60)_infinite]"></div>
-                                <div class="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full bg-gray-500 -translate-x-1/2 -translate-y-1/2"></div>
-                            </div>
-                            {{-- Heartbeat line --}}
-                            <div class="flex-1">
-                                <svg class="w-24 h-8" viewBox="0 0 100 32">
-                                    <path d="M0,16 L20,16 L25,16 L30,4 L35,28 L40,16 L60,16 L65,16 L70,4 L75,28 L80,16 L100,16" 
-                                          fill="none" 
-                                          stroke="#22c55e" 
-                                          stroke-width="2"
-                                          class="animate-[heartbeat_2s_ease-in-out_infinite]"
-                                          stroke-dasharray="200"
-                                          stroke-dashoffset="200"/>
-                                </svg>
-                                <div class="text-center mt-1">
-                                    <span class="text-[10px] text-green-600 font-mono animate-pulse">CHECK-IN ✓</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 text-gray-900">
-                        {{-- Lucide: clock --}}
-                        <svg class="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                        <span class="font-semibold">Cron Monitor</span>
-                    </div>
-                    <ul class="mt-4 space-y-2 text-sm text-gray-600">
-                        <li class="flex items-center gap-2">
-                            {{-- Lucide: check --}}
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Heartbeat check-ins
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Configurable grace period
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Background job tracking
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <svg class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                            Unique check-in URLs
-                        </li>
-                    </ul>
+                <div class="pulse-bullet">
+                    <h4>Status page in the loop</h4>
+                    <p>Auto-publish to a hosted or self-hosted status page. Customers know before they ask.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Deploy correlation</h4>
+                    <p>Every incident lists the last deploy. Rollback is one click and re-checks the failing monitor.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Post-mortems, written for you</h4>
+                    <p>On close, Uppi attaches the graphs, the alert chain and the deploy diff. You write the human part.</p>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-<style>
-    @keyframes httpRequest {
-        0%, 100% { width: 0; opacity: 0; }
-        10% { opacity: 1; }
-        50% { width: 100%; opacity: 1; }
-        60%, 100% { width: 100%; opacity: 0; }
-    }
-    @keyframes fadeInOut {
-        0%, 100% { opacity: 0.3; }
-        50% { opacity: 1; }
-    }
-    @keyframes tcpPulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.2); opacity: 0.8; }
-    }
-    @keyframes clockMinute {
-        from { transform: translate(-50%, -100%) rotate(0deg); }
-        to { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    @keyframes clockSecond {
-        from { transform: translate(-50%, -100%) rotate(0deg); }
-        to { transform: translate(-50%, -100%) rotate(360deg); }
-    }
-    @keyframes heartbeat {
-        0% { stroke-dashoffset: 200; }
-        100% { stroke-dashoffset: 0; }
-    }
-    @keyframes cpuPulse {
-        0%, 100% { height: 60%; }
-        25% { height: 75%; }
-        50% { height: 45%; }
-        75% { height: 80%; }
-    }
-    @keyframes memoryWave {
-        0%, 100% { width: 65%; }
-        50% { width: 72%; }
-    }
-    @keyframes diskFill {
-        0%, 100% { width: 78%; }
-        50% { width: 82%; }
-    }
-    @keyframes networkPulse {
-        0% { transform: translateX(-100%); opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { transform: translateX(100%); opacity: 0; }
-    }
-    @keyframes serverGlow {
-        0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
-        50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.5); }
-    }
-    @keyframes metricFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
-    }
-</style>
-
-{{-- Server Monitoring Section --}}
-<div class="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-24 sm:py-32"
-     x-data="{ shown: false }"
-     x-intersect.once.half="shown = true">
-    {{-- Background grid pattern --}}
-    <div class="absolute inset-0 opacity-10">
-        <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <pattern id="server-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.5" class="text-gray-400"/>
-                </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#server-grid)"/>
-        </svg>
-    </div>
-    {{-- Glowing orbs --}}
-    <div class="absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-green-500/10 blur-3xl"></div>
-    <div class="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-red-500/10 blur-3xl"></div>
-
-    <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-            {{-- Animated Server Visualization --}}
-            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'"
-                 class="transition-all duration-700 delay-300 ease-out order-2 lg:order-1">
-                <div class="relative rounded-2xl bg-gray-800/50 backdrop-blur-sm p-8 ring-1 ring-white/10" style="animation: serverGlow 3s ease-in-out infinite;">
-                    {{-- Server Header --}}
-                    <div class="flex items-center justify-between border-b border-gray-700 pb-4 mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="relative">
-                                <div class="h-3 w-3 rounded-full bg-green-500"></div>
-                                <div class="absolute inset-0 h-3 w-3 rounded-full bg-green-500 animate-ping"></div>
-                            </div>
-                            <span class="font-mono text-sm text-gray-300">production-server-01</span>
-                        </div>
-                        <span class="text-xs text-gray-500">Ubuntu 24.04 LTS</span>
-                    </div>
-
-                    {{-- Metrics Grid --}}
-                    <div class="grid grid-cols-2 gap-6">
-                        {{-- CPU --}}
-                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite;">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">CPU</span>
-                                <span class="font-mono text-lg text-green-400">27%</span>
-                            </div>
-                            <div class="flex items-end gap-1 h-12">
-                                @for($i = 0; $i < 8; $i++)
-                                    <div class="flex-1 bg-gray-700 rounded-t relative overflow-hidden">
-                                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-500 to-green-400 rounded-t"
-                                             style="animation: cpuPulse 2s ease-in-out infinite; animation-delay: {{ $i * 0.1 }}s; height: {{ 30 + rand(20, 50) }}%;"></div>
-                                    </div>
-                                @endfor
-                            </div>
-                        </div>
-
-                        {{-- Memory --}}
-                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 0.5s;">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Memory</span>
-                                <span class="font-mono text-lg text-blue-400">6.2 / 8 GB</span>
-                            </div>
-                            <div class="h-12 flex flex-col justify-center">
-                                <div class="h-4 bg-gray-700 rounded-full overflow-hidden">
-                                    <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style="animation: memoryWave 3s ease-in-out infinite; width: 77%;"></div>
-                                </div>
-                                <div class="flex justify-between mt-2 text-[10px] text-gray-500">
-                                    <span>Used: 6.2 GB</span>
-                                    <span>Free: 1.8 GB</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Disk --}}
-                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 1s;">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Disk /</span>
-                                <span class="font-mono text-lg text-amber-400">78%</span>
-                            </div>
-                            <div class="h-12 flex flex-col justify-center">
-                                <div class="h-4 bg-gray-700 rounded-full overflow-hidden">
-                                    <div class="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full" style="animation: diskFill 4s ease-in-out infinite; width: 78%;"></div>
-                                </div>
-                                <div class="flex justify-between mt-2 text-[10px] text-gray-500">
-                                    <span>156 GB / 200 GB</span>
-                                    <span>44 GB free</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Network --}}
-                        <div class="rounded-xl bg-gray-900/50 p-4" style="animation: metricFloat 4s ease-in-out infinite 1.5s;">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Network</span>
-                                <span class="font-mono text-lg text-purple-400">eth0</span>
-                            </div>
-                            <div class="h-12 flex flex-col justify-center gap-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-gray-500 w-6">↓ RX</span>
-                                    <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                        <div class="h-full w-1/3 bg-purple-500 rounded-full" style="animation: networkPulse 2s ease-in-out infinite;"></div>
-                                    </div>
-                                    <span class="text-[10px] text-purple-400 w-16 text-right">12.4 MB/s</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-gray-500 w-6">↑ TX</span>
-                                    <div class="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                        <div class="h-full w-1/4 bg-green-500 rounded-full" style="animation: networkPulse 2.5s ease-in-out infinite 0.5s;"></div>
-                                    </div>
-                                    <span class="text-[10px] text-green-400 w-16 text-right">3.2 MB/s</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Load Average --}}
-                    <div class="mt-6 pt-4 border-t border-gray-700">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Load Average</span>
-                            <div class="flex items-center gap-4 font-mono text-sm">
-                                <span class="text-green-400">0.45 <span class="text-[10px] text-gray-500">1m</span></span>
-                                <span class="text-green-400">0.62 <span class="text-[10px] text-gray-500">5m</span></span>
-                                <span class="text-yellow-400">1.24 <span class="text-[10px] text-gray-500">15m</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    {{-- ALERTS --}}
+    <section class="pulse-section">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">03 · Alerts</div>
+                <h2 class="pulse-section-title">Reach the right person, <em>once.</em></h2>
             </div>
-
-            {{-- Text Content --}}
-            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'"
-                 class="transition-all duration-700 ease-out order-1 lg:order-2">
-                <div class="inline-flex items-center gap-2 rounded-full bg-green-500/10 px-4 py-1.5 text-sm font-medium text-green-400 ring-1 ring-green-500/20">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    New Feature
-                </div>
-                <h2 class="mt-6 text-pretty text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                    Server monitoring.<br>Full visibility.
-                </h2>
-                <p class="mt-6 text-lg text-gray-400">
-                    Monitor your servers with a lightweight agent. Track CPU, memory, disk, network, and load averages in real-time. Get alerted before your servers hit critical thresholds.
-                </p>
-
-                <div class="mt-10 space-y-4">
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.2s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 0 0 2.25-2.25V6.75a2.25 2.25 0 0 0-2.25-2.25H6.75A2.25 2.25 0 0 0 4.5 6.75v10.5a2.25 2.25 0 0 0 2.25 2.25Zm.75-12h9v9h-9v-9Z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-white">One-line install</h3>
-                            <p class="mt-1 text-sm text-gray-400">Install the agent with a single curl command. No configuration needed.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.3s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-white">Threshold alerts</h3>
-                            <p class="mt-1 text-sm text-gray-400">Set custom thresholds for any metric. Get notified when things cross the line.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.4s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/20 text-green-400 ring-1 ring-green-500/30">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-white">Open source agent</h3>
-                            <p class="mt-1 text-sm text-gray-400">
-                                Audit the code yourself. Lightweight Go binary with minimal footprint.
-                                <a href="https://github.com/janyksteenbeek/uppi-server-agent" target="_blank" class="text-green-400 hover:text-green-300 inline-flex items-center gap-1 ml-1">
-                                    View on GitHub
-                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-                                </a>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Alert Channels Section --}}
-<div class="bg-gray-50 py-24 sm:py-32"
-     x-data="{ shown: false }"
-     x-intersect.once.half="shown = true">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center"
-             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-             class="transition-all duration-700 ease-out">
-            <p class="text-base font-semibold text-red-600">Instant notifications</p>
-            <h2 class="mt-2 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                Get alerted your way
-            </h2>
-            <p class="mt-6 text-lg/8 text-gray-600">
-                Choose from multiple notification channels. Mix and match per monitor for the perfect alert setup.
+            <p class="pulse-section-sub">
+                One incident, one page. Routing rules pick the channel and stop — no fan-out spam, no five Slacks repeating the same thing.
             </p>
         </div>
 
-        <div class="mx-auto mt-16 max-w-4xl">
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {{-- Email --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-100 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-                        <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Email</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Detailed alert emails</p>
-                </div>
-
-                {{-- Slack --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-150 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-purple-100">
-                        <svg class="h-7 w-7 text-purple-600" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Slack</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Channel notifications</p>
-                </div>
-
-                {{-- Telegram --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-200 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-                        <svg class="h-7 w-7 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Telegram</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Bot messages</p>
-                </div>
-
-                {{-- Pushover --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-250 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-100">
-                        <svg class="h-7 w-7 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Pushover</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Push notifications</p>
-                </div>
-
-                {{-- SMS (Bird) --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-300 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-                        <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">SMS</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Via Bird</p>
-                </div>
-
-                {{-- Webhook --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-350 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
-                        <svg class="h-7 w-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Webhooks</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">Custom integrations</p>
-                </div>
-
-                {{-- Mobile App --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-400 ease-out flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:shadow-md hover:ring-red-200 sm:col-span-2 lg:col-span-1">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900">
-                        <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                        </svg>
-                    </div>
-                    <h3 class="mt-4 font-semibold text-gray-900">Mobile App</h3>
-                    <p class="mt-1 text-center text-xs text-gray-500">iOS & Android</p>
-                </div>
-
-                {{-- More coming --}}
-                <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                     class="transition-all duration-500 delay-450 ease-out flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 p-6">
-                    <p class="text-sm font-medium text-gray-500">More coming soon...</p>
-                    <a href="https://github.com/janyksteenbeek/uppi" class="mt-2 text-xs text-red-600 hover:text-red-500">Contribute →</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Browser Tests Section --}}
-<div class="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white py-24 sm:py-32"
-     x-data="{ shown: false }"
-     x-intersect.once.half="shown = true">
-    {{-- Background decoration --}}
-    <div class="absolute inset-0 -z-10">
-        <div class="absolute top-1/4 left-0 h-72 w-72 rounded-full bg-red-100 opacity-50 blur-3xl"></div>
-        <div class="absolute bottom-1/4 right-0 h-96 w-96 rounded-full bg-red-50 opacity-60 blur-3xl"></div>
-    </div>
-
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-16 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-2 lg:items-center">
-            {{-- Text Content --}}
-            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'"
-                 class="transition-all duration-700 ease-out">
-                <div class="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-1.5 text-sm font-medium text-red-700">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-                    </svg>
-                    Browser Tests
-                </div>
-                <h2 class="mt-6 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                    Test user flows.<br>Catch issues before users do.
-                </h2>
-                <p class="mt-6 text-lg text-gray-600">
-                    Go beyond simple uptime checks. Create automated browser tests that simulate real user interactions—clicking, typing, navigating—and verify your application works end-to-end.
-                </p>
-
-                <div class="mt-10 space-y-6">
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.2s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-900">Visual Test Builder</h3>
-                            <p class="mt-1 text-sm text-gray-600">Build tests step-by-step with an intuitive interface. No coding required.</p>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.3s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-900">Screenshots & Snapshots</h3>
-                            <p class="mt-1 text-sm text-gray-600">Capture screenshots and HTML snapshots on failure for easy debugging.</p>
-                        </div>
-                        </div>
-
-                    <div class="flex gap-4"
-                         :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'"
-                         style="transition: all 0.5s ease-out 0.4s;">
-                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500 text-white">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-900">Integrated with Monitors</h3>
-                            <p class="mt-1 text-sm text-gray-600">Run tests on a schedule as part of your monitoring. Same alerts, same dashboard.</p>
-                        </div>
-                    </div>
-                </div>
-                        </div>
-
-            {{-- Test Flow Animation --}}
-            <div :class="shown ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'"
-                 class="transition-all duration-700 delay-300 ease-out">
-                <div class="relative rounded-2xl bg-gray-900 p-6 shadow-2xl ring-1 ring-white/10">
-                    {{-- Browser Chrome --}}
-                    <div class="flex items-center gap-2 pb-4 border-b border-gray-700">
-                        <div class="flex gap-1.5">
-                            <div class="h-3 w-3 rounded-full bg-red-500"></div>
-                            <div class="h-3 w-3 rounded-full bg-yellow-500"></div>
-                            <div class="h-3 w-3 rounded-full bg-green-500"></div>
-                        </div>
-                        <div class="flex-1 ml-4">
-                            <div class="flex items-center gap-2 rounded-md bg-gray-800 px-3 py-1.5 text-xs text-gray-400">
-                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                                </svg>
-                                your-app.com/checkout
-                            </div>
-                        </div>
-                        </div>
-
-                    {{-- Test Steps --}}
-                    <div class="mt-6 space-y-3">
-                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
-                             x-data="{ animate: false }"
-                             x-init="setTimeout(() => animate = true, 800)"
-                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
-                             style="transition: opacity 0.3s ease-out;">
-                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-green-400">Visit</div>
-                                <div class="text-xs text-gray-500">https://your-app.com/login</div>
-                            </div>
-                            <div class="text-xs text-gray-500">124ms</div>
-                        </div>
-
-                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
-                             x-data="{ animate: false }"
-                             x-init="setTimeout(() => animate = true, 1100)"
-                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
-                             style="transition: opacity 0.3s ease-out;">
-                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-green-400">Type</div>
-                                <div class="text-xs text-gray-500">#email → user@example.com</div>
-                            </div>
-                            <div class="text-xs text-gray-500">89ms</div>
-                        </div>
-
-                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
-                             x-data="{ animate: false }"
-                             x-init="setTimeout(() => animate = true, 1400)"
-                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
-                             style="transition: opacity 0.3s ease-out;">
-                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-green-400">Press</div>
-                                <div class="text-xs text-gray-500">Sign In</div>
-                            </div>
-                            <div class="text-xs text-gray-500">312ms</div>
-                        </div>
-
-                        <div class="flex items-center gap-3 rounded-lg bg-green-500/10 p-3 ring-1 ring-green-500/20"
-                             x-data="{ animate: false }"
-                             x-init="setTimeout(() => animate = true, 1700)"
-                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
-                             style="transition: opacity 0.3s ease-out;">
-                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-green-500">
-                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-green-400">Wait for text</div>
-                                <div class="text-xs text-gray-500">Welcome back!</div>
-                            </div>
-                            <div class="text-xs text-gray-500">1.2s</div>
-                        </div>
-
-                        <div class="flex items-center gap-3 rounded-lg bg-gray-800 p-3 ring-1 ring-gray-700"
-                             x-data="{ animate: false }"
-                             x-init="setTimeout(() => animate = true, 2000)"
-                             :class="animate && shown ? 'opacity-100' : 'opacity-0'"
-                             style="transition: opacity 0.3s ease-out;">
-                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-red-500">
-                                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5" />
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-white">Success</div>
-                                <div class="text-xs text-gray-500">Test completed</div>
-                            </div>
-                            <div class="text-xs text-green-400 font-medium">1.7s total</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Features Grid Section --}}
-<div class="overflow-hidden bg-white py-24 sm:py-32"
-     x-data="{ shown: false }"
-     x-intersect.once.half="shown = true">
-    <div class="mx-auto max-w-7xl px-6 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center"
-             :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-             class="transition-all duration-700 ease-out">
-            <h2 class="text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                Everything you need.<br>Nothing you don't.
-            </h2>
-            <p class="mt-6 text-lg/8 text-gray-600">
-                Features you expect from a world-class monitoring service, completely free and open-source.
-            </p>
-        </div>
-
-        <div class="mx-auto mt-16 max-w-5xl">
-            <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="pulse-alerts">
+            <div class="pulse-alerts-channels">
                 @php
-                    $features = [
-                        ['title' => 'Alert Routing', 'desc' => 'Get notified via mobile app, email, SMS, Slack, Pushover, or Bird.'],
-                        ['title' => 'Response Time Tracking', 'desc' => 'Monitor performance trends and catch slowdowns early.'],
-                        ['title' => 'Mobile App', 'desc' => 'Native iOS and Android apps for alerts on the go.'],
-                        ['title' => 'Status Pages', 'desc' => 'Beautiful public status pages for your users.'],
-                        ['title' => 'Custom Intervals', 'desc' => 'Check every minute or set your own schedule.'],
-                        ['title' => 'Open Source', 'desc' => 'Self-host or use our hosted version. Your choice.'],
+                    $channels = [
+                        ['name'=>'Email','meta'=>'detailed alert emails','svg'=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="m3 6 9 7 9-7"/></svg>'],
+                        ['name'=>'Slack','meta'=>'channel notifications','svg'=>'<svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#E01E5A" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/><path fill="#36C5F0" d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"/><path fill="#2EB67D" d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z"/><path fill="#ECB22E" d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>'],
+                        ['name'=>'Telegram','meta'=>'bot messages','svg'=>'<svg fill="#26A5E4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>'],
+                        ['name'=>'Pushover','meta'=>'push notifications','svg'=>'<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#249DF1"/><text x="12" y="16.6" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="13" fill="#fff">P</text></svg>'],
+                        ['name'=>'SMS','meta'=>'via Bird','svg'=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5a8.38 8.38 0 0 1-9 8.32c-.86 0-1.7-.13-2.49-.38L3 21l1.56-4.68A8.38 8.38 0 0 1 21 11.5z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg>'],
+                        ['name'=>'Webhook','meta'=>'custom integrations','svg'=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'],
+                        ['name'=>'PagerDuty','meta'=>'on-call escalation','svg'=>'<svg fill="#06AC38" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16.965 1.18C15.085.164 13.769 0 10.683 0H3.73v14.55h6.926c2.743 0 4.8-.164 6.61-1.37 1.975-1.303 3.004-3.484 3.004-6.007 0-2.716-1.262-4.896-3.305-5.994zm-5.5 10.326h-4.21V3.113l3.977-.027c3.62-.028 5.43 1.234 5.43 4.128 0 3.113-2.248 4.292-5.197 4.292zM3.73 17.61h3.525V24H3.73Z"/></svg>'],
+                        ['name'=>'Discord','meta'=>'server messages','svg'=>'<svg fill="#5865F2" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>'],
+                        ['name'=>'Mobile app','meta'=>'iOS · Android','svg'=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>'],
                     ];
                 @endphp
-
-                @foreach($features as $index => $feature)
-                    <div :class="shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'"
-                         class="transition-all duration-500 ease-out rounded-xl bg-gray-50 p-6 hover:bg-gray-100"
-                         style="transition-delay: {{ ($index + 1) * 100 }}ms;">
-                        <dt class="text-base font-semibold text-gray-900">{{ $feature['title'] }}</dt>
-                        <dd class="mt-2 text-sm text-gray-600">{{ $feature['desc'] }}</dd>
-            </div>
+                @foreach($channels as $c)
+                    <div class="pulse-channel">
+                        <div class="pulse-channel-icon">{!! $c['svg'] !!}</div>
+                        <div>
+                            <div class="pulse-channel-name">{{ $c['name'] }}</div>
+                            <div class="pulse-channel-meta">{{ $c['meta'] }}</div>
+                        </div>
+                    </div>
                 @endforeach
-            </dl>
+            </div>
+
+            <div class="pulse-alert-demo">
+                <div class="pulse-alert-head">
+                    <span class="lab">incident · INC-4821</span>
+                    <span style="color:#ff8a82;">● firing</span>
+                </div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:02:11</span><span class="pulse-alert-tag fail">FAIL</span><span class="body">checkout.shop.dev → 503 Service Unavailable</span></div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:02:11</span><span class="pulse-alert-tag send">SEND</span><span>→ #ops-alerts (slack)</span></div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:02:11</span><span class="pulse-alert-tag send">SEND</span><span>→ on-call · Maya R. (sms)</span></div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:02:42</span><span class="pulse-alert-tag send">ACK</span><span class="body">acknowledged · Maya R.</span></div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:06:48</span><span class="pulse-alert-tag ok">OK</span><span class="body">recovered · 4m 37s · 200 OK</span></div>
+                <div class="pulse-alert-line"><span class="pulse-alert-time">14:06:48</span><span class="pulse-alert-tag send">SEND</span><span>→ resolution to all subscribers</span></div>
+            </div>
+        </div>
+    </section>
+
+    {{-- TESTS — write once, run as a monitor --}}
+    <section class="pulse-section" id="tests">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">04 · Tests</div>
+                <h2 class="pulse-section-title">Write the test once. <em>Run it as a monitor.</em></h2>
+            </div>
+            <p class="pulse-section-sub">
+                Build a real user flow on a visual canvas — no code. Then drop it into a monitor and let headless Chromium replay it on schedule.
+            </p>
+        </div>
+        <div class="pulse-tests">
+            <div class="pulse-test-window">
+                <div class="pulse-test-bar">
+                    <span class="dot" style="background:#ff5f57;"></span>
+                    <span class="dot" style="background:#febc2e;"></span>
+                    <span class="dot" style="background:#28c840;"></span>
+                    <span class="pulse-test-url">test · checkout-flow · used by 3 monitors · ✓ passed 2m ago</span>
+                </div>
+                <div class="pulse-test-steps">
+                    @foreach([
+                        ['n'=>'01','label'=>'Visit','detail'=>'https://shop.example.com','time'=>'128ms','state'=>''],
+                        ['n'=>'02','label'=>'Type','detail'=>'email · alex@example.com','time'=>'85ms','state'=>''],
+                        ['n'=>'03','label'=>'Press','detail'=>'Sign in','time'=>'372ms','state'=>''],
+                        ['n'=>'04','label'=>'Wait for text','detail'=>'"Welcome back"','time'=>'1.2s','state'=>''],
+                        ['n'=>'05','label'=>'Click','detail'=>'a[href="/cart"]','time'=>'94ms','state'=>'active'],
+                        ['n'=>'06','label'=>'Assert','detail'=>'2 items in cart','time'=>'—','state'=>'pending'],
+                        ['n'=>'07','label'=>'Screenshot','detail'=>'cart-state.png','time'=>'—','state'=>'pending'],
+                    ] as $s)
+                        <div class="pulse-test-step {{ $s['state'] }}">
+                            <span class="pulse-test-step-num">{{ $s['n'] }}</span>
+                            <span><span class="pulse-test-step-label">{{ $s['label'] }}</span><span class="pulse-test-step-detail">{{ $s['detail'] }}</span></span>
+                            <span class="pulse-test-step-time">{{ $s['time'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="pulse-test-uses">
+                    <span class="lab">used by</span>
+                    @foreach(['mon · checkout-eu', 'mon · checkout-us', 'mon · checkout-ap'] as $m)
+                        <span class="chip"><span class="dot"></span>{{ $m }}</span>
+                    @endforeach
+                </div>
+            </div>
+            <div class="pulse-tests-bullets">
+                <div class="pulse-bullet">
+                    <h4>Visual step builder</h4>
+                    <p>Click together a real user flow on an intuitive canvas. Visit, type, click, wait, assert. No code.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Reuse across monitors</h4>
+                    <p>One test, many monitors. Run checkout-flow from EU, US and AP — three monitors, one definition. Edit once, all three update.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Screenshots on failure</h4>
+                    <p>When a step fails, Uppi captures the page state, HTML snapshot and console log. You see exactly what the user saw.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Same alerts as the rest</h4>
+                    <p>Test failures route through the same channels as your HTTP and cron checks. One incident model. One on-call.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- SERVERS (light, normal block) --}}
+    <section class="pulse-section" id="servers">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">05 · Servers</div>
+                <h2 class="pulse-section-title">One agent. <em>Full visibility.</em></h2>
+            </div>
+            <p class="pulse-section-sub">
+                A small Go binary. Drops onto any Linux box and streams CPU, memory, disk and network — with the same threshold alerts as everything else.
+            </p>
+        </div>
+
+        <div class="pulse-servers-grid">
+            <div class="pulse-server-card">
+                <div class="pulse-server-head">
+                    <div>
+                        <div class="pulse-server-name">web-prod-01 · eu-west</div>
+                        <div class="pulse-server-state">nominal</div>
+                    </div>
+                    <span class="pulse-server-tag"><span class="d"></span> healthy · 47d</span>
+                </div>
+
+                <div class="pulse-server-metrics">
+                    @php
+                        $metrics = [
+                            ['label' => 'CPU',     'value' => '27%',         'sub' => '8 cores',         'color' => '#E5392E', 'trend' => 'up'],
+                            ['label' => 'MEMORY',  'value' => '6.2 / 8 GB',  'sub' => '77.5%',           'color' => '#f59e0b', 'trend' => 'down'],
+                            ['label' => 'DISK',    'value' => '78%',         'sub' => '/ — 312 GB',      'color' => '#f59e0b', 'trend' => 'down'],
+                            ['label' => 'NETWORK', 'value' => 'eth0',        'sub' => '12.4 MB/s ↑ 3.1 ↓','color' => '#1F8A5B', 'trend' => 'up'],
+                        ];
+                    @endphp
+                    @foreach($metrics as $m)
+                        <div class="pulse-metric">
+                            <div class="pulse-metric-head">
+                                <span class="pulse-metric-label">{{ $m['label'] }}</span>
+                                <svg width="120" height="40" viewBox="0 0 120 40" aria-hidden="true">
+                                    <path d="{{ $sparkline($m['trend']) }}" fill="none" stroke="{{ $m['color'] }}" stroke-width="1.5"/>
+                                </svg>
+                            </div>
+                            <div class="pulse-metric-value">{{ $m['value'] }}</div>
+                            <div class="pulse-metric-sub">{{ $m['sub'] }}</div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="pulse-install"><span class="pr">$ </span>curl -sSL get.uppi.dev | sh</div>
+            </div>
+
+            <div class="pulse-server-bullets">
+                <div class="pulse-bullet">
+                    <h4>One-line install</h4>
+                    <p>curl-piped Go binary. No Docker, no Python, no agent fleet.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Threshold alerts</h4>
+                    <p>Set custom levels per metric. Get notified the moment something crosses your line.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Audit the source</h4>
+                    <p>The whole agent is on GitHub. Read it, fork it, ship it. No black box on your servers.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ERRORS — exception tracking --}}
+    <section class="pulse-section" id="errors">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">06 · Errors</div>{{-- order: 01 Coverage · 02 Response · 03 Alerts · 04 Tests · 05 Servers · 06 Errors · 07 Pricing --}}
+                <h2 class="pulse-section-title">When something throws, <em>you read the stack.</em></h2>
+            </div>
+            <p class="pulse-section-sub">
+                Drop the SDK in. Catch every uncaught exception with full stack traces, breadcrumbs, release tags and user context.
+            </p>
+        </div>
+
+        <div class="pulse-err-grid">
+            <div class="pulse-err-card">
+                <div class="pulse-err-head">
+                    <div>
+                        <span class="pulse-err-tag">● unresolved · prod</span>
+                        <h3 class="pulse-err-title">TypeError: <b>Cannot read properties of undefined (reading &lsquo;price&rsquo;)</b></h3>
+                        <p class="pulse-err-msg">at <span class="pulse-mono">CartSummary.computeTotal</span> · checkout/cart.tsx:84</p>
+                    </div>
+                    <div class="pulse-err-spark">
+                        <svg width="120" height="40" viewBox="0 0 120 40" aria-hidden="true">
+                            <path d="{{ $sparkline('down') }}" fill="none" stroke="#E5392E" stroke-width="1.5"/>
+                        </svg>
+                        <div class="pulse-err-spark-num">214</div>
+                        <div class="pulse-err-spark-lbl">events · 24h</div>
+                    </div>
+                </div>
+                <div class="pulse-err-meta">
+                    <div class="pulse-err-meta-cell">
+                        <div class="pulse-err-meta-lbl">first seen</div>
+                        <div class="pulse-err-meta-val">2h 14m ago</div>
+                    </div>
+                    <div class="pulse-err-meta-cell">
+                        <div class="pulse-err-meta-lbl">last seen</div>
+                        <div class="pulse-err-meta-val">just now</div>
+                    </div>
+                    <div class="pulse-err-meta-cell">
+                        <div class="pulse-err-meta-lbl">users affected</div>
+                        <div class="pulse-err-meta-val">38</div>
+                    </div>
+                    <div class="pulse-err-meta-cell">
+                        <div class="pulse-err-meta-lbl">release</div>
+                        <div class="pulse-err-meta-val red">v2.4.1-rc3</div>
+                    </div>
+                </div>
+                <div class="pulse-err-stack">
+                    <div class="pulse-err-stack-line"><span class="ln">82</span><span><span class="kw">const</span> <span class="fn">computeTotal</span> = (items) =&gt; {</span></div>
+                    <div class="pulse-err-stack-line"><span class="ln">83</span><span>&nbsp;&nbsp;<span class="cm">// sum line items + tax</span></span></div>
+                    <div class="pulse-err-stack-line frame"><span class="ln">84</span><span>&nbsp;&nbsp;<span class="kw2">return</span> items.reduce((a, i) =&gt; a + <b>i.price</b> * i.qty, 0);</span></div>
+                    <div class="pulse-err-stack-line"><span class="ln">85</span><span>};</span></div>
+                    <div class="pulse-err-stack-line"><span class="ln">86</span><span></span></div>
+                    <div class="pulse-err-stack-line"><span class="ln">87</span><span><span class="kw">function</span> <span class="fn">CartSummary</span>({ cartId }) {</span></div>
+                    <div class="pulse-err-stack-line"><span class="ln">88</span><span>&nbsp;&nbsp;<span class="kw">const</span> items = useCart(cartId)<b>?.items</b>;</span></div>
+                </div>
+                <div class="pulse-err-bread">
+                    <h5>Breadcrumbs · last 6 events before crash</h5>
+                    <div class="pulse-err-bread-row"><span class="t">14:02:08</span><span class="tag nav">nav</span><span>GET /checkout/cart</span></div>
+                    <div class="pulse-err-bread-row"><span class="t">14:02:09</span><span class="tag click">click</span><span>button[data-id=&quot;apply-promo&quot;]</span></div>
+                    <div class="pulse-err-bread-row"><span class="t">14:02:09</span><span class="tag http">http</span><span>POST /api/promo · 200 OK</span></div>
+                    <div class="pulse-err-bread-row"><span class="t">14:02:10</span><span class="tag http">http</span><span>GET /api/cart/8821 · 200 OK</span></div>
+                    <div class="pulse-err-bread-row"><span class="t">14:02:11</span><span class="tag click">click</span><span>a[href=&quot;/checkout/review&quot;]</span></div>
+                    <div class="pulse-err-bread-row err"><span class="t">14:02:11</span><span class="tag err">err</span><span>TypeError · cart.tsx:84</span></div>
+                </div>
+            </div>
+
+            <div class="pulse-tests-bullets">
+                <div class="pulse-bullet">
+                    <h4>Full stack traces</h4>
+                    <p>Sourcemapped to your original code. Click any frame to jump to the line. Local variables and breadcrumbs included.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Smart grouping</h4>
+                    <p>Identical exceptions collapse into one issue with a frequency curve. New errors stand out. Resolved ones stay resolved — until they regress.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Release tagging</h4>
+                    <p>Every event tagged with the release that produced it. See the spike start at v2.4.1, find the commit, ship the fix.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Web · server · mobile</h4>
+                    <p>JavaScript, Node, Python, Ruby, PHP, Go. One SDK per stack, one inbox for everything. Same routing, same on-call.</p>
+                </div>
+                <div class="pulse-bullet">
+                    <h4>Privacy aware</h4>
+                    <p>Scrub PII before send. Configurable allowlist for headers and request bodies. Hosted in the EU, GDPR by default.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- STATS BAR --}}
+    <div class="pulse-stats-bar">
+        <div class="pulse-stat-cell">
+            <div class="pulse-stat-cell-num">{{ $abbr($totalChecks) }}</div>
+            <div class="pulse-stat-cell-label">CHECKS RUN</div>
+        </div>
+        <div class="pulse-stat-cell">
+            <div class="pulse-stat-cell-num">{{ $abbr($totalMonitors) }}</div>
+            <div class="pulse-stat-cell-label">MONITORS WATCHED</div>
+        </div>
+        <div class="pulse-stat-cell">
+            <div class="pulse-stat-cell-num">{{ $abbr($totalAlerts) }}</div>
+            <div class="pulse-stat-cell-label">ALERTS DELIVERED</div>
+        </div>
+        <div class="pulse-stat-cell">
+            <div class="pulse-stat-cell-num">60<span style="color:var(--red);">s</span></div>
+            <div class="pulse-stat-cell-label">MIN INTERVAL</div>
         </div>
     </div>
-</div>
 
-
-<footer class="bg-white">
-    <div class="mx-auto max-w-7xl overflow-hidden py-20 px-6 sm:py-24 lg:px-8">
-        <nav class="-mb-6 justify-center sm:columns-2 sm:flex sm:justify-center sm:space-x-12"
-             aria-label="Footer">
-            <div class="pb-6"><a href="https://www.webmethod.nl/juridisch/algemene-voorwaarden"
-                                 class="text-sm leading-6 text-gray-600 hover:text-gray-900">Terms</a>
+    {{-- PRICING --}}
+    <section class="pulse-section" id="pricing">
+        <div class="pulse-section-head">
+            <div>
+                <div class="pulse-section-eyebrow">07 · Pricing</div>
+                <h2 class="pulse-section-title">Free forever. <em>Or yours forever.</em></h2>
             </div>
-            <div class="pb-6"><a href="/privacy"
-                                 class="text-sm leading-6 text-gray-600 hover:text-gray-900">Privacy</a></div>
-            <div class="pb-6"><a href="https://www.webmethod.nl/juridisch/coordinated-vulnerability-disclosure"
-                                 class="text-sm leading-6 text-gray-600 hover:text-gray-900">Coordinated Vulnerability
-                    Disclosure</a></div>
-            <div class="pb-6"><a href="https://github.com/sponsors/janyksteenbeek"
-                                 class="text-sm leading-6 text-gray-600 hover:text-gray-900">Sponsor</a></div>
-            <div class=" pb-6"><a href="https://github.com/janyksteenbeek/uppi"
-                                  class="text-sm leading-6 text-gray-600 hover:text-gray-900">GitHub</a></div>
-            <div class=" pb-6"><a href="https://x.com/janyksteenbeek">𝕏</a></div>
-            <a class="pb-6 lg:-mt-4"
-               href="https://www.producthunt.com/posts/uppi?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-uppi"
-               target="_blank"><img
-                    src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=750291&theme=light"
-                    alt="Uppi - Uptime&#0032;monitoring&#0032;and&#0032;alerting&#0044;&#0032;open&#0045;source&#0032;&#0038;&#0032;free | Product Hunt"
-                    style="width: 250px; height: 54px;" width="250" height="54"/></a>
-        </nav>
-        <div class="mt-10 flex justify-center"><a href="https://www.webmethod.nl?utm_source=uppi&utm_medium=footer"
-                                                  class="text-gray-400 hover:text-gray-500"><img
-                    src="https://www.webmethod.nl/assets/images/logo/logo.png"
-                    alt="Webmethod"
-                    class="h-5"></a></div>
-        <p class="mt-10 text-center text-xs leading-5 text-gray-500">© {{ date('Y') }} Webmethod ·
-            KVK 63314061 · BTW-ID NL002401656B67</p></div>
-</footer>
+            <p class="pulse-section-sub">
+                Hosted is free up to a fair limit, no card and no clock. Or self-host the whole thing — same software, your perimeter, no telemetry.
+            </p>
+        </div>
+        <div class="pulse-pricing">
+            <div class="pulse-plan">
+                <span class="pulse-plan-name">Hosted · free</span>
+                <div class="pulse-plan-price">€0<small>/forever</small></div>
+                <p class="pulse-plan-tag">Run by us. No card. No clock. No surprise migration to a paid tier.</p>
+                <ul class="pulse-plan-features">
+                    <li>Up to 25 monitors</li>
+                    <li>1-minute interval</li>
+                    <li>All monitor types</li>
+                    <li>All alert channels</li>
+                    <li>Public status pages</li>
+                    <li>30-day history</li>
+                </ul>
+                <a class="pulse-plan-cta dark" href="{{ $dashboardUrl }}">Start free →</a>
+            </div>
+            <div class="pulse-plan featured">
+                <span class="pulse-plan-name">Self-host · open source</span>
+                <div class="pulse-plan-price">€0<small>/your servers</small></div>
+                <p class="pulse-plan-tag">Your servers, your data, your runtime. Same software, just inside your perimeter — forever.</p>
+                <ul class="pulse-plan-features">
+                    <li>Unlimited monitors</li>
+                    <li>1-minute interval</li>
+                    <li>Full source on GitHub</li>
+                    <li>Docker · Kubernetes · bare metal</li>
+                    <li>Community support</li>
+                    <li>No telemetry, no phone-home</li>
+                </ul>
+                <a class="pulse-plan-cta light" href="https://github.com/janyksteenbeek/uppi/blob/main/README.md">Read the docs →</a>
+            </div>
+        </div>
+    </section>
+
+    {{-- FOOTER --}}
+    <footer class="pulse-foot">
+        <div class="pulse-foot-head">
+            <a href="/" class="pulse-foot-mark" aria-label="Uppi"><img src="{{ asset('logo.svg') }}" alt="Uppi"></a>
+            <div class="pulse-foot-status">
+                <span class="pulse-pill"><span class="pulse-dot"></span> All systems normal</span>
+                <span class="sep">·</span>
+                <span>1-minute checks</span>
+                <span class="sep">·</span>
+                <span>EU hosted</span>
+            </div>
+        </div>
+        <div class="pulse-foot-cols">
+            <div class="pulse-foot-col">
+                <h4>About</h4>
+                <p>Open-source uptime, browser tests and exception tracking — built to watch your services so you don&rsquo;t have to.</p>
+            </div>
+            <div class="pulse-foot-col">
+                <h4>Product</h4>
+                <a href="#coverage">Monitors</a>
+                <a href="#tests">Tests</a>
+                <a href="#errors">Errors</a>
+                <a href="#servers">Servers</a>
+                <a href="#pricing">Pricing</a>
+                <a href="https://apps.apple.com/app/uppi/id6739699410">iOS app</a>
+                <a href="https://play.google.com/store/apps/details?id=dev.uppi.app">Android app</a>
+            </div>
+            <div class="pulse-foot-col">
+                <h4>Resources</h4>
+                <a href="https://github.com/janyksteenbeek/uppi/blob/main/README.md">Docs</a>
+                <a href="https://github.com/janyksteenbeek/uppi">GitHub</a>
+                <a href="https://github.com/sponsors/janyksteenbeek">Sponsor</a>
+                <a href="https://github.com/janyksteenbeek/uppi/issues">Roadmap</a>
+                <a href="https://github.com/janyksteenbeek/uppi#contributing">Contribute</a>
+            </div>
+            <div class="pulse-foot-col">
+                <h4>Company</h4>
+                <a href="{{ url('privacy') }}">Privacy</a>
+                <a href="https://www.webmethod.nl/juridisch/algemene-voorwaarden">Terms</a>
+                <a href="https://www.webmethod.nl/juridisch/coordinated-vulnerability-disclosure">VDP</a>
+                <a href="https://x.com/janyksteenbeek">𝕏</a>
+            </div>
+        </div>
+        <div class="pulse-foot-end">
+            <span>© {{ date('Y') }} Webmethod · KVK 63314061 · BTW NL002401656B67</span>
+            <span>source available · CC-BY-NC</span>
+        </div>
+    </footer>
+</div>
 </body>
 </html>

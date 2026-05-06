@@ -54,13 +54,13 @@ enum AlertType: string implements HasIcon, HasLabel
     public function getIcon(): ?string
     {
         return match ($this) {
-            self::EMAIL => 'heroicon-o-envelope',
+            self::EMAIL => 'phosphor-envelope',
             self::SLACK => 'fab-slack',
-            self::BIRD => 'heroicon-o-megaphone',
-            self::MESSAGEBIRD => 'heroicon-o-chat-bubble-oval-left-ellipsis',
-            self::PUSHOVER => 'heroicon-o-bell',
+            self::BIRD => 'phosphor-megaphone',
+            self::MESSAGEBIRD => 'phosphor-chat-circle-dots',
+            self::PUSHOVER => 'phosphor-bell',
             self::TELEGRAM => 'fab-telegram',
-            self::EXPO => 'heroicon-o-device-phone-mobile',
+            self::EXPO => 'phosphor-device-mobile',
         };
     }
 }

@@ -53,7 +53,7 @@ class ActiveAnomalies extends BaseWidget
                     }),
             ])
             ->searchable(false)
-            ->emptyStateIcon('heroicon-o-face-smile')
+            ->emptyStateIcon('phosphor-smiley')
             ->emptyStateHeading('No anomalies found')
             ->emptyStateDescription('All systems are running smoothly')
             ->paginated(false)

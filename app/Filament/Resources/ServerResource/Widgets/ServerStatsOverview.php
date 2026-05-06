@@ -31,7 +31,7 @@ class ServerStatsOverview extends BaseWidget
                 Stat::make('Status', 'Waiting for data')
                     ->description('No metrics received yet')
                     ->color('warning')
-                    ->icon('heroicon-o-clock'),
+                    ->icon('phosphor-clock'),
             ];
         }
 

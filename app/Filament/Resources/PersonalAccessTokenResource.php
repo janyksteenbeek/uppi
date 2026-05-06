@@ -29,7 +29,7 @@ class PersonalAccessTokenResource extends Resource
 
     protected static ?string $navigationLabel = 'Connections';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-stack';
 
     public static function form(Schema $schema): Schema
     {
@@ -72,7 +72,7 @@ class PersonalAccessTokenResource extends Resource
             ])
             ->headerActions([
                 Action::make('create_token')
-                    ->icon('heroicon-o-plus')
+                    ->icon('phosphor-plus')
                     ->label('Register new mobile device')
                     ->action(function () {
                         $activationCode = strtoupper(Str::random(6));

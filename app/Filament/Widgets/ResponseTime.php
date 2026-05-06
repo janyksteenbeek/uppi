@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\CacheTasks\ResponseTimeAggregator;
 use App\Models\Check;
 use App\Models\Monitor;
+use App\Support\ChartTheme;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -119,23 +120,6 @@ class ResponseTime extends ChartWidget
 
     public static function generatePastelColorBasedOnMonitorId(string $monitorId): string
     {
-        $colors = [
-            [145, 190, 230],
-            [230, 145, 145],
-            [145, 230, 145],
-            [230, 190, 145],
-            [190, 145, 230],
-            [145, 230, 190],
-            [230, 145, 190],
-            [190, 230, 145],
-            [145, 145, 230],
-            [230, 230, 145],
-        ];
-
-        $hash = crc32($monitorId);
-        $index = $hash % count($colors);
-        [$r, $g, $b] = $colors[$index];
-
-        return "rgba($r, $g, $b, 0.8)";
+        return ChartTheme::colorForKeyRgba($monitorId, 0.85);
     }
 }

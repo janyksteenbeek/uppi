@@ -26,7 +26,7 @@ class AnomalyResource extends Resource
 
     protected static ?string $model = Anomaly::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-exclamation-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-warning-circle';
 
     public static function form(Schema $schema): Schema
     {

@@ -2,10 +2,6 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Auth\Pages\Login;
-use Filament\Auth\Pages\Register;
-use Filament\Auth\Pages\EmailVerification\EmailVerificationPrompt;
-use Filament\Auth\Pages\PasswordReset\RequestPasswordReset;
 use App\Filament\Resources\PersonalAccessTokenResource;
 use App\Filament\Widgets\ActiveAnomalies;
 use App\Filament\Widgets\AnomaliesPerMonitor;
@@ -15,6 +11,10 @@ use App\Filament\Widgets\StatusWidget;
 use App\Models\SocialiteUser;
 use DutchCodingCompany\FilamentSocialite\FilamentSocialitePlugin;
 use DutchCodingCompany\FilamentSocialite\Provider as SocialiteProvider;
+use Filament\Auth\Pages\EmailVerification\EmailVerificationPrompt;
+use Filament\Auth\Pages\Login;
+use Filament\Auth\Pages\PasswordReset\RequestPasswordReset;
+use Filament\Auth\Pages\Register;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -42,11 +42,12 @@ class MainPanelProvider extends PanelProvider
             ->id('main')
             ->path('')
             ->brandLogo(fn () => asset('logo.svg'))
-            ->brandLogoHeight('2rem')
+            ->brandLogoHeight('1.4rem')
+            ->sidebarWidth('16rem')
             ->favicon(fn () => asset('favicon.png'))
             ->login()
             ->colors([
-                'primary' => Color::Red,
+                'primary' => Color::generateV3Palette('#E5392E'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -55,6 +56,7 @@ class MainPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('Monitoring'),
                 NavigationGroup::make('Status Pages'),
+                NavigationGroup::make('Error Tracking'),
             ])
             ->darkMode(false)
             ->registration()
@@ -82,7 +84,7 @@ class MainPanelProvider extends PanelProvider
             ])
             ->topbar()
             ->breadcrumbs(false)
-            ->font('Manrope')
+            ->font('Geist')
             ->authMiddleware([
                 Authenticate::class,
             ])
@@ -112,11 +114,11 @@ class MainPanelProvider extends PanelProvider
                 MenuItem::make()
                     ->label('Monitoring Wall')
                     ->url(fn (): string => route('monitoring-wall'))
-                    ->icon('heroicon-o-tv'),
+                    ->icon('phosphor-television'),
                 MenuItem::make()
                     ->label('Connections')
                     ->url(fn (): string => PersonalAccessTokenResource::getUrl())
-                    ->icon('heroicon-o-device-phone-mobile'),
+                    ->icon('phosphor-device-mobile'),
             ])->plugin(
                 FilamentSocialitePlugin::make()
                     ->providers([

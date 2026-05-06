@@ -30,7 +30,7 @@ class AlertResource extends Resource
 
     protected static ?string $model = Alert::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-bell';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-bell';
 
     public static function form(Schema $schema): Schema
     {

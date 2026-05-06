@@ -29,20 +29,20 @@ enum TestFlowBlockType: string implements HasIcon, HasColor, HasLabel
     public function getIcon(): string
     {
         return match ($this) {
-            self::VISIT => 'heroicon-o-globe-alt',
-            self::WAIT_FOR_TEXT => 'heroicon-o-clock',
-            self::TYPE => 'heroicon-o-pencil',
-            self::SELECT => 'heroicon-o-chevron-up-down',
-            self::CHECK => 'heroicon-o-check-circle',
-            self::UNCHECK => 'heroicon-o-x-circle',
-            self::PRESS => 'heroicon-o-cursor-arrow-rays',
-            self::CLICK_LINK => 'heroicon-o-link',
-            self::CLICK => 'heroicon-o-cursor-arrow-ripple',
-            self::BACK => 'heroicon-o-arrow-left',
-            self::FORWARD => 'heroicon-o-arrow-right',
-            self::REFRESH => 'heroicon-o-arrow-path',
-            self::SCREENSHOT => 'heroicon-o-camera',
-            self::SUCCESS => 'heroicon-o-flag',
+            self::VISIT => 'phosphor-globe',
+            self::WAIT_FOR_TEXT => 'phosphor-clock',
+            self::TYPE => 'phosphor-pencil',
+            self::SELECT => 'phosphor-caret-up-down',
+            self::CHECK => 'phosphor-check-circle',
+            self::UNCHECK => 'phosphor-x-circle',
+            self::PRESS => 'phosphor-cursor',
+            self::CLICK_LINK => 'phosphor-link',
+            self::CLICK => 'phosphor-cursor-click',
+            self::BACK => 'phosphor-arrow-left',
+            self::FORWARD => 'phosphor-arrow-right',
+            self::REFRESH => 'phosphor-arrow-clockwise',
+            self::SCREENSHOT => 'phosphor-camera',
+            self::SUCCESS => 'phosphor-flag',
         };
     }
 

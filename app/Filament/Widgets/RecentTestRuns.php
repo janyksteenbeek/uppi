@@ -75,7 +75,7 @@ class RecentTestRuns extends BaseWidget
             ->recordActions([
                 Action::make('view')
                     ->label('Details')
-                    ->icon('heroicon-o-eye')
+                    ->icon('phosphor-eye')
                     ->color('gray')
                     ->modalHeading(fn ($record) => 'Test run: ' . $record->test?->name)
                     ->modalContent(fn ($record) => view('filament.modals.test-run-steps', ['run' => $record]))
@@ -83,7 +83,7 @@ class RecentTestRuns extends BaseWidget
                     ->modalCancelActionLabel('Close'),
             ])
             ->searchable(false)
-            ->emptyStateIcon('heroicon-o-beaker')
+            ->emptyStateIcon('phosphor-flask')
             ->emptyStateHeading('No test runs yet')
             ->emptyStateDescription('Run a test to see results here')
             ->paginated(false)

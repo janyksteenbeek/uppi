@@ -34,7 +34,7 @@ class MonitorResource extends Resource
 
     protected static ?string $model = Monitor::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-heart';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-heartbeat';
 
     public static function form(Schema $schema): Schema
     {

@@ -14,9 +14,9 @@ enum Status: string implements HasIcon, HasColor
     public function getIcon(): string
     {
         return match ($this) {
-            self::OK => 'heroicon-o-check-circle',
-            self::FAIL => 'heroicon-o-x-circle',
-            self::UNKNOWN => 'heroicon-o-question-mark-circle',
+            self::OK => 'phosphor-check-circle',
+            self::FAIL => 'phosphor-x-circle',
+            self::UNKNOWN => 'phosphor-question',
         };
     }
 

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\Alerts\AlertTriggerType;
+use App\Models\ErrorTracking\Issue;
+use App\Models\ErrorTracking\IssueAnomaly;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +17,8 @@ class AlertTrigger extends Model
         'anomaly_id',
         'alert_id',
         'monitor_id',
+        'issue_anomaly_id',
+        'issue_id',
         'type',
         'channels_notified',
         'metadata',
@@ -41,5 +45,15 @@ class AlertTrigger extends Model
     public function monitor(): BelongsTo
     {
         return $this->belongsTo(Monitor::class);
+    }
+
+    public function issueAnomaly(): BelongsTo
+    {
+        return $this->belongsTo(IssueAnomaly::class);
+    }
+
+    public function issue(): BelongsTo
+    {
+        return $this->belongsTo(Issue::class);
     }
 }

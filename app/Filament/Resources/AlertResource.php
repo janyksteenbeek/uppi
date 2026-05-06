@@ -36,7 +36,7 @@ final class AlertResource extends Resource
 {
     protected static ?string $model = Alert::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-bell-alert';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-bell-ringing';
 
     protected static ?string $navigationLabel = 'Alerts';
 
@@ -143,7 +143,7 @@ final class AlertResource extends Resource
                         ->hintAction(
                             Action::make('generate')
                                 ->label('Create a new application')
-                                ->icon('heroicon-m-arrow-top-right-on-square')
+                                ->icon('phosphor-arrow-square-out')
                                 ->url('https://pushover.net/apps/build')
                                 ->openUrlInNewTab()
                         ),
@@ -165,7 +165,7 @@ final class AlertResource extends Resource
                             Action::make('register')
                                 ->label('@uppialertbot on Telegram')
                                 ->outlined()
-                                ->icon('heroicon-o-arrow-top-right-on-square')
+                                ->icon('phosphor-arrow-square-out')
                                 ->url('https://t.me/uppialertbot')
                                 ->openUrlInNewTab(),
                         ]),
@@ -180,7 +180,7 @@ final class AlertResource extends Resource
                         Actions::make([
                             Action::make('get_chat_id')
                                 ->label('I have registered with the bot on Telegram. Attach my chat ID to this alert')
-                                ->icon('heroicon-o-check')
+                                ->icon('phosphor-check')
                                 ->action(function (Set $set) {
                                     $updates = collect(
                                         TelegramUpdates::create()
@@ -262,11 +262,11 @@ final class AlertResource extends Resource
             ])
             ->emptyStateHeading('No alerts set up yet')
             ->emptyStateDescription('Set up alerts to different destinations to notify you when something is wrong.')
-            ->emptyStateIcon('heroicon-o-bell-alert')
+            ->emptyStateIcon('phosphor-bell-ringing')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Create alert')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -278,12 +278,12 @@ final class AlertResource extends Resource
                         ->label('Enable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => true]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-check'),
+                        ->icon('phosphor-check'),
                     BulkAction::make('disable')
                         ->label('Disable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => false]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-x-mark'),
+                        ->icon('phosphor-x'),
                     DeleteBulkAction::make(),
                 ]),
             ]);

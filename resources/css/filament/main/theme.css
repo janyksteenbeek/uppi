@@ -9,10 +9,42 @@
 @source '../../../../resources/views/footer.blade.php';
 
 /*
- * Base layout and element styling
+ * ============================================================
+ *  Pulse design tokens — calm, data-forward, instrument-like
+ *  Aligned with the welcome page (resources/views/welcome.blade.php)
+ * ============================================================
  */
+:root {
+    --pulse-red: #E5392E;
+    --pulse-red-soft: #FFE9E6;
+    --pulse-ink: #0E0E10;
+    --pulse-ink-2: #3A3A40;
+    --pulse-muted: #8A8A93;
+    --pulse-line: #E8E6E1;
+    --pulse-bg: #F6F4EF;
+    --pulse-paper: #FBFAF7;
+    --pulse-green: #1F8A5B;
+
+    --pulse-display: 'Newsreader', ui-serif, Georgia, serif;
+    --pulse-body: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --pulse-mono: 'Geist Mono', ui-monospace, 'JetBrains Mono', monospace;
+}
+
+/*
+ * Base layout — warm paper background, calmer surface
+ */
+html, body {
+    font-family: var(--pulse-body);
+    font-feature-settings: 'ss01', 'cv11';
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 .fi-body {
     @apply h-full;
+    background: var(--pulse-bg);
+    color: var(--pulse-ink);
 }
 
 .fi-main-ctn {
@@ -20,7 +52,9 @@
 }
 
 .fi-main {
-    @apply my-4 bg-white border border-gray-200 ltr:rounded-tl-3xl rtl:rounded-tr-3xl rounded-bl-xl shadow-xs max-w-full! overflow-y-auto! grow;
+    @apply my-4 ltr:rounded-tl-3xl rtl:rounded-tr-3xl rounded-bl-xl shadow-xs max-w-full! overflow-y-auto! grow;
+    background: var(--pulse-paper);
+    border: 1px solid var(--pulse-line);
 }
 
 .fi-topbar {
@@ -32,24 +66,50 @@
 }
 
 /*
- * Header styling
+ * Headings & display type — editorial Fraunces
  */
-.fi-header-heading {
-    @apply text-2xl font-semibold;
+.fi-header-heading,
+.fi-section-header-heading,
+.fi-modal-heading {
+    font-family: var(--pulse-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--pulse-ink);
 }
 
-.fi-header-subheading {
-    @apply text-sm text-gray-500/90;
+.fi-header-heading {
+    @apply text-3xl;
+    font-weight: 400;
+}
+
+.fi-header-subheading,
+.fi-section-header-description,
+.fi-modal-description {
+    font-family: var(--pulse-body);
+    font-size: 0.9rem;
+    color: var(--pulse-muted);
+    letter-spacing: 0;
 }
 
 /*
- * Sidebar styling
+ * Mono / meta labels — small caps, wide tracking like an instrument panel
  */
-.fi-sidebar {
-    @apply pt-2;
+.fi-breadcrumbs,
+.fi-tabs-tab-label,
+.fi-fo-field-wrp-label,
+.fi-section-content-ctn .fi-ta-header-heading,
+.fi-fieldset-label {
+    font-family: var(--pulse-body);
 }
 
-/* Topbar is lg:hidden, so undo the sticky top offset meant for it */
+/*
+ * Sidebar — calm paper, mono group labels, hairline accent on active.
+ * Filament uses .fi-sidebar-item.fi-active + .fi-sidebar-item-btn.
+ */
+.fi-sidebar {
+    background: var(--pulse-bg);
+}
+
 @media (min-width: 1024px) {
     .fi-sidebar {
         top: 0 !important;
@@ -62,60 +122,294 @@
 }
 
 .fi-sidebar-header {
-    @apply bg-transparent! ring-0! shadow-none!;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: auto !important;
+    padding: 18px 14px 28px !important;
     display: flex !important;
 }
 
+/* Filament adds an ms-3 to .fi-logo when no topbar — kill it so logo aligns with nav-item icons */
+.fi-sidebar-header .fi-logo {
+    margin-inline-start: 0 !important;
+    margin-left: 6px !important;
+}
+
 .fi-sidebar-nav {
-    @apply flex flex-col gap-0.5 pt-4! pb-4!;
+    padding: 0 14px 14px !important;
+    gap: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 
+.fi-sidebar-nav-groups {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    gap: 16px !important;
+}
+
+/* Group block — mono label is the only separator, no hairlines */
+.fi-sidebar-group {
+    gap: 0 !important;
+    position: relative;
+}
+
+.fi-sidebar-group-btn,
+.fi-sidebar-group-dropdown-trigger-btn {
+    padding: 6px 8px 2px !important;
+    margin: 0 !important;
+    background: transparent !important;
+}
+.fi-sidebar-group-btn:hover,
+.fi-sidebar-group-dropdown-trigger-btn:hover {
+    background: transparent !important;
+}
+
+.fi-sidebar-group-label {
+    font-family: var(--pulse-mono) !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--pulse-muted) !important;
+    font-weight: 500 !important;
+}
+
+/* Collapse chevron — invisible by default, surfaces on group hover */
+.fi-sidebar-group-btn .fi-icon,
+.fi-sidebar-group-dropdown-trigger-btn .fi-icon {
+    width: 11px !important;
+    height: 11px !important;
+    color: var(--pulse-muted) !important;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+.fi-sidebar-group:hover .fi-icon {
+    opacity: 0.55;
+}
+
+.fi-sidebar-group-items {
+    gap: 1px !important;
+    padding-top: 4px;
+}
+
+/* Sidebar items */
 .fi-sidebar-item {
-    @apply relative;
+    position: relative;
 }
 
-/* The vertical dash (hidden by default) */
 .fi-sidebar-item::before {
     content: "";
-    @apply absolute left-[-1rem] w-[2px] bg-primary-600 dark:bg-white rounded-full
-    opacity-0 scale-y-0 transform origin-top transition-all duration-300 ease-in-out;
-    top: 0;
-    bottom: 0;
+    position: absolute;
+    left: -8px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--pulse-red);
+    top: 6px;
+    bottom: 6px;
+    opacity: 0;
+    transform: scaleY(0.4);
+    transform-origin: center;
+    transition: opacity .2s ease, transform .2s ease;
 }
 
-/* Sidebar link styling */
-.fi-sidebar-item-button {
-    @apply flex w-full items-center gap-3 rounded-lg px-2 py-1 font-medium
-    text-zinc-950 dark:text-white
-    hover:bg-zinc-950/5
-    transition-colors duration-200;
+.fi-sidebar-item-btn {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 5px 8px !important;
+    border-radius: 7px !important;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--pulse-ink-2) !important;
+    background: transparent !important;
+    transition: background .15s ease, color .15s ease;
+    line-height: 1.2;
+    min-height: 28px;
 }
 
-.fi-sidebar-item-button svg {
-    @apply h-6 w-6 shrink-0 transition-colors duration-200;
+.fi-sidebar-item-btn:hover {
+    background: rgba(14, 14, 16, 0.045) !important;
+    color: var(--pulse-ink) !important;
+}
+
+.fi-sidebar-item-btn .fi-icon,
+.fi-sidebar-item-btn > svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0;
+    stroke-width: 1.5;
+    color: var(--pulse-muted) !important;
+    transition: color .15s ease;
 }
 
 .fi-sidebar-item-label {
-    @apply truncate;
+    flex: 1;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--pulse-ink-2) !important;
+    letter-spacing: -0.005em;
 }
 
-/* Active state: show dash, highlight bg & text */
-.fi-sidebar-item-active .fi-sidebar-item-button {
-    @apply bg-transparent;
+.fi-sidebar-item-btn:hover .fi-sidebar-item-label,
+.fi-sidebar-item-btn:hover > .fi-icon {
+    color: var(--pulse-ink) !important;
 }
 
-.fi-sidebar-item-active::before {
-    @apply opacity-100 scale-y-100;
+/* Active state — ink-bold text, red icon + red hairline dash */
+.fi-sidebar-item.fi-active::before {
+    opacity: 1;
+    transform: scaleY(1);
 }
 
-.fi-sidebar-item-active .fi-sidebar-item-label,
-.fi-sidebar-item-active svg {
-    @apply transition-colors duration-200;
-    stroke-width: 2;
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background: transparent !important;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon,
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn > svg {
+    color: var(--pulse-red) !important;
+    stroke-width: 1.8;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-sidebar-item-label {
+    color: var(--pulse-ink) !important;
+    font-weight: 600 !important;
+}
+
+/* Item badges (e.g. "1" on Servers) */
+.fi-sidebar-item-badge-ctn .fi-badge {
+    font-family: var(--pulse-mono) !important;
+    font-size: 10px !important;
+    padding: 1px 6px !important;
+    background: rgba(229, 57, 46, 0.10) !important;
+    color: var(--pulse-red) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    letter-spacing: 0.04em;
+}
+
+/* Footer block (sidebar-user / status badge area) — sits below the nav with breathing room */
+.fi-sidebar-footer {
+    margin: 32px 14px 18px !important;
+    gap: 10px !important;
+}
+.pulse-side-foot {
+    margin-top: 32px;
+}
+
+/* Brand / logo */
+.fi-logo {
+    font-family: var(--pulse-display);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    color: var(--pulse-ink);
+    font-size: 22px;
+}
+
+/* Sidebar footer block — status badge + identity */
+.pulse-side-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.pulse-side-status {
+    background: var(--pulse-paper);
+    border: 1px solid var(--pulse-line);
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--pulse-ink-2);
+}
+.pulse-side-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 0;
+}
+/* Override Filament's full-width user-menu trigger so it's just the avatar */
+.pulse-side-user .fi-user-menu-trigger {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    flex-shrink: 0;
+    overflow: hidden;
+    justify-content: center !important;
+}
+.pulse-side-user .fi-user-menu-trigger > .fi-icon {
+    display: none !important;
+}
+.pulse-side-user .fi-user-avatar,
+.pulse-side-user .fi-user-avatar img,
+.pulse-side-user .fi-avatar,
+.pulse-side-user .fi-avatar img {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.pulse-side-user-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    min-width: 0;
+}
+.pulse-side-user-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--pulse-ink);
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pulse-side-user-email {
+    font-family: var(--pulse-mono);
+    font-size: 10.5px;
+    color: var(--pulse-muted);
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /*
- * Resource list page styling
+ * Section / card surfaces — instrument panels with hairlines
+ */
+.fi-section,
+.fi-wi-stats-overview-stat,
+.fi-wi-chart {
+    background: var(--pulse-paper) !important;
+    border: 1px solid var(--pulse-line) !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+
+.fi-section-header,
+.fi-section-content {
+    border-color: var(--pulse-line) !important;
+}
+
+.fi-ta-ctn {
+    background: var(--pulse-paper) !important;
+    border: 1px solid var(--pulse-line) !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+
+.fi-ta-header,
+.fi-ta-toolbar,
+.fi-ta-row,
+.fi-ta-cell {
+    border-color: var(--pulse-line) !important;
+}
+
+/*
+ * Resource list page — let the table page itself stay flush
  */
 .fi-main:has(> .fi-resource-list-records-page) {
     @apply lg:p-0!;
@@ -126,14 +420,19 @@
 }
 
 .fi-resource-list-records-page .fi-ta-ctn {
-    @apply rounded-none ring-0 border-t border-gray-200 shadow-xs;
+    @apply rounded-none ring-0 shadow-none;
+    border-top: 1px solid var(--pulse-line);
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
 }
 
 /*
- * Auth/Login Page Styling
+ * ===== Auth / Login page — Pulse editorial layout =====
  */
 .fi-simple-layout {
-    @apply bg-gray-50 dark:bg-gray-900 flex gap-8 w-screen overflow-hidden inset-0;
+    @apply flex gap-0 w-screen overflow-hidden inset-0;
+    background: var(--pulse-bg);
 }
 
 .fi-simple-layout .fi-logo {
@@ -146,46 +445,46 @@
 }
 
 .fi-simple-main {
-    @apply p-0 shadow-none ring-0 bg-transparent w-full! max-w-none! overflow-hidden flex rounded-xl my-0!;
+    @apply p-0 shadow-none ring-0 w-full! max-w-none! overflow-hidden flex my-0! rounded-none;
+    background: transparent;
 }
 
-/* Two-column layout for auth pages */
 .fi-simple-page {
-    @apply grid grid-cols-1 lg:grid-cols-2 min-h-svh w-full rounded-xl shadow-xl;
+    @apply grid grid-cols-1 lg:grid-cols-2 min-h-svh w-full;
     display: grid !important;
     grid-template-rows: auto;
     height: 100%;
+    background: var(--pulse-bg);
+    box-shadow: none;
 }
 
-/* Fix for modal forms positioning */
 .fi-simple-page > form {
     @apply absolute top-0 left-0 w-0 h-0 overflow-hidden opacity-0 pointer-events-none;
     grid-row: 1;
 }
 
-/* Position the auth-banner in the first column (render-hook div with the
-   m-8 rounded background; excludes the fixed-position blob overlay).
-   No explicit height — grid align-self:stretch handles it, which correctly
-   subtracts the m-8 margins so the div doesn't overflow the viewport. */
+/* Auth banner column (left) */
 .fi-simple-page > div:not(.fi-simple-page-content):not(.fixed) {
     @apply col-span-1 row-span-1;
     grid-column: 1;
     grid-row: 1;
 }
 
-/* Style the form side of auth pages */
+/* Form column (right) */
 .fi-simple-page-content {
-    @apply bg-white dark:bg-gray-900 p-6 md:p-8 lg:p-12 flex flex-col justify-center rounded-r-xl overflow-y-auto;
+    @apply p-6 md:p-10 lg:p-16 flex flex-col justify-center overflow-y-auto rounded-none;
+    background: var(--pulse-paper);
+    border-left: 1px solid var(--pulse-line);
     grid-column: 2;
     grid-row: 1;
     min-height: 0;
 }
 
-/* On mobile, stack the columns properly */
 @media (max-width: 1023px) {
     .fi-simple-page-content {
         grid-column: 1;
         grid-row: 1;
+        border-left: 0;
     }
 }
 
@@ -195,32 +494,60 @@
     @apply mt-6 max-w-sm mx-auto w-full;
 }
 
-/* Header styling in simple pages */
 .fi-simple-header {
     @apply mx-auto max-w-sm;
 }
 
 .fi-simple-header-heading {
-    @apply text-xl font-semibold text-gray-950!;
+    font-family: var(--pulse-display) !important;
+    font-weight: 400 !important;
+    font-size: 2.25rem !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.03em !important;
+    color: var(--pulse-ink) !important;
+    margin-top: 0.25rem;
 }
 
 .fi-simple-header-subheading {
-    @apply mt-2 text-sm text-gray-500;
+    @apply mt-3 text-sm;
+    color: var(--pulse-muted);
+    font-family: var(--pulse-body);
 }
 
 .fi-simple-header-logo {
-    @apply mb-6;
+    @apply mb-8;
+}
+
+.fi-simple-layout footer {
+    @apply hidden;
 }
 
 /*
- * Form element styling
+ * Form elements — calm hairlines, paper inputs, red focus
  */
-.fi-input, .fi-input-wrapper {
-    @apply border-gray-200! focus:border-primary-500! rounded-lg!;
+.fi-input,
+.fi-input-wrapper,
+.fi-select-input,
+.fi-textarea {
+    border-color: var(--pulse-line) !important;
+    background: var(--pulse-paper) !important;
+    border-radius: 10px !important;
+}
+
+.fi-input-wrapper:focus-within,
+.fi-input:focus,
+.fi-input-wrapper:has(.fi-input:focus) {
+    border-color: var(--pulse-red) !important;
+    box-shadow: 0 0 0 1px var(--pulse-red) !important;
 }
 
 .fi-input {
     @apply py-2.5! px-3!;
+    color: var(--pulse-ink) !important;
+}
+
+.fi-input::placeholder {
+    color: var(--pulse-muted);
 }
 
 .fi-form-actions {
@@ -231,44 +558,87 @@
     @apply space-y-1;
 }
 
-.fi-fieldset-item-label {
-    @apply text-sm font-medium text-gray-700;
+.fi-fieldset-item-label,
+.fi-fo-field-wrp-label {
+    @apply text-sm font-medium;
+    color: var(--pulse-ink-2);
 }
 
-/* Checkbox styling */
-.fi-checkbox {
-    @apply rounded-sm! ring-0! border-gray-300!;
+/* Checkbox / radio */
+.fi-checkbox,
+.fi-checkbox-input {
+    @apply rounded-sm! ring-0!;
+    border-color: var(--pulse-line) !important;
+}
+
+.fi-checkbox-input:checked,
+.fi-radio-input:checked {
+    background-color: var(--pulse-red) !important;
+    border-color: var(--pulse-red) !important;
 }
 
 /*
- * Button styling
+ * Buttons — pill-shaped, ink-on-paper baseline, red CTAs
  */
 .fi-btn {
-    @apply rounded-lg! transition-all duration-200;
+    @apply transition-all duration-200;
+    border-radius: 999px !important;
+    font-family: var(--pulse-body);
+    font-weight: 500;
+    letter-spacing: -0.005em;
 }
 
 .fi-btn-size-md {
     @apply py-2.5!;
 }
 
-/* Primary button specific styling */
+.fi-btn-color-primary,
 .fi-btn-primary {
-    @apply ring-0! shadow-xs! hover:shadow-md!;
+    background: var(--pulse-red) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    @apply hover:shadow-md!;
+}
+
+.fi-btn-color-primary:hover {
+    background: #C2271E !important;
+}
+
+.fi-btn-color-gray,
+.fi-btn-outlined {
+    border-color: var(--pulse-line) !important;
+    background: var(--pulse-paper) !important;
+    color: var(--pulse-ink) !important;
+}
+
+.fi-btn-color-gray:hover {
+    border-color: var(--pulse-ink) !important;
+    background: var(--pulse-bg) !important;
 }
 
 /*
- * Social login buttons
+ * Social login buttons — restrained, paper card
  */
 .fi-social-auth-buttons {
     @apply grid grid-cols-1 md:grid-cols-2 gap-3 mt-6;
 }
 
 .fi-social-auth-button {
-    @apply rounded-lg! py-2.5! shadow-none! border-gray-300! text-sm!;
+    border-radius: 999px !important;
+    @apply py-2.5! shadow-none! text-sm!;
+    border-color: var(--pulse-line) !important;
+    background: var(--pulse-paper) !important;
+    color: var(--pulse-ink) !important;
+}
+
+.fi-social-auth-button:hover {
+    border-color: var(--pulse-ink) !important;
+    background: var(--pulse-bg) !important;
 }
 
 /*
- * Custom divider styling
+ * Auth divider — hairline with mono label
  */
 .fi-auth-divider {
     @apply relative my-6 flex items-center;
@@ -277,40 +647,529 @@
 .fi-auth-divider::before,
 .fi-auth-divider::after {
     content: "";
-    @apply grow border-t border-gray-200;
+    @apply grow border-t;
+    border-color: var(--pulse-line);
 }
 
 .fi-auth-divider-label {
-    @apply mx-3 text-sm text-gray-500;
-}
-
-.fi-simple-layout footer {
-    @apply hidden;
+    @apply mx-3 text-xs;
+    font-family: var(--pulse-mono);
+    color: var(--pulse-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
 }
 
 /*
- * Custom aurora background effect
+ * Tables — paper rows, hairline dividers, mono numerics
  */
-.aurora-bg {
-    @apply absolute inset-0 z-[-1] opacity-70;
-    background: radial-gradient(circle at center, rgba(0, 255, 157, 0.4) 0%, transparent 70%);
-    animation: aurora 15s ease infinite;
+.fi-ta-header-cell-label,
+.fi-ta-text {
+    color: var(--pulse-ink-2);
 }
 
-@keyframes aurora {
-    0% {
-        transform: translate(0, 0) scale(1);
+.fi-ta-header-cell {
+    font-family: var(--pulse-body);
+    color: var(--pulse-muted) !important;
+    letter-spacing: 0;
+    font-size: 0.78rem;
+}
+
+.fi-ta-row:hover {
+    background: rgba(14, 14, 16, 0.025) !important;
+}
+
+/*
+ * Topbar — kalme paper bg
+ */
+.fi-topbar > nav {
+    background: var(--pulse-bg) !important;
+}
+
+/*
+ * Modal — paper card, instrument feel
+ */
+.fi-modal-window {
+    background: var(--pulse-paper) !important;
+    border: 1px solid var(--pulse-line) !important;
+    border-radius: 18px !important;
+}
+
+/*
+ * Badges — mono, restrained
+ */
+.fi-badge {
+    font-family: var(--pulse-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    border-radius: 6px !important;
+    font-weight: 500;
+}
+
+/*
+ * Tabs — instrument-style underline
+ */
+.fi-tabs-tab {
+    font-family: var(--pulse-body);
+    color: var(--pulse-muted);
+    border-radius: 0 !important;
+}
+
+.fi-tabs-tab[aria-selected="true"] {
+    color: var(--pulse-ink) !important;
+    border-bottom: 1.5px solid var(--pulse-red) !important;
+}
+
+/*
+ * Chart.js theming — red accent + ink ticks
+ */
+.fi-wi-chart-canvas-ctn {
+    @apply rounded-xl;
+}
+
+.fi-wi-chart .fi-wi-chart-bg-color,
+.fi-wi-chart-canvas-ctn .fi-wi-chart-bg-color {
+    color: rgba(229, 57, 46, 0.06);
+}
+
+.fi-wi-chart .fi-wi-chart-border-color,
+.fi-wi-chart-canvas-ctn .fi-wi-chart-border-color {
+    color: var(--pulse-red);
+}
+
+.fi-wi-chart .fi-wi-chart-grid-color,
+.fi-wi-chart-canvas-ctn .fi-wi-chart-grid-color {
+    color: rgba(14, 14, 16, 0.06);
+}
+
+.fi-wi-chart .fi-wi-chart-text-color,
+.fi-wi-chart-canvas-ctn .fi-wi-chart-text-color {
+    color: var(--pulse-muted);
+}
+
+/*
+ * Stats overview — display numbers in editorial serif
+ */
+.fi-wi-stats-overview-stat-value {
+    font-family: var(--pulse-display) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.03em;
+}
+
+.fi-wi-stats-overview-stat-label {
+    font-family: var(--pulse-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--pulse-muted);
+}
+
+.fi-wi-stats-overview-stat-description {
+    color: var(--pulse-ink-2);
+    font-size: 12px;
+}
+
+/*
+ * Pulse table — used inside dashboard sections (anomalies, test runs)
+ */
+.pulse-table-wrap {
+    margin: 0 -1.5rem;
+    overflow-x: auto;
+}
+.pulse-table {
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.pulse-table thead th {
+    font-family: var(--pulse-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--pulse-muted);
+    font-weight: 500;
+    text-align: left;
+    padding: 10px 1.5rem;
+    border-bottom: 1px solid var(--pulse-line);
+    background: transparent;
+}
+.pulse-table tbody td {
+    padding: 12px 1.5rem;
+    border-bottom: 1px solid var(--pulse-line);
+    color: var(--pulse-ink-2);
+    vertical-align: middle;
+}
+.pulse-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+.pulse-table tbody tr:hover td {
+    background: rgba(14, 14, 16, 0.02);
+}
+.pulse-td-strong { color: var(--pulse-ink); font-weight: 500; }
+.pulse-td-mono   { font-family: var(--pulse-mono); font-size: 12px; color: var(--pulse-muted); }
+.pulse-td-sub    { font-size: 11px; color: var(--pulse-muted); margin-top: 2px; }
+.pulse-td-action { text-align: right; }
+.pulse-link {
+    color: var(--pulse-red);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color .15s ease;
+}
+.pulse-link:hover { color: var(--pulse-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+/*
+ * Pulse skeletons + empty states — paper-toned, calm
+ */
+.pulse-skeleton {
+    background: linear-gradient(90deg,
+        rgba(232, 230, 225, 0.55) 0%,
+        rgba(232, 230, 225, 0.85) 50%,
+        rgba(232, 230, 225, 0.55) 100%);
+    background-size: 200% 100%;
+    animation: pulse-shimmer 1.6s ease-in-out infinite;
+    border-radius: 12px;
+}
+@keyframes pulse-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.pulse-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 16px;
+    text-align: center;
+    gap: 8px;
+}
+.pulse-empty-icon { display: inline-flex; }
+.pulse-empty-title {
+    font-family: var(--pulse-display);
+    font-size: 18px;
+    color: var(--pulse-ink);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin: 4px 0 0;
+}
+.pulse-empty-lede {
+    font-family: var(--pulse-body);
+    font-size: 13px;
+    color: var(--pulse-muted);
+    margin: 0;
+}
+
+/*
+ * Issue cells — Pulse error-tracking style (calm, mono tags, hairline chips)
+ */
+.pulse-issue-cell {
+    display: grid;
+    grid-template-columns: 8px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 6px 0;
+}
+.pulse-issue-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-top: 6px;
+}
+.pulse-issue-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pulse-issue-head {
+    display: flex; align-items: baseline; gap: 10px; min-width: 0;
+}
+.pulse-issue-tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 7px; border-radius: 5px;
+    font-family: var(--pulse-mono);
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+}
+.pulse-issue-tag-bad  { background: rgba(229, 57, 46, 0.10); color: var(--pulse-red); }
+.pulse-issue-tag-warn { background: rgba(214, 164, 55, 0.14); color: #8C6815; }
+.pulse-issue-tag-info { background: rgba(42, 111, 219, 0.10); color: #1F4FAB; }
+.pulse-issue-tag-mute { background: rgba(14, 14, 16, 0.06);  color: var(--pulse-ink-2); }
+
+.pulse-issue-title {
+    font-family: var(--pulse-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--pulse-ink);
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pulse-issue-culprit {
+    font-family: var(--pulse-mono);
+    font-size: 11.5px;
+    color: var(--pulse-muted);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pulse-issue-meta {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 2px;
+}
+.pulse-issue-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--pulse-line);
+    background: var(--pulse-paper);
+    font-family: var(--pulse-mono);
+    font-size: 10.5px;
+    color: var(--pulse-ink-2);
+    letter-spacing: 0.02em;
+}
+.pulse-issue-chip .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--pulse-red);
+    display: inline-block;
+}
+.pulse-issue-chip-mute { color: var(--pulse-muted); }
+
+/* Sparkline */
+.pulse-spark {
+    display: flex; align-items: flex-end; gap: 1px;
+}
+.pulse-spark-bar {
+    background: var(--pulse-line);
+    border-radius: 2px;
+    transition: background .15s ease;
+}
+.pulse-spark-bar-hot { background: var(--pulse-red); opacity: 0.85; }
+
+/*
+ * Issue detail page — Pulse card system (paper, hairline, mono labels)
+ */
+.pulse-issue-detail {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+    .pulse-issue-detail {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
     }
-    25% {
-        transform: translate(-10%, 10%) scale(1.1);
-    }
-    50% {
-        transform: translate(5%, -5%) scale(0.9);
-    }
-    75% {
-        transform: translate(10%, 5%) scale(1.05);
-    }
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
+}
+.pulse-issue-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.pulse-issue-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.pulse-card {
+    background: var(--pulse-paper);
+    border: 1px solid var(--pulse-line);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.pulse-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--pulse-line);
+}
+.pulse-card-head-end {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
+}
+.pulse-card-title {
+    font-family: var(--pulse-display);
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--pulse-ink);
+    margin: 0;
+}
+.pulse-card-meta,
+.pulse-card-eyebrow {
+    font-family: var(--pulse-mono);
+    font-size: 11px;
+    color: var(--pulse-muted);
+    letter-spacing: 0.04em;
+}
+.pulse-card-eyebrow { text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; }
+.pulse-card-body { padding: 16px 18px; }
+
+/* Exception summary */
+.pulse-issue-display {
+    font-family: var(--pulse-mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--pulse-ink);
+    line-height: 1.3;
+    word-break: break-word;
+}
+.pulse-issue-message {
+    font-family: var(--pulse-mono);
+    font-size: 13px;
+    color: var(--pulse-ink-2);
+    margin: 8px 0 0;
+    line-height: 1.55;
+    word-break: break-word;
+}
+.pulse-frame-list {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-top: 16px;
+}
+.pulse-frame-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    padding: 9px 14px;
+    border: 1px solid var(--pulse-line);
+    border-radius: 10px;
+    font-family: var(--pulse-mono);
+    font-size: 11.5px;
+    color: var(--pulse-ink-2);
+    background: var(--pulse-paper);
+    min-width: 0;
+}
+.pulse-frame-row-mute { background: var(--pulse-bg); color: var(--pulse-muted); }
+.pulse-frame-row-left { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.pulse-frame-row-lbl  { color: var(--pulse-muted); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+.pulse-frame-row-fn   { color: var(--pulse-ink); font-weight: 500; }
+.pulse-frame-row-path { color: var(--pulse-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Bars (occurrences chart) */
+.pulse-bars {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 96px;
+}
+.pulse-bar-col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.pulse-bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: var(--pulse-line);
+    transition: background .15s ease, opacity .15s ease;
+}
+.pulse-bar-hot { background: var(--pulse-red); opacity: 0.85; }
+.pulse-bars-axis {
+    display: flex; justify-content: space-between;
+    margin-top: 8px;
+    font-family: var(--pulse-mono);
+    font-size: 10px;
+    color: var(--pulse-muted);
+    letter-spacing: 0.06em;
+}
+
+/* Highlights / Tags / KV */
+.pulse-kv-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 8px 18px 14px;
+    margin: 0;
+}
+@media (min-width: 640px) {
+    .pulse-kv-grid { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+}
+.pulse-kv {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--pulse-line);
+    min-width: 0;
+}
+.pulse-kv:last-child { border-bottom: 0; }
+.pulse-kv dt {
+    font-family: var(--pulse-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--pulse-muted);
+}
+.pulse-kv dd {
+    margin: 0;
+    font-family: var(--pulse-mono);
+    font-size: 12px;
+    color: var(--pulse-ink);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.pulse-kv-list {
+    margin: 0;
+    padding: 8px 18px 14px;
+    display: flex; flex-direction: column; gap: 0;
+}
+.pulse-kv-list .pulse-kv-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--pulse-line);
+    min-width: 0;
+}
+.pulse-kv-list .pulse-kv-row:last-child { border-bottom: 0; }
+.pulse-kv-list dt,
+.pulse-kv-list .pulse-kv-row > span:first-child:not(.pulse-kv-with-dot) {
+    font-family: var(--pulse-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--pulse-muted);
+}
+.pulse-kv-list dd {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--pulse-ink);
+    text-align: right;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pulse-kv-list .pulse-kv-with-dot {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--pulse-ink);
+    text-transform: none; letter-spacing: 0;
+    font-family: var(--pulse-body);
+}
+.pulse-kv-list .pulse-kv-with-dot .dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+}
+
+.pulse-mono { font-family: var(--pulse-mono); font-size: 12px; color: var(--pulse-muted); }
+.pulse-mono-up { font-family: var(--pulse-mono); font-size: 11px; color: var(--pulse-ink); text-transform: uppercase; letter-spacing: 0.12em; }
+.pulse-num { font-family: var(--pulse-display); font-size: 16px; font-weight: 400; letter-spacing: -0.02em; color: var(--pulse-ink); }
+
+.pulse-tags-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+/* Details (collapsible) */
+.pulse-details summary {
+    cursor: pointer;
+    list-style: none;
+}
+.pulse-details summary::-webkit-details-marker { display: none; }
+.pulse-card-head-toggle .pulse-toggle-icon {
+    color: var(--pulse-muted);
+    transition: transform .2s ease;
+}
+.pulse-details[open] .pulse-toggle-icon { transform: rotate(180deg); }
+
+/*
+ * Live "pulse" dot — re-used across the panel
+ */
+.pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pulse-green);
+    position: relative;
+    display: inline-block;
+}
+.pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1.5px solid var(--pulse-green);
+    opacity: 0.4;
+    animation: pulse-ring 2s ease-out infinite;
+}
+@keyframes pulse-ring {
+    0% { transform: scale(0.6); opacity: 0.6; }
+    100% { transform: scale(1.6); opacity: 0; }
 }

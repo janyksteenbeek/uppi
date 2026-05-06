@@ -50,7 +50,7 @@ class MonitorResource extends Resource
 {
     protected static ?string $model = Monitor::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-heart';
+    protected static string | \BackedEnum | null $navigationIcon = 'phosphor-heartbeat';
 
     protected static string | \UnitEnum | null $navigationGroup = 'Monitoring';
 
@@ -90,11 +90,11 @@ class MonitorResource extends Resource
                             ->enum(MonitorType::class)
                             ->default(MonitorType::HTTP->value)
                             ->icons([
-                                MonitorType::HTTP->value => 'heroicon-o-globe-alt',
-                                MonitorType::TCP->value => 'heroicon-o-server-stack',
-                                MonitorType::PULSE->value => 'heroicon-o-clock',
-                                MonitorType::TEST->value => 'heroicon-o-beaker',
-                                MonitorType::SERVER->value => 'heroicon-o-cpu-chip',
+                                MonitorType::HTTP->value => 'phosphor-globe',
+                                MonitorType::TCP->value => 'phosphor-database',
+                                MonitorType::PULSE->value => 'phosphor-clock',
+                                MonitorType::TEST->value => 'phosphor-flask',
+                                MonitorType::SERVER->value => 'phosphor-cpu',
                             ])
                             ->options(MonitorType::options())
                             ->required()
@@ -148,7 +148,7 @@ class MonitorResource extends Resource
                                         ->label('Pulse Check-in URL')
                                         ->disabled()
                                         ->readOnly()
-                                        ->prefixIcon('heroicon-s-globe-alt')
+                                        ->prefixIcon('phosphor-globe')
                                         ->dehydrated(false)
                                         ->placeholder('URL will be generated after saving')
                                         ->helperText('This URL should be added to your cron job to check in with the server. The check-in will be marked as down if the endpoint doesn\'t get called within the interval.')
@@ -156,7 +156,7 @@ class MonitorResource extends Resource
                                         ->suffixAction(
                                             Action::make('copy_url')
                                                 ->label('Copy URL')
-                                                ->icon('heroicon-o-clipboard')
+                                                ->icon('phosphor-clipboard')
                                                 ->action(fn () => null)
                                                 ->extraAttributes(fn ($state) => [
                                                     'x-data' => '',
@@ -191,7 +191,7 @@ class MonitorResource extends Resource
                                     ->suffixAction(
                                         Action::make('copy_curl')
                                             ->label('Copy CURL')
-                                            ->icon('heroicon-o-clipboard')
+                                            ->icon('phosphor-clipboard')
                                             ->action(fn () => Notification::make()
                                                 ->title('CURL copied')
                                                 ->body('The CURL command has been copied to your clipboard.')
@@ -222,7 +222,7 @@ class MonitorResource extends Resource
                                     ->suffixAction(
                                         Action::make('copy_wget')
                                             ->label('Copy wget')
-                                            ->icon('heroicon-o-clipboard')
+                                            ->icon('phosphor-clipboard')
                                             ->action(fn () => Notification::make()
                                                 ->title('wget copied')
                                                 ->body('The wget command has been copied to your clipboard.')
@@ -464,17 +464,17 @@ class MonitorResource extends Resource
                     ->iconButton()
                     ->tooltip(fn (Monitor $record) => $record->is_enabled ? 'Disable' : 'Enable')
                     ->action(fn (Monitor $record) => $record->update(['is_enabled' => ! $record->is_enabled]))
-                    ->icon('heroicon-o-power')
+                    ->icon('phosphor-power')
                     ->color(fn (Monitor $record) => $record->is_enabled ? 'success' : 'gray'),
                 EditAction::make(),
             ])
             ->emptyStateHeading('Start monitoring your website')
             ->emptyStateDescription('Set up your first monitor to check the status of your website, API or other service.')
-            ->emptyStateIcon('heroicon-o-heart')
+            ->emptyStateIcon('phosphor-heartbeat')
             ->emptyStateActions([
                 CreateAction::make()
                     ->label('Create a monitor')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('phosphor-plus'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -482,12 +482,12 @@ class MonitorResource extends Resource
                         ->label('Enable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => true]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-check'),
+                        ->icon('phosphor-check'),
                     BulkAction::make('disable')
                         ->label('Disable')
                         ->action(fn ($records) => $records->each->update(['is_enabled' => false]))
                         ->deselectRecordsAfterCompletion()
-                        ->icon('heroicon-o-x-mark'),
+                        ->icon('phosphor-x'),
                     BulkAction::make('set_alerts')
                         ->label('Set Alerts')
                         ->schema([
@@ -503,7 +503,7 @@ class MonitorResource extends Resource
                                 $record->alerts()->sync($data['alerts']);
                             });
                         })
-                        ->icon('heroicon-o-bell'),
+                        ->icon('phosphor-bell'),
                     DeleteBulkAction::make(),
 
                 ]),
