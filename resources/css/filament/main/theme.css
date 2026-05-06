@@ -46,15 +46,28 @@
  * Sidebar styling
  */
 .fi-sidebar {
-    @apply pt-6;
+    @apply pt-2;
+}
+
+/* Topbar is lg:hidden, so undo the sticky top offset meant for it */
+@media (min-width: 1024px) {
+    .fi-sidebar {
+        top: 0 !important;
+    }
+}
+
+.fi-sidebar-header-ctn {
+    height: auto !important;
+    overflow: visible !important;
 }
 
 .fi-sidebar-header {
     @apply bg-transparent! ring-0! shadow-none!;
+    display: flex !important;
 }
 
 .fi-sidebar-nav {
-    @apply flex flex-col gap-0.5;
+    @apply flex flex-col gap-0.5 pt-4! pb-4!;
 }
 
 .fi-sidebar-item {
@@ -138,9 +151,10 @@
 
 /* Two-column layout for auth pages */
 .fi-simple-page {
-    @apply grid grid-cols-1 lg:grid-cols-2 w-full overflow-hidden rounded-xl shadow-xl;
+    @apply grid grid-cols-1 lg:grid-cols-2 min-h-svh w-full rounded-xl shadow-xl;
     display: grid !important;
     grid-template-rows: auto;
+    height: 100%;
 }
 
 /* Fix for modal forms positioning */
@@ -150,7 +164,9 @@
 }
 
 /* Position the auth-banner in the first column (render-hook div with the
-   m-8 rounded background; excludes the fixed-position blob overlay) */
+   m-8 rounded background; excludes the fixed-position blob overlay).
+   No explicit height — grid align-self:stretch handles it, which correctly
+   subtracts the m-8 margins so the div doesn't overflow the viewport. */
 .fi-simple-page > div:not(.fi-simple-page-content):not(.fixed) {
     @apply col-span-1 row-span-1;
     grid-column: 1;
@@ -159,9 +175,10 @@
 
 /* Style the form side of auth pages */
 .fi-simple-page-content {
-    @apply bg-white dark:bg-gray-900 p-6 md:p-8 lg:p-12 flex flex-col justify-center rounded-r-xl;
+    @apply bg-white dark:bg-gray-900 p-6 md:p-8 lg:p-12 flex flex-col justify-center rounded-r-xl overflow-y-auto;
     grid-column: 2;
     grid-row: 1;
+    min-height: 0;
 }
 
 /* On mobile, stack the columns properly */
@@ -172,13 +189,10 @@
     }
 }
 
-.fi-simple-page .fi-sc-form, .fi-simple-page .fi-sc-form + div {
+.fi-simple-page .fi-sc-form,
+.fi-simple-page .fi-sc-form + div,
+.fi-simple-page .fi-sc.fi-grid > div:not(.fi-grid-col) {
     @apply mt-6 max-w-sm mx-auto w-full;
-}
-
-/* Socialite buttons on auth pages — Filament 5 socialite uses fi-btn.fi-outlined */
-.fi-simple-page .fi-btn.fi-outlined {
-    @apply rounded-lg! py-2.5! shadow-none! border-gray-300! text-sm!;
 }
 
 /* Header styling in simple pages */

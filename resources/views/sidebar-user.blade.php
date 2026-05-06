@@ -1,5 +1,5 @@
 <div class="pt-12 flex flex-col justify-between h-full">
-    <div class="border border-50 rounded-lg p-2  shadow-sm">
+    <div class="border border-gray-200 rounded-lg p-2 shadow-sm bg-white">
         <livewire:global-status-badge/>
     </div>
     <div class=" flex rounded-lg border-gray-200  items-center gap-4">
