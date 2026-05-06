@@ -42,11 +42,11 @@ class Monitor extends Model
 
     protected static function booted(): void
     {
-        if (Auth::hasUser()) {
-            static::addGlobalScope('user', function (Builder $builder) {
+        static::addGlobalScope('user', function (Builder $builder) {
+            if (Auth::hasUser()) {
                 $builder->where('user_id', Auth::id());
-            });
-        }
+            }
+        });
 
         static::creating(function (Monitor $monitor) {
             $monitor->next_check_at = now();

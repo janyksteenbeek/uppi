@@ -27,11 +27,11 @@ class StatusPage extends Model
 
     protected static function booted()
     {
-        if (Auth::hasUser()) {
-            static::addGlobalScope('user', function (Builder $builder) {
+        static::addGlobalScope('user', function (Builder $builder) {
+            if (Auth::hasUser()) {
                 $builder->where('user_id', Auth::id());
-            });
-        }
+            }
+        });
     }
 
     public function user(): BelongsTo

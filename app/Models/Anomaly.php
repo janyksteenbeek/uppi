@@ -27,13 +27,13 @@ class Anomaly extends Model
 
     protected static function booted()
     {
-        if (Auth::hasUser()) {
-            static::addGlobalScope('user', function (Builder $builder) {
+        static::addGlobalScope('user', function (Builder $builder) {
+            if (Auth::hasUser()) {
                 $builder->whereHas('monitor', function ($query) {
                     $query->where('user_id', Auth::id());
                 });
-            });
-        }
+            }
+        });
     }
 
     public function monitor(): BelongsTo
