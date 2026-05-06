@@ -91,7 +91,7 @@
     $byBucket = array_fill(0, $bucketCount, 0);
     $byEnv = [];
     foreach ($eventsForChart as $e) {
-        $idx = (int) floor($chartSince->diffInRealMinutes($e->occurred_at) / $bucketMinutes);
+        $idx = (int) floor($chartSince->diffInMinutes($e->occurred_at) / $bucketMinutes);
         if ($idx >= 0 && $idx < $bucketCount) {
             $byBucket[$idx]++;
         }
@@ -122,6 +122,21 @@
     $request = $event?->request;
     $breadcrumbs = $event?->breadcrumbs;
     $userContext = $event?->user_context;
+
+    $allCrumbs = is_array($breadcrumbs['values'] ?? null) ? $breadcrumbs['values'] : [];
+    $queryCrumbs = [];
+    $logCrumbs = [];
+    $trailCrumbs = [];
+    foreach ($allCrumbs as $crumb) {
+        $cat = strtolower((string) ($crumb['category'] ?? ''));
+        if ($cat === 'db.sql.query' || $cat === 'query' || $cat === 'sql.query') {
+            $queryCrumbs[] = $crumb;
+        } elseif (str_starts_with($cat, 'log.')) {
+            $logCrumbs[] = $crumb;
+        } else {
+            $trailCrumbs[] = $crumb;
+        }
+    }
 
     $statusCfg = match ($record->status?->value) {
         'open'     => ['Open',     'var(--pulse-red)'],
@@ -241,15 +256,44 @@
             </section>
         @endif
 
-        {{-- Breadcrumbs --}}
-        @if ($breadcrumbs && ! empty($breadcrumbs['values'] ?? []))
-            <details class="pulse-card pulse-details">
+        {{-- Database queries --}}
+        @if (count($queryCrumbs) > 0)
+            <details class="pulse-card pulse-details" open>
                 <summary class="pulse-card-head pulse-card-head-toggle">
-                    <h3 class="pulse-card-title">Breadcrumbs</h3>
+                    <h3 class="pulse-card-title">Database queries</h3>
+                    <span class="pulse-card-meta">{{ count($queryCrumbs) }}</span>
                     <svg class="pulse-toggle-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </summary>
                 <div class="pulse-card-body">
-                    @include('filament.error-tracking.breadcrumbs', ['breadcrumbs' => $breadcrumbs])
+                    @include('filament.error-tracking.queries', ['queries' => $queryCrumbs])
+                </div>
+            </details>
+        @endif
+
+        {{-- Logs --}}
+        @if (count($logCrumbs) > 0)
+            <details class="pulse-card pulse-details" open>
+                <summary class="pulse-card-head pulse-card-head-toggle">
+                    <h3 class="pulse-card-title">Logs</h3>
+                    <span class="pulse-card-meta">{{ count($logCrumbs) }}</span>
+                    <svg class="pulse-toggle-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="pulse-card-body">
+                    @include('filament.error-tracking.logs', ['logs' => $logCrumbs])
+                </div>
+            </details>
+        @endif
+
+        {{-- Trail (other breadcrumbs) --}}
+        @if (count($trailCrumbs) > 0)
+            <details class="pulse-card pulse-details">
+                <summary class="pulse-card-head pulse-card-head-toggle">
+                    <h3 class="pulse-card-title">Trail</h3>
+                    <span class="pulse-card-meta">{{ count($trailCrumbs) }}</span>
+                    <svg class="pulse-toggle-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="pulse-card-body">
+                    @include('filament.error-tracking.breadcrumbs', ['breadcrumbs' => ['values' => $trailCrumbs]])
                 </div>
             </details>
         @endif

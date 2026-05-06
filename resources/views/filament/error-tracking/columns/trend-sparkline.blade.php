@@ -11,7 +11,7 @@
 
         $buckets = array_fill(0, 24, 0);
         foreach ($rows as $occurredAt) {
-            $hours = (int) floor($since->diffInRealMinutes($occurredAt) / 60);
+            $hours = (int) floor($since->diffInMinutes($occurredAt) / 60);
             if ($hours >= 0 && $hours < 24) {
                 $buckets[$hours]++;
             }
